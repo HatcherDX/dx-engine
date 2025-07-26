@@ -30,7 +30,7 @@ export default defineConfig({
     environment: 'happy-dom',
     setupFiles: ['./vitest.setup.ts'],
 
-    // INCLUIR TODOS LOS TESTS DEL MONOREPO (EXCLUYENDO WIP)
+    // Include all tests from monorepo (excluding WIP)
     include: [
       'apps/**/*.{test,spec}.{js,ts}',
       'universal/**/*.{test,spec}.{js,ts}',
@@ -45,7 +45,7 @@ export default defineConfig({
       'apps/docs/**',
     ],
 
-    // CONFIGURACIÓN DE ALIAS PARA TESTS
+    // Test alias configuration
     alias: {
       '@/apps/web': resolve(__dirname, 'apps/web/src'),
       '@/apps/electron': resolve(__dirname, 'apps/electron/src'),
@@ -57,7 +57,7 @@ export default defineConfig({
       '/logo-dark.svg': resolve(__dirname, 'apps/web/public/logo-dark.svg'),
     },
 
-    // CONFIGURACIÓN DE ISTANBUL - AUTOMÁTICA
+    // Istanbul coverage configuration - automatic
     coverage: {
       provider: 'istanbul',
       reporter: ['text', 'json', 'html'],
@@ -66,14 +66,15 @@ export default defineConfig({
       clean: true,
       cleanOnRerun: true,
 
-      // INCLUIR TODO EL CÓDIGO FUENTE (EXCLUYENDO WIP)
+      // Include all source code (excluding WIP)
       include: [
         'apps/**/*.{js,ts,vue}',
         'universal/**/*.{js,ts}',
+        'scripts/**/*.{js,ts}',
         '!apps/docs/**',
       ],
 
-      // EXCLUIR ARCHIVOS NO RELEVANTES
+      // Exclude irrelevant files
       exclude: [
         '**/*.{test,spec}.{js,ts,vue}',
         '**/test/**',
@@ -91,6 +92,10 @@ export default defineConfig({
         '**/registerServiceWorker.ts',
         '**/vite-env.d.ts',
         '**/style.css',
+        // Exclude development scripts that don't need coverage
+        'scripts/dev-electron.ts',
+        'scripts/watch.ts',
+        'scripts/translation/**',
       ],
     },
   },

@@ -125,6 +125,46 @@ const emit = defineEmits(['click'])
 - NUNCA usar 'as any': Usar tipos TypeScript específicos
 - Props estáticas sin binding: `title="Texto"` en lugar de `:title="'Texto'"`
 
+### Comentarios en Código
+
+**TODOS LOS COMENTARIOS EN CÓDIGO DEBEN SER EN INGLÉS**
+
+```typescript
+// ✅ CORRECTO: Comentarios en inglés
+// Include all source code (excluding WIP)
+include: [
+  'apps/**/*.{js,ts,vue}',
+  'universal/**/*.{js,ts}',
+  'scripts/**/*.{js,ts}',
+],
+
+// Exclude irrelevant files
+exclude: [
+  '**/*.{test,spec}.{js,ts,vue}',
+  // Exclude development scripts that don't need coverage
+  'scripts/dev-electron.ts',
+  'scripts/watch.ts',
+]
+```
+
+```typescript
+// ❌ INCORRECTO: Comentarios en español
+// INCLUIR TODO EL CÓDIGO FUENTE (EXCLUYENDO WIP)
+include: [
+  'apps/**/*.{js,ts,vue}',
+  'universal/**/*.{js,ts}',
+  'scripts/**/*.{js,ts}',
+],
+
+// EXCLUIR ARCHIVOS NO RELEVANTES
+exclude: [
+  '**/*.{test,spec}.{js,ts,vue}',
+  // Excluir scripts de desarrollo que no necesitan cobertura
+  'scripts/dev-electron.ts',
+  'scripts/watch.ts',
+]
+```
+
 ### Vue Router Navigation
 
 - NUNCA usar string paths: Siempre object notation
