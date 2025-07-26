@@ -1,0 +1,26 @@
+# Prettier ignore patterns
+
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build outputs
+dist/
+build/
+out/
+coverage/
+**/.vitepress/dist/
+**/.vitepress/cache/
+
+# Generated files
+**/.electron-vendors.cache.json
+**/components.d.ts
+**/auto-imports.d.ts
+
+# Lock files (don't format these)
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# Generated icons
+**/icon.iconset/

@@ -51,6 +51,9 @@ yarn-error.log*
 **/build/
 **/out/
 
+# electron cache files
+**/.electron-vendors.cache.json
+
 # generated icons (use npm run icons to regenerate)
 **/buildResources/icon.iconset/
 **/buildResources/icon.icns
