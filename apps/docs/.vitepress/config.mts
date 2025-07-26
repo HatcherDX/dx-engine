@@ -652,35 +652,86 @@ export default defineConfig({
     // Favicon and basic meta
     ['link', { rel: 'icon', href: '/favicon.ico' }],
     ['meta', { name: 'theme-color', content: '#646cff' }],
-    
+
     // Canonical URL - tells Google which is your preferred URL
     ['link', { rel: 'canonical', href: 'https://hatche.rs' }],
-    
+
     // Open Graph meta tags for Facebook, LinkedIn, etc.
-    ['meta', { property: 'og:title', content: 'Hatcher | The IDE for Controlled AI Development' }],
-    ['meta', { property: 'og:description', content: 'An open-source IDE that gives professional developers deterministic control over AI. Stop the guesswork. Start shipping.' }],
-    ['meta', { property: 'og:image', content: 'https://hatche.rs/brand/egg-white.png' }],
+    [
+      'meta',
+      {
+        property: 'og:title',
+        content: 'Hatcher | The IDE for Controlled AI Development',
+      },
+    ],
+    [
+      'meta',
+      {
+        property: 'og:description',
+        content:
+          'An open-source IDE that gives professional developers deterministic control over AI. Stop the guesswork. Start shipping.',
+      },
+    ],
+    [
+      'meta',
+      {
+        property: 'og:image',
+        content: 'https://hatche.rs/brand/egg-white.png',
+      },
+    ],
     ['meta', { property: 'og:url', content: 'https://hatche.rs' }],
     ['meta', { property: 'og:type', content: 'website' }],
     ['meta', { property: 'og:site_name', content: 'Hatcher' }],
-    
+
     // Twitter Card meta tags
     ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
-    ['meta', { name: 'twitter:title', content: 'Hatcher | The IDE for Controlled AI Development' }],
-    ['meta', { name: 'twitter:description', content: 'An open-source IDE that gives professional developers deterministic control over AI. Stop the guesswork. Start shipping.' }],
-    ['meta', { name: 'twitter:image', content: 'https://hatche.rs/brand/egg-white.png' }],
+    [
+      'meta',
+      {
+        name: 'twitter:title',
+        content: 'Hatcher | The IDE for Controlled AI Development',
+      },
+    ],
+    [
+      'meta',
+      {
+        name: 'twitter:description',
+        content:
+          'An open-source IDE that gives professional developers deterministic control over AI. Stop the guesswork. Start shipping.',
+      },
+    ],
+    [
+      'meta',
+      {
+        name: 'twitter:image',
+        content: 'https://hatche.rs/brand/egg-white.png',
+      },
+    ],
     ['meta', { name: 'twitter:creator', content: '@HatcherDX' }],
     ['meta', { name: 'twitter:site', content: '@HatcherDX' }],
-    
+
     // Additional SEO meta tags
-    ['meta', { name: 'keywords', content: 'AI IDE, visual-to-code, Vue AI tool, Claude Code IDE, deterministic AI control, open-source IDE, AI development, developer tools' }],
-    ['meta', { name: 'author', content: 'Chriss Mejía and the Hatcher community' }],
+    [
+      'meta',
+      {
+        name: 'keywords',
+        content:
+          'AI IDE, visual-to-code, Vue AI tool, Claude Code IDE, deterministic AI control, open-source IDE, AI development, developer tools',
+      },
+    ],
+    [
+      'meta',
+      { name: 'author', content: 'Chriss Mejía and the Hatcher community' },
+    ],
     ['meta', { name: 'robots', content: 'index, follow' }],
-    
+
     // Google Analytics
     [
       'script',
-      { async: '', src: 'https://www.googletagmanager.com/gtag/js?id=G-LMJ8EF40PZ' }
+      {
+        async: '',
+        src: 'https://www.googletagmanager.com/gtag/js?id=G-LMJ8EF40PZ',
+      },
     ],
     [
       'script',
@@ -688,7 +739,7 @@ export default defineConfig({
       `window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-      gtag('config', 'G-LMJ8EF40PZ');`
+      gtag('config', 'G-LMJ8EF40PZ');`,
     ],
   ],
 

@@ -40,6 +40,30 @@ dx-engine/
 
 Este es un **monorepo pnpm workspace**. Usar npm rompe la gestión de dependencias y workspaces.
 
+### 🚨 REGLA CRÍTICA: VALIDACIÓN OBLIGATORIA POST-CAMBIOS
+
+**DESPUÉS DE CADA CAMBIO DE CÓDIGO, EJECUTAR VALIDACIONES OBLIGATORIAS**
+
+**ANTES DE DAR POR TERMINADA CUALQUIER TAREA, EJECUTAR:**
+
+```bash
+# OBLIGATORIO: Verificar formato de código
+pnpm run format:check
+
+# OBLIGATORIO: Verificar linting
+pnpm lint
+```
+
+**SI CUALQUIERA DE ESTOS COMANDOS FALLA, LA TAREA NO ESTÁ COMPLETA**
+
+- ❌ **INACEPTABLE**: Entregar código que rompe el format:check
+- ❌ **INACEPTABLE**: Entregar código que rompe el linting
+- ✅ **OBLIGATORIO**: Ambos comandos deben pasar exitosamente
+- ✅ **OBLIGATORIO**: Si falla format:check, ejecutar `pnpm run format` para arreglar
+- ✅ **OBLIGATORIO**: Si falla lint, arreglar todos los errores antes de continuar
+
+**Esta validación es OBLIGATORIA para mantener la calidad del código y evitar problemas en CI/CD.**
+
 ### Comandos Principales
 
 ```bash

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
+import type { App } from 'vue'
 
 // Mock Vue and CSS imports
 vi.mock('vue', () => ({
@@ -18,7 +19,7 @@ describe('main.ts', () => {
     const mockApp = {
       mount: vi.fn(),
     }
-    vi.mocked(createApp).mockReturnValue(mockApp)
+    vi.mocked(createApp).mockReturnValue(mockApp as unknown as App<Element>)
 
     // Import main.ts to trigger the app creation and mounting
     await import('./main')
