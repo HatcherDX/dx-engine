@@ -1,3 +1,8 @@
+---
+title: Playbooks System | Dynamic AI Context Management for Teams
+description: Master Hatcher's Playbooks system - the next-generation solution for AI context management. Create dynamic, governable Corporate Constitutions that teach AI your team's coding standards and architecture decisions.
+---
+
 # Playbooks System
 
 The Playbooks system is Hatcher's second-generation solution to the context problem in AI development. Where static files like `Claude.md` provide a starting point, Playbooks offer a dynamic, centralized, and governable system that acts as a true Corporate Constitution for your AI agents.

@@ -1,3 +1,8 @@
+---
+title: Architecture | Hatcher IDE Technical Design & Engineering Principles
+description: Explore Hatcher's technical architecture designed for Controlled Amplification. Learn about the deterministic design, model-agnostic approach, and open-source engineering principles.
+---
+
 # Hatcher Architecture
 
 The architecture of Hatcher is deliberately designed to embody our core philosophy: **Controlled Amplification**. Every component and technology choice serves our mission to create a deterministic, powerful, and extensible development environment that keeps the developer firmly in control.

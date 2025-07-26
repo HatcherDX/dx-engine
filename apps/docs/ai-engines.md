@@ -1,3 +1,8 @@
+---
+title: AI Engines | Integrate Claude Code, Gemini CLI & More with Hatcher
+description: Configure and integrate multiple AI coding assistants with Hatcher IDE. Support for Claude Code, Gemini CLI, and other AI engines for flexible, powerful development workflows.
+---
+
 # AI Engines
 
 Hatcher integrates with multiple AI coding assistants to provide flexibility and leverage the unique strengths of different models.

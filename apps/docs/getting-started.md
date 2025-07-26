@@ -1,3 +1,8 @@
+---
+title: Getting Started | Hatcher IDE for AI Development
+description: Get up and running with Hatcher IDE. Download, install, and start building with controlled AI development. Complete setup guide for the open-source IDE that gives developers deterministic control over AI.
+---
+
 # Getting Started with Hatcher
 
 Welcome to Hatcher, the IDE designed for controlled amplification in the AI era. This guide will help you get up and running quickly.

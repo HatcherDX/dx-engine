@@ -1,3 +1,8 @@
+---
+title: Roadmap | Hatcher IDE Development Plans & Future Features
+description: Explore Hatcher's development roadmap from Alpha to comprehensive AI-assisted development platform. See planned features, release timelines, and upcoming innovations in controlled AI development.
+---
+
 # Roadmap
 
 Hatcher's roadmap outlines our journey from the current proof-of-concept to a comprehensive AI-assisted development platform.

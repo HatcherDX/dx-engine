@@ -1,3 +1,8 @@
+---
+title: Contributing | Join the Hatcher Open Source Community
+description: Learn how to contribute to Hatcher IDE, the open-source AI development platform. Find setup guides, coding standards, and community guidelines for contributing to controlled AI development tools.
+---
+
 # Contributing to Hatcher
 
 Thank you for your interest in contributing to Hatcher! This guide will help you get started with contributing to the project.

@@ -1,6 +1,8 @@
 ---
 # https://vitepress.dev/reference/default-theme-home-page
 layout: home
+title: Hatcher | The IDE for Controlled AI Development
+description: An open-source IDE that gives professional developers deterministic control over AI. Visual-to-code bridge, team playbooks, and test auto-correction for professional development teams.
 
 hero:
   name: ''

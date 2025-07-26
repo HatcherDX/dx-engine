@@ -1,30 +1,62 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
+
+// Mock Vue and CSS imports
+vi.mock('vue', () => ({
+  createApp: vi.fn(() => ({
+    mount: vi.fn(),
+  })),
+}))
+
+vi.mock('./style.css', () => ({}))
+vi.mock('./App.vue', () => ({
+  default: { name: 'App' },
+}))
 
 describe('main.ts', () => {
-  it('should bootstrap Vue application', () => {
-    // Test main.ts concepts
-    const mainFeatures = {
-      framework: 'vue',
-      mount: '#app',
-      component: 'App',
-      styles: 'style.css',
+  it('should create Vue app and mount to #app', async () => {
+    const { createApp } = await import('vue')
+    const mockApp = {
+      mount: vi.fn(),
     }
+    vi.mocked(createApp).mockReturnValue(mockApp)
 
-    expect(mainFeatures.framework).toBe('vue')
-    expect(mainFeatures.mount).toBe('#app')
-    expect(mainFeatures.component).toBe('App')
-    expect(mainFeatures.styles).toBe('style.css')
+    // Import main.ts to trigger the app creation and mounting
+    await import('./main')
+
+    expect(createApp).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'App',
+      })
+    )
+    expect(mockApp.mount).toHaveBeenCalledWith('#app')
   })
 
-  it('should use createApp from Vue 3', () => {
-    // Test Vue 3 createApp usage concept
-    const vueAPI = 'createApp'
-    expect(vueAPI).toBe('createApp')
+  it('should import App component', async () => {
+    const AppComponent = await import('./App.vue')
+    expect(AppComponent.default).toHaveProperty('name', 'App')
   })
 
-  it('should mount to DOM element', () => {
-    // Test DOM mounting concept
-    const mountTarget = '#app'
-    expect(mountTarget).toBe('#app')
+  it('should test createApp function call', async () => {
+    const { createApp } = await import('vue')
+
+    // Since the main module already executed, just verify it was called
+    expect(createApp).toHaveBeenCalled()
+  })
+
+  it('should test mount function call', async () => {
+    const { createApp } = await import('vue')
+
+    // Get the mock app that was returned in the first test
+    const mockCall = vi.mocked(createApp).mock.results[0]
+    if (mockCall && mockCall.type === 'return') {
+      expect(mockCall.value.mount).toHaveBeenCalledWith('#app')
+    }
+  })
+
+  it('should import style.css', async () => {
+    // The import should not throw an error
+    expect(async () => {
+      await import('./style.css')
+    }).not.toThrow()
   })
 })

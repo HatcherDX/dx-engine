@@ -1,3 +1,8 @@
+---
+title: Visual-to-Code Bridge | Hatcher's AI Development Innovation
+description: Experience Hatcher's Visual-to-Code Bridge that revolutionizes AI-assisted development. Click, drag, and manipulate your UI directly to generate precise code changes with deterministic control.
+---
+
 # Visual-to-Code Bridge
 
 The Visual-to-Code Bridge is Hatcher's signature feature that revolutionizes how developers interact with AI coding assistants. Instead of describing changes in text, you directly manipulate your application's visual interface, and Hatcher translates your actions into precise code modifications.

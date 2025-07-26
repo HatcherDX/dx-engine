@@ -146,7 +146,7 @@
     justify-content: flex-start !important;
   }
 
-  .image-container[data-v-14defaa8] {
+  .image-container {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -161,11 +161,11 @@
     --vp-home-hero-image-filter: none;
   }
 
-  .image[data-v-14defaa8] {
+  .image {
     margin: 0 !important;
   }
 
-  .image-container[data-v-14defaa8] {
+  .image-container {
     height: auto !important;
   }
 }

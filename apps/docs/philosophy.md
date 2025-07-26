@@ -1,3 +1,8 @@
+---
+title: Philosophy | Controlled Amplification with Hatcher IDE
+description: Learn about Controlled Amplification, Hatcher's core philosophy for AI-assisted development. Discover how to maintain human control while amplifying productivity with AI in software development.
+---
+
 # The Philosophy: Controlled Amplification
 
 At the heart of Hatcher lies a fundamental philosophy: **Controlled Amplification**. This concept represents our approach to AI-assisted development, where artificial intelligence amplifies human capability while maintaining human control and precision.

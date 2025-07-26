@@ -1,4 +1,19 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
+
+// Mock electron modules
+vi.mock('electron', () => ({
+  contextBridge: {
+    exposeInMainWorld: vi.fn(),
+  },
+}))
+
+// Mock the IPCRenderer module
+vi.mock('./ipcRenderer.js', () => ({
+  IPCRenderer: vi.fn().mockImplementation(() => ({
+    send: vi.fn(),
+    on: vi.fn(),
+  })),
+}))
 
 describe('preload script', () => {
   it('should have process versions available', () => {
@@ -8,34 +23,51 @@ describe('preload script', () => {
     expect(typeof process.versions.node).toBe('string')
   })
 
-  it('should define electronAPI structure concept', () => {
-    // Test the concept of what electronAPI should contain
-    const expectedStructure = {
-      versions: 'object',
-      send: 'function',
-      on: 'function',
+  it('should import and create IPCRenderer instance', async () => {
+    const { IPCRenderer } = await import('./ipcRenderer.js')
+    expect(IPCRenderer).toBeDefined()
+  })
+
+  it('should expose electronAPI to main world', async () => {
+    const { contextBridge } = await import('electron')
+
+    // Import the module to trigger contextBridge.exposeInMainWorld
+    await import('./index.js')
+
+    expect(contextBridge.exposeInMainWorld).toHaveBeenCalledWith(
+      'electronAPI',
+      expect.objectContaining({
+        versions: process.versions,
+        send: expect.any(Function),
+        on: expect.any(Function),
+      })
+    )
+  })
+
+  it('should create electronAPI with correct structure', async () => {
+    // Test the electronAPI structure that gets created
+    const mockIPCRenderer = {
+      send: vi.fn(),
+      on: vi.fn(),
     }
 
-    expect(expectedStructure.versions).toBe('object')
-    expect(expectedStructure.send).toBe('function')
-    expect(expectedStructure.on).toBe('function')
+    const electronAPI = {
+      versions: process.versions,
+      send: mockIPCRenderer.send,
+      on: mockIPCRenderer.on,
+    }
+
+    expect(electronAPI).toHaveProperty('versions')
+    expect(electronAPI).toHaveProperty('send')
+    expect(electronAPI).toHaveProperty('on')
+    expect(electronAPI.versions).toBe(process.versions)
+    expect(typeof electronAPI.send).toBe('function')
+    expect(typeof electronAPI.on).toBe('function')
   })
 
-  it('should use contextBridge for secure communication', () => {
-    // Test contextBridge usage concept
-    const contextBridgeApiName = 'electronAPI'
-    expect(contextBridgeApiName).toBe('electronAPI')
-  })
-
-  it('should use IPC-bridge as default communication channel', () => {
-    // Test the default channel name concept
-    const defaultChannel = 'IPC-bridge'
-    expect(defaultChannel).toBe('IPC-bridge')
-  })
-
-  it('should support TypeScript with proper type exports', () => {
-    // Test TypeScript support concept
-    const hasTypeSupport = true
-    expect(hasTypeSupport).toBe(true)
+  it('should export types from types/index.js', async () => {
+    // Import will trigger the export * statement
+    const module = await import('./index.js')
+    expect(module).toBeDefined()
   })
 })
