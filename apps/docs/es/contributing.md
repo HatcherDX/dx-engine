@@ -193,13 +193,13 @@ pnpm lint:fix             # Corregir errores de linting automáticamente
 
 Todos los contribuyentes son reconocidos en:
 
-- El archivo [CONTRIBUTORS.md](CONTRIBUTORS.md)
+- El archivo CONTRIBUTORS
 - Las notas de release
 - Nuestro sitio web y documentación
 
 ## Licencia
 
-Al contribuir a Hatcher, aceptas que tus contribuciones serán licenciadas bajo la misma [Licencia MIT](LICENSE.md) que el proyecto.
+Al contribuir a Hatcher, aceptas que tus contribuciones serán licenciadas bajo la misma Licencia MIT que el proyecto.
 
 ---
 

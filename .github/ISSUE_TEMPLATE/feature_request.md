@@ -1,10 +1,9 @@
 ---
-name: "🚀 Feature Request"
+name: '🚀 Feature Request'
 about: Suggest an idea for Hatcher
 title: 'feat: [BRIEF FEATURE DESCRIPTION]'
 labels: 'enhancement, needs-triage'
 assignees: ''
-
 ---
 
 **Is your feature request related to a problem? Please describe.**

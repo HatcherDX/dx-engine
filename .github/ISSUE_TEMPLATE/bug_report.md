@@ -1,10 +1,9 @@
 ---
-name: "🐛 Bug Report"
+name: '🐛 Bug Report'
 about: Create a report to help us improve Hatcher
 title: 'fix: [BRIEF BUG DESCRIPTION]'
 labels: 'bug, needs-triage'
 assignees: ''
-
 ---
 
 **Describe the bug**
@@ -12,6 +11,7 @@ A clear and concise description of what the bug is.
 
 **To Reproduce**
 Steps to reproduce the behavior:
+
 1. Go to '...'
 2. Click on '....'
 3. Scroll down to '....'
@@ -24,8 +24,9 @@ A clear and concise description of what you expected to happen.
 If applicable, add screenshots to help explain your problem.
 
 **Desktop Environment:**
- - OS: [e.g. macOS, Windows, Linux]
- - Hatcher Version [e.g. v0.3.0]
+
+- OS: [e.g. macOS, Windows, Linux]
+- Hatcher Version [e.g. v0.3.0]
 
 **Additional context**
 Add any other context about the problem here.
