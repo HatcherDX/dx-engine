@@ -1,0 +1,30 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Puppeteer Google Translate > maintains module structure for external consumption 1`] = `
+{
+  "BrowserError": [Function],
+  "BrowserFactory": [Function],
+  "DEFAULT_CONFIG": {
+    "headless": true,
+    "maxRetries": 3,
+    "retryDelay": 1000,
+    "slowMo": 0,
+    "timeout": 30000,
+    "verbose": false,
+  },
+  "ERROR_CODES": {
+    "BROWSER_LAUNCH_FAILED": "BROWSER_LAUNCH_FAILED",
+    "BROWSER_NOT_INITIALIZED": "BROWSER_NOT_INITIALIZED",
+    "ELEMENT_NOT_FOUND": "ELEMENT_NOT_FOUND",
+    "INVALID_LANGUAGE_CODE": "INVALID_LANGUAGE_CODE",
+    "NETWORK_ERROR": "NETWORK_ERROR",
+    "PAGE_NAVIGATION_FAILED": "PAGE_NAVIGATION_FAILED",
+    "TEXT_TOO_LONG": "TEXT_TOO_LONG",
+    "TRANSLATION_TIMEOUT": "TRANSLATION_TIMEOUT",
+  },
+  "GoogleTranslator": [Function],
+  "MockBrowserFactory": [Function],
+  "TranslationError": [Function],
+  "translateText": [Function],
+}
+`;

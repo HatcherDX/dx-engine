@@ -31,9 +31,9 @@ Software development is at an inflection point. While AI can generate 80% of an 
 
 Hatcher is built to eliminate the friction that AI introduces, transforming a frustrating cycle of trial-and-error into a fluid, intuitive workflow. We do this by solving three core problems:
 
-* **The Visual Disconnect:** We bridge the gap between your live, rendered application and the source code. Instead of describing a visual change, you simply point to it.
-* **The Context Void:** We replace static context files with a dynamic, centralized system of "Playbooks" that provides the AI with the right rules at the right time.
-* **The Loss of Control:** We provide a suite of tools, from automated test loops to visual diffs, that ensure the developer is always in command of the final output.
+- **The Visual Disconnect:** We bridge the gap between your live, rendered application and the source code. Instead of describing a visual change, you simply point to it.
+- **The Context Void:** We replace static context files with a dynamic, centralized system of "Playbooks" that provides the AI with the right rules at the right time.
+- **The Loss of Control:** We provide a suite of tools, from automated test loops to visual diffs, that ensure the developer is always in command of the final output.
 
 ## Project Status: Alpha
 
@@ -41,25 +41,62 @@ Hatcher is currently in a very early stage of development. The core `Visual-to-C
 
 We are building in public and welcome the community to join us on this journey. Expect bugs, rapid changes, and an open conversation about the future of development.
 
+Uses:
+
+- Vue.js
+- Typescript
+- Turborepo
+- Vite (for Electron builds)
+
+## More Than an IDE: Your Productivity Anchor
+
+Hatcher isn't just another AI-powered editor. It's designed as your **productivity anchor** – a command center that protects your flow state from the relentless stream of digital distractions that plague modern development.
+
+Every design choice, from our intentionally bold interface to our focused feature set, serves a single purpose: **minimizing cognitive friction**. When Slack notifications pull your attention, when emails demand immediate response, when the chaos of modern work threatens to fragment your focus – Hatcher acts as a visual beacon, instantly reconnecting you to your code and your flow.
+
+We believe that in an attention-fractured world, the most revolutionary IDE isn't the one with the most features – it's the one that helps you remember what truly matters: **the code, the problem, and the elegant solution waiting to emerge**.
+
 ## Getting Started
 
-_[This section will be filled out once the first installable version is ready. It will contain clear, step-by-step instructions for downloading and running the Hatcher MVP.]_
+The first alpha version of Hatcher is scheduled for release soon. The easiest way to get started will be to download the official release for your operating system from our **[GitHub Releases](https://github.com/HatcherDX/dx-engine/releases)** page. Stay tuned!
 
-1.  `git clone https://github.com/HatcherDX/dx-engine.git`
-2.  `npm install`
-3.  `npm start`
+### Environment Variables
+
+This project uses `.env` files for environment variables. After running `pnpm install`, a `postinstall` script will automatically create the necessary `.env` files from their `.env.example` counterparts. You can customize these files with your own settings, but they will be ignored by Git.
+
+```bash
+pnpm install
+pnpm run dev
+```
+
+### Build
+
+```bash
+pnpm build
+```
+
+### Pack App (Dev)
+
+```bash
+pnpm pack:dev
+```
+
+### Pack App (Prod)
+
+```bash
+pnpm pack:prod
+```
 
 ## Roadmap
 
 Our vision is ambitious. We're starting with the core "fine-tuning" workflow, but our roadmap includes building a full "0-to-100" experience.
 
-* ✅ **Core Innovation:** Visual-to-Code Sync (AST-based)
-* ➡️ **Next Up:** Integrated Git & Automated Test-Correction Loops
-* 🚀 **Future:** The "Corporate Constitutions" / Team Playbooks System
-* 🌌 **Long Term:** The Open-Source Workflow Marketplace
+- ✅ **Core Innovation:** Visual-to-Code Sync (AST-based)
+- ➡️ **Next Up:** Integrated Git & Automated Test-Correction Loops
+- 🚀 **Future: The "Corporate Constitutions" / Team Playbooks System** This is more than a feature; it's our strategic solution to the context problem. It will allow teams to create versionable, governable sets of rules and context for the AI.
+- 🌌 **Long Term: The Open-Source Workflow Marketplace** Our long-term vision is to evolve the Playbooks system into a marketplace where experts can build, share, and sell high-quality, trusted workflows, creating a defensible ecosystem built on safety and reliability.
 
-*For more details on each item and future plans, see our full **[Project Roadmap](ROADMAP.md)**.*
-
+_For more details on each item and future plans, see our full **[Project Roadmap](ROADMAP.md)**._
 
 ## Contributing
 

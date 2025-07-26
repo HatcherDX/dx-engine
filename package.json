@@ -1,0 +1,99 @@
+{
+  "name": "@hatcherdx/dx-engine",
+  "type": "module",
+  "version": "0.3.0",
+  "private": false,
+  "packageManager": "pnpm@10.6.0",
+  "author": {
+    "name": "Chriss Mejia",
+    "email": "chriss@hatche.rs",
+    "url": "https://github.com/hatcherdx/dx-engine"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hatcherdx/dx-engine.git"
+  },
+  "volta": {
+    "node": "22.14.0",
+    "pnpm": "10.6.1"
+  },
+  "scripts": {
+    "dev": "tsx scripts/dev-electron.ts",
+    "dev:all": "tsx scripts/watch.ts",
+    "dev:watch": "tsx scripts/watch.ts --watch",
+    "dev:pkg": "pnpm -F \"./packages/**\" dev",
+    "build:pkg": "pnpm -F \"./packages/**\" build",
+    "build": "turbo run build",
+    "build:docs": "pnpm --filter @hatcherdx/dx-engine-docs build:pages",
+    "dev:p": "turbo run dev --parallel",
+    "compile": "pnpm build && turbo run compile",
+    "pack:dev": "pnpm run build && pnpm -F electron-main run pack:dev",
+    "pack:prod": "pnpm run build && pnpm -F electron-main run pack:prod",
+    "icons": "tsx scripts/generate-icons.ts",
+    "icons:white": "tsx scripts/generate-icons.ts brand/egg-white.png",
+    "translate:docs": "pnpm tsx scripts/translate-docs.ts",
+    "postinstall": "tsx scripts/setup-env.ts && npm run build:pkg",
+    "test": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint . --ext .ts,.js,.vue",
+    "lint:fix": "eslint . --ext .ts,.js,.vue --fix",
+    "lint:turbo": "turbo run lint",
+    "lint:turbo:fix": "turbo run lint:fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "version:bump": "tsx scripts/version-bump.ts",
+    "clean:cache": "npx rimraf node_modules/.cache/ && npx rimraf node_modules/.vite",
+    "clean:lib": "npx rimraf --glob node_modules **/node_modules",
+    "reinstall": "npx rimraf pnpm-lock.yaml && pnpm clean:lib"
+  },
+  "devDependencies": {
+    "@dotenvx/dotenvx": "^1.39.1",
+    "@eslint/js": "^9.24.0",
+    "@hatcherdx/puppeteer-google-translate": "workspace:*",
+    "@types/node": "^22.14.1",
+    "@typescript-eslint/eslint-plugin": "^8.38.0",
+    "@typescript-eslint/parser": "^8.38.0",
+    "@vitejs/plugin-vue": "^5.2.3",
+    "@vitest/coverage-istanbul": "^3.2.4",
+    "@vue/test-utils": "^2.4.6",
+    "cross-env": "^7.0.3",
+    "electron": "35.1.4",
+    "eslint": "9.24.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-format": "^1.0.1",
+    "eslint-plugin-vue": "^10.3.0",
+    "glob": "^11.0.3",
+    "happy-dom": "^15.11.6",
+    "lint-staged": "^15.5.1",
+    "prettier": "^3.6.2",
+    "rimraf": "6.0.1",
+    "simple-git-hooks": "^2.12.1",
+    "tsx": "^4.19.3",
+    "turbo": "^2.5.0",
+    "typescript-eslint": "^8.38.0",
+    "vite": "^6.2.6",
+    "vitest": "^3.2.4",
+    "vue": "^3.5.13",
+    "vue-eslint-parser": "^10.2.0"
+  },
+  "pnpm": {
+    "peerDependencyRules": {
+      "allowedVersions": {
+        "eslint": "*"
+      }
+    },
+    "overrides": {}
+  },
+  "simple-git-hooks": {
+    "pre-commit": "pnpm lint-staged"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,vue,json,css,scss,md,html,yaml,yml}": [
+      "prettier --write"
+    ],
+    "*.{js,jsx,ts,tsx,vue}": [
+      "eslint --fix"
+    ]
+  }
+}

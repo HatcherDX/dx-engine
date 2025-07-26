@@ -16,8 +16,8 @@ If you want to report an issue or request a feature, please first check our **[i
 
 When creating a new issue, please use our provided templates for bug reports or feature requests. This helps us gather the necessary information to address it effectively.
 
-* Please do not use the issue tracker for personal support requests.
-* Keep the discussion on topic and respect the opinions of others.
+- Please do not use the issue tracker for personal support requests.
+- Keep the discussion on topic and respect the opinions of others.
 
 ### Submitting a Pull Request
 
@@ -35,7 +35,7 @@ We love pull requests! If you want to contribute code, please follow the instruc
 4.  **Make your changes.** Write clean, readable code. If you add a new feature, please ensure it is covered by unit tests.
 
 5.  **Run the tests** to ensure everything is working as expected.
-    `npm run test`
+    `pnpm test`
 
 6.  **Commit your changes.** Please write a clear and concise commit message (around 50 characters for the title). Use Git's [interactive rebase feature](https://help.github.com/en/github/using-git/about-git-rebase) to clean up your commits if needed.
 
@@ -49,7 +49,8 @@ We love pull requests! If you want to contribute code, please follow the instruc
 ## Code Style Guidelines
 
 We use **ESLint** and **Prettier** to maintain a consistent code style across the project.
-* Please run `npm run lint` and `npm run format` before committing your changes to ensure they adhere to our standards.
-* Our main guidelines are:
-    * No semicolons
-    * 2 spaces for indentation (no tabs)
+
+- Please run `pnpm lint` and `pnpm format` before committing your changes to ensure they adhere to our standards.
+- Our main guidelines are:
+  - No semicolons
+  - 2 spaces for indentation (no tabs)

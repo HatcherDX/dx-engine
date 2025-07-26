@@ -1,0 +1,53 @@
+{
+  "name": "@hatcherdx/dx-engine-electron",
+  "type": "module",
+  "version": "0.3.0",
+  "private": false,
+  "description": "DX Engine - Electron main process",
+  "author": {
+    "name": "Chriss Mejia",
+    "email": "chriss@hatche.rs",
+    "url": "https://github.com/hatcherdx/dx-engine"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hatcherdx/dx-engine.git"
+  },
+  "main": "dist-vite/index.cjs",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "dev": "vite build --mode development && dotenvx run -f .env.development -- electron dist-vite/index.cjs",
+    "dev:watch": "vite build --mode development --watch & sleep 3 && dotenvx run -f .env.development -- electron dist-vite/index.cjs",
+    "bundle": "npx rimraf ./dist && webpack --config webpack.config.cjs",
+    "build:dev": "vite build --mode development && pnpm bundle",
+    "build:prod": "vite build && pnpm bundle",
+    "pack:app": "npx tsx scripts/build.ts",
+    "pack:dev": "pnpm build:dev && dotenvx run -f .env.development -- pnpm pack:app",
+    "pack:prod": "pnpm build:prod && dotenvx run -f .env.production -- pnpm pack:app",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "echo \"Linting handled at root level\"",
+    "lint:fix": "echo \"Linting handled at root level\"",
+    "install:electron": "cross-env ELECTRON_GET_USE_PROXY=true node node_modules/electron/install.js",
+    "gen:vendors": "cross-env ELECTRON_RUN_AS_NODE=1 electron ./scripts/update-electron-vendors.cjs",
+    "postinstall": "pnpm install:electron && pnpm gen:vendors"
+  },
+  "devDependencies": {
+    "@electron/notarize": "^3.0.1",
+    "@hatcherdx/dx-engine-preload": "workspace:*",
+    "@types/node": "^22.14.1",
+    "electron": "35.1.4",
+    "electron-builder": "26.0.12",
+    "electron-updater": "6.6.2",
+    "terser-webpack-plugin": "^5.3.14",
+    "typescript": "5.8.3",
+    "vite": "6.2.6",
+    "webpack": "^5.99.5",
+    "webpack-cli": "^6.0.1"
+  },
+  "dependencies": {
+    "@dotenvx/dotenvx": "^1.39.1"
+  }
+}

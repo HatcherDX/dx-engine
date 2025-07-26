@@ -1,0 +1,29 @@
+{
+  "name": "@hatcherdx/dx-engine-web",
+  "type": "module",
+  "version": "0.3.0",
+  "private": true,
+  "author": {
+    "name": "Chriss Mejia",
+    "email": "chriss@hatche.rs",
+    "url": "https://github.com/hatcherdx/dx-engine"
+  },
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc -b && vite build",
+    "preview": "vite preview",
+    "lint": "echo \"Linting handled at root level\"",
+    "lint:fix": "echo \"Linting handled at root level\""
+  },
+  "dependencies": {
+    "vue": "^3.5.13"
+  },
+  "devDependencies": {
+    "@hatcherdx/dx-engine-preload": "workspace:*",
+    "@vitejs/plugin-vue": "^5.2.3",
+    "typescript": "^5.8.3",
+    "vite": "^6.2.6",
+    "vue-tsc": "^2.2.8"
+  }
+}

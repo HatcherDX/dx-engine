@@ -1,0 +1,29 @@
+{
+  "name": "@hatcherdx/dx-engine-docs",
+  "version": "0.3.0",
+  "description": "DX Engine Documentation",
+  "author": {
+    "name": "Chriss Mejia",
+    "email": "chriss@hatche.rs",
+    "url": "https://github.com/hatcherdx/dx-engine"
+  },
+  "license": "MIT",
+  "keywords": [],
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "vitepress dev",
+    "build": "vitepress build",
+    "build:pages": "NODE_ENV=production vitepress build",
+    "preview": "vitepress preview",
+    "translate": "node ../../scripts/translate-docs.mjs",
+    "lint": "echo \"Linting handled at root level\"",
+    "lint:fix": "echo \"Linting handled at root level\""
+  },
+  "dependencies": {
+    "vue": "^3.5.13"
+  },
+  "devDependencies": {
+    "vitepress": "^1.6.3"
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "name": "@hatcherdx/dx-engine-preload",
+  "type": "module",
+  "version": "0.3.0",
+  "private": true,
+  "author": {
+    "name": "Chriss Mejia",
+    "email": "chriss@hatche.rs",
+    "url": "https://github.com/hatcherdx/dx-engine"
+  },
+  "license": "MIT",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "development": "./src/index.ts",
+      "default": "./dist/index.cjs"
+    },
+    "./main": {
+      "types": "./dist/ipcMain.d.ts",
+      "development": "./src/ipcMain.ts",
+      "default": "./dist/ipcMain.cjs"
+    },
+    "./dist/*": "./dist/*"
+  },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=v16.13",
+    "npm": ">=8.1"
+  },
+  "scripts": {
+    "build": "vite build",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "echo \"Linting handled at root level\"",
+    "lint:fix": "echo \"Linting handled at root level\"",
+    "postinstall": "pnpm run build"
+  },
+  "peerDependencies": {
+    "electron": "^35.1.4"
+  },
+  "devDependencies": {
+    "vite-plugin-dts": "^4.5.3"
+  }
+}

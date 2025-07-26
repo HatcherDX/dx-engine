@@ -1,0 +1,205 @@
+/* Fixes for localization and visual improvements */
+
+/* Fix title capitalization across all languages */
+.VPDoc h1:first-child,
+.VPDoc h2,
+.VPDoc h3 {
+  text-transform: initial !important;
+}
+
+/* Ensure proper capitalization for the first letter of titles */
+.VPDoc h1:first-child::first-letter {
+  text-transform: uppercase;
+}
+
+/* Fix navigation links capitalization */
+.VPNav .VPNavBar .VPNavBarTitle,
+.VPSidebar .VPSidebarItem .text {
+  text-transform: initial !important;
+}
+
+/* Improve language selector appearance */
+.VPNavBarMenuGroup .VPNavBarMenuLink {
+  text-transform: initial !important;
+}
+
+/* Fix "On this page" / "En esta página" styling */
+.VPDocAsideOutline .title {
+  font-weight: 600;
+  text-transform: initial !important;
+}
+
+/* Better spacing for RTL languages */
+[dir='rtl'] .VPDoc .content {
+  text-align: right;
+}
+
+[dir='rtl'] .VPDoc .content ul,
+[dir='rtl'] .VPDoc .content ol {
+  padding-right: 1.25rem;
+  padding-left: 0;
+}
+
+/* Fix code blocks in RTL */
+[dir='rtl'] .VPDoc .content pre {
+  direction: ltr;
+  text-align: left;
+}
+
+/* Improve hero section for all languages */
+.VPHero .text {
+  text-transform: initial !important;
+}
+
+.VPHero .tagline {
+  text-transform: initial !important;
+}
+
+/* Better feature cards appearance */
+.VPFeature .title {
+  text-transform: initial !important;
+  line-height: 1.3;
+}
+
+.VPFeature .details {
+  text-transform: initial !important;
+}
+
+/* Fix buttons text transform */
+.VPButton {
+  text-transform: initial !important;
+}
+
+/* Improve sidebar group titles */
+.VPSidebarGroup .title {
+  text-transform: initial !important;
+  font-weight: 600;
+}
+
+/* Better link styling for all languages */
+.VPDoc .content a {
+  text-decoration: underline;
+  text-decoration-color: var(--vp-c-brand-1);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 2px;
+}
+
+.VPDoc .content a:hover {
+  text-decoration-color: var(--vp-c-brand-2);
+}
+
+/* Fix search placeholder for different languages */
+.VPNavBarSearch .DocSearch-Button-Placeholder {
+  text-transform: initial !important;
+}
+
+/* Improve table of contents */
+.VPDocAsideOutline .outline-link {
+  text-transform: initial !important;
+}
+
+/* Fix footer text */
+.VPFooter .message,
+.VPFooter .copyright {
+  text-transform: initial !important;
+}
+
+/* Better spacing for problem grid */
+.problem-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin: 2rem 0;
+}
+
+.problem-item {
+  padding: 1.5rem;
+  border: 1px solid var(--vp-c-border);
+  border-radius: 8px;
+  background: var(--vp-c-bg-soft);
+}
+
+.problem-item h4 {
+  margin: 0 0 1rem 0;
+  color: var(--vp-c-brand-1);
+  text-transform: initial !important;
+}
+
+.problem-item p {
+  margin: 0;
+  color: var(--vp-c-text-2);
+  text-transform: initial !important;
+}
+
+/* Language-specific improvements */
+
+/* Arabic and Persian (RTL) */
+[lang='ar'] .VPDoc .content,
+[lang='fa'] .VPDoc .content {
+  font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+  line-height: 1.8;
+}
+
+/* Chinese */
+[lang='zh-cn'] .VPDoc .content {
+  font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  line-height: 1.7;
+}
+
+/* Japanese */
+[lang='ja'] .VPDoc .content {
+  font-family:
+    'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', 'Meiryo',
+    sans-serif;
+  line-height: 1.7;
+}
+
+/* Korean */
+[lang='ko'] .VPDoc .content {
+  font-family:
+    'Apple SD Gothic Neo', 'Malgun Gothic', 'Nanum Gothic', sans-serif;
+  line-height: 1.7;
+}
+
+/* Hindi */
+[lang='hi'] .VPDoc .content {
+  font-family: 'Noto Sans Devanagari', 'Mangal', 'Khand', sans-serif;
+  line-height: 1.8;
+}
+
+/* Fix code syntax highlighting for all languages */
+.vp-code-group .tabs {
+  text-transform: initial !important;
+}
+
+.vp-code-group .tabs .tab {
+  text-transform: initial !important;
+}
+
+/* Improve mobile responsiveness */
+@media (max-width: 768px) {
+  .problem-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    margin: 1rem 0;
+  }
+
+  .problem-item {
+    padding: 1rem;
+  }
+}
+
+/* Dark mode improvements */
+.dark .problem-item {
+  border-color: var(--vp-c-border);
+  background: var(--vp-c-bg-soft);
+}
+
+/* Better contrast for links in dark mode */
+.dark .VPDoc .content a {
+  color: var(--vp-c-brand-1);
+}
+
+.dark .VPDoc .content a:hover {
+  color: var(--vp-c-brand-2);
+}
