@@ -1,3 +1,8 @@
+---
+title: Görsel-Kod Köprüsü | Kod Üretimi için Doğrudan UI Manipülasyonu
+description: Doğrudan UI manipülasyonunu hassas kod değişikliklerine dönüştüren Hatcher'ın devrimci Görsel-Kod Köprüsü hakkında öğrenin. Daha iyi AI geliştirme için tanımlamak yerine işaret edin.
+---
+
 # Visual-to-Code Köprüsü
 
 Visual-to-Code köprüsü, geliştiricilerin AI kodlama asistanları ile etkileşim şeklini devrimleştiren Hatcher'ın imza özelliğidir. Değişiklikleri metinle tanımlamak yerine, uygulamanızın görsel arayüzünü doğrudan manipüle edersiniz ve Hatcher eylemlerinizi hassas kod değişikliklerine çevirir.

@@ -1,3 +1,8 @@
+---
+title: Yol Haritası | Hatcher IDE Gelecek Geliştirme Planları
+description: Hatcher'ın geliştirme yol haritasını ve gelecek özelliklerini keşfedin. AI destekli geliştirme, yeni entegrasyonlar ve platform iyileştirmeleri için neler planlandığını görün.
+---
+
 # Yol Haritası
 
 Hatcher'ın yol haritası, mevcut kavram kanıtından kapsamlı bir AI destekli geliştirme platformuna olan yolculuğumuzu özetliyor.

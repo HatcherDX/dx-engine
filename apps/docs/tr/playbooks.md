@@ -1,3 +1,8 @@
+---
+title: Playbook Sistemi | Takımlar için Dinamik AI Bağlam Yönetimi
+description: Hatcher'ın Playbook sisteminde ustalaşın - AI bağlam yönetimi için yeni nesil çözüm. Ekibinizin kodlama standartlarını ve mimari kararlarını AI'ya öğreten dinamik, yönetilebilir Kurumsal Anayasalar oluşturun.
+---
+
 # Playbooks Sistemi
 
 Playbooks sistemi, AI geliştirmede bağlam sorununa yönelik Hatcher'ın ikinci nesil çözümüdür. `Claude.md` gibi statik dosyalar bir başlangıç noktası sağlarken, Playbooks AI ajanlarınız için gerçek bir Kurumsal Anayasa görevi gören dinamik, merkezi ve yönetilebilir bir sistem sunar.

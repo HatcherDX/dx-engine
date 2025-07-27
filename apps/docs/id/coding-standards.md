@@ -1,3 +1,8 @@
+---
+title: Standar Coding | Panduan Pengembangan Hatcher IDE
+description: Standar coding resmi dan panduan pengembangan untuk Hatcher IDE. Best practice untuk TypeScript, Vue, testing, dan menjaga kualitas kode dalam proyek.
+---
+
 # Standar Coding
 
 Dokumen ini menguraikan standar coding dan konvensi untuk proyek Hatcher. Mengikuti standar ini memastikan konsistensi, maintainability, dan kode berkualitas tinggi di seluruh codebase.

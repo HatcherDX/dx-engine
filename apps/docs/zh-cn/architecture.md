@@ -1,3 +1,8 @@
+---
+title: 架构 | Hatcher IDE 技术设计与工程原则
+description: 探索 Hatcher 为受控放大而设计的技术架构。了解确定性设计、模型无关方法和开源工程原则。
+---
+
 # 架构
 
 Hatcher 是一个现代的 Electron 应用程序，采用 Monorepo 架构，优先考虑可扩展性、可维护性和性能。

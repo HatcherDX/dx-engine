@@ -1,3 +1,8 @@
+---
+title: Berkontribusi | Cara Berkontribusi pada Pengembangan Hatcher IDE
+description: Pelajari cara berkontribusi pada Hatcher IDE. Panduan untuk kontribusi kode, dokumentasi, testing, dan partisipasi komunitas dalam proyek open-source.
+---
+
 # Berkontribusi ke Hatcher
 
 Terima kasih atas minat Anda untuk berkontribusi ke Hatcher! Panduan ini akan membantu Anda memulai berkontribusi ke proyek.

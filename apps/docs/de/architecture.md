@@ -1,3 +1,8 @@
+---
+title: Architektur | Technisches Design & Engineering-Prinzipien von Hatcher IDE
+description: Erkunden Sie Hatchers technische Architektur, die für Kontrollierte Verstärkung entwickelt wurde. Lernen Sie über deterministisches Design, modell-agnostischen Ansatz und Open-Source-Engineering-Prinzipien.
+---
+
 # Architektur
 
 Hatcher ist als moderne Electron-Anwendung mit einer Monorepo-Architektur gebaut, die Skalierbarkeit, Wartbarkeit und Performance priorisiert.

@@ -1,3 +1,8 @@
+---
+title: Coding-Standards | Hatcher IDE Entwicklungsrichtlinien
+description: Offizielle Coding-Standards und Entwicklungsrichtlinien für Hatcher IDE. Best Practices für TypeScript, Vue, Testing und Aufrechterhaltung der Code-Qualität im Projekt.
+---
+
 # Coding-Standards
 
 Dieses Dokument beschreibt die Coding-Standards und Konventionen für das Hatcher-Projekt. Das Befolgen dieser Standards gewährleistet Konsistenz, Wartbarkeit und hochwertigen Code in der gesamten Codebasis.

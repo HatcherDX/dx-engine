@@ -1,3 +1,8 @@
+---
+title: 编码标准 | Hatcher IDE 开发指南
+description: Hatcher IDE 的官方编码标准和开发指南。TypeScript、Vue、测试和维护项目代码质量的最佳实践。
+---
+
 # 编码标准
 
 本文档阐述了 Hatcher 项目的编码标准和约定。遵循这些标准可以确保整个代码库的一致性、可维护性和高质量代码。

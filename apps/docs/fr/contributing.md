@@ -1,3 +1,8 @@
+---
+title: Contribuer | Comment Contribuer au Développement de Hatcher IDE
+description: Apprenez comment contribuer à Hatcher IDE. Directives pour les contributions de code, la documentation, les tests et la participation communautaire dans le projet open source.
+---
+
 # Guide de Contribution
 
 Merci de votre intérêt pour contribuer à Hatcher ! Ce guide vous aidera à comprendre notre processus et les meilleures façons de contribuer au projet.

@@ -1,3 +1,8 @@
+---
+title: Arsitektur | Desain Teknis & Prinsip Engineering Hatcher IDE
+description: Jelajahi arsitektur teknis Hatcher yang dirancang untuk Amplifikasi Terkontrol. Pelajari tentang desain deterministik, pendekatan model-agnostic, dan prinsip engineering open-source.
+---
+
 # Arsitektur Hatcher
 
 Arsitektur Hatcher sengaja dirancang untuk mewujudkan filosofi inti kami: **Amplifikasi Terkontrol**. Setiap komponen dan pilihan teknologi melayani misi kami untuk menciptakan lingkungan pengembangan yang deterministik, kuat, dan dapat diperluas yang menjaga developer tetap dalam kendali penuh.

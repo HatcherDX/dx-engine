@@ -1,3 +1,8 @@
+---
+title: Mimari | Hatcher IDE Teknik Tasarım ve Mühendislik İlkeleri
+description: Kontrollü Amplifikasyon için tasarlanmış Hatcher'ın teknik mimarisini keşfedin. Deterministik tasarım, model-agnostik yaklaşım ve açık kaynak mühendislik ilkeleri hakkında öğrenin.
+---
+
 # Hatcher Mimarisi
 
 Hatcher'ın mimarisi bilinçli olarak temel felsefemizi somutlaştıracak şekilde tasarlandı: **Kontrollü Yükseltme**. Her bileşen ve teknoloji seçimi, geliştiricinin sıkı kontrol sahibi olduğu deterministik, güçlü ve genişletilebilir bir geliştirme ortamı yaratma misyonumuza hizmet eder.

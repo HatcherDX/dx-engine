@@ -1,3 +1,8 @@
+---
+title: Visual-to-Code Bridge | Manipulasi UI Langsung untuk Generasi Kode
+description: Pelajari tentang Visual-to-Code Bridge revolusioner Hatcher yang mengubah manipulasi UI langsung menjadi perubahan kode yang presisi. Tunjuk daripada mendeskripsikan untuk pengembangan AI yang lebih baik.
+---
+
 # Jembatan Visual-ke-Kode
 
 > **Transformasi langsung dari interaksi visual menjadi modifikasi kode yang tepat.**

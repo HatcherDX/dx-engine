@@ -1,3 +1,8 @@
+---
+title: Sistem Playbooks | Manajemen Konteks AI Dinamis untuk Tim
+description: Kuasai sistem Playbooks Hatcher - solusi generasi berikutnya untuk manajemen konteks AI. Buat Konstitusi Perusahaan yang dinamis dan dapat diatur yang mengajarkan AI tentang standar coding dan keputusan arsitektur tim Anda.
+---
+
 # Playbooks: Konteks Cerdas untuk AI
 
 > **Ajarkan AI untuk memahami proyek Anda seperti anggota tim senior.**

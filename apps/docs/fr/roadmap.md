@@ -1,3 +1,8 @@
+---
+title: Feuille de Route | Plans de Développement Futur de Hatcher IDE
+description: Explorez la feuille de route de développement de Hatcher et les fonctionnalités à venir. Découvrez ce qui est prévu pour le développement assisté par IA, les nouvelles intégrations et les améliorations de la plateforme.
+---
+
 # Feuille de Route
 
 Cette feuille de route décrit la vision et les plans de développement pour Hatcher. Elle représente nos intentions actuelles et peut évoluer en fonction des retours de la communauté et des besoins du marché.

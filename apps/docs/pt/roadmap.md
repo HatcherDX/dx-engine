@@ -1,3 +1,8 @@
+---
+title: Roadmap | Planos de Desenvolvimento Futuro do Hatcher IDE
+description: Explore o roadmap de desenvolvimento do Hatcher e recursos futuros. Veja o que está planejado para desenvolvimento assistido por IA, novas integrações e melhorias da plataforma.
+---
+
 # Roadmap
 
 O roadmap do Hatcher descreve nossa jornada desde a atual prova de conceito até uma plataforma abrangente de desenvolvimento assistido por IA.

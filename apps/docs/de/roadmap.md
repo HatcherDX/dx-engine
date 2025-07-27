@@ -1,3 +1,8 @@
+---
+title: Roadmap | Zukünftige Entwicklungspläne für Hatcher IDE
+description: Erkunden Sie Hatchers Entwicklungsroadmap und kommende Features. Sehen Sie, was für KI-gestützte Entwicklung, neue Integrationen und Plattformverbesserungen geplant ist.
+---
+
 # Roadmap
 
 Hatchers Roadmap umreißt unsere Reise vom aktuellen Proof-of-Concept zu einer umfassenden KI-unterstützten Entwicklungsplattform.

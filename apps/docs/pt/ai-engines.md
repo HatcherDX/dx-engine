@@ -1,3 +1,8 @@
+---
+title: Motores de IA | Integre Claude Code, Gemini CLI e mais com Hatcher
+description: Configure e integre múltiplos assistentes de programação com IA no Hatcher IDE. Suporte para Claude Code, Gemini CLI e outros motores de IA para fluxos de desenvolvimento flexíveis e poderosos.
+---
+
 # Motores de IA
 
 O Hatcher integra-se com múltiplos assistentes de codificação IA para fornecer flexibilidade e aproveitar os pontos fortes únicos de diferentes modelos.

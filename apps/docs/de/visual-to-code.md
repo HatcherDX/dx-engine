@@ -1,3 +1,8 @@
+---
+title: Visual-to-Code Bridge | Direkte UI-Manipulation für Code-Generierung
+description: Erfahren Sie mehr über Hatchers revolutionäre Visual-to-Code Bridge, die direkte UI-Manipulation in präzise Code-Änderungen verwandelt. Zeigen Sie, anstatt zu beschreiben, für bessere KI-Entwicklung.
+---
+
 # Visuell-zu-Code-Brücke
 
 Die **Visuell-zu-Code-Brücke** ist Hatchers Hauptfunktion - die revolutionäre Technologie, die es Ihnen ermöglicht, Elemente direkt in Ihrer Live-Anwendung auszuwählen und sie in präzisen, kontextspezifischen Code zu verwandeln.

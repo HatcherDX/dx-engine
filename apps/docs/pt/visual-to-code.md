@@ -1,3 +1,8 @@
+---
+title: Ponte Visual-para-Código | Manipulação Direta de UI para Geração de Código
+description: Aprenda sobre a revolucionária Ponte Visual-para-Código do Hatcher que transforma manipulação direta de UI em mudanças precisas de código. Aponte em vez de descrever para melhor desenvolvimento com IA.
+---
+
 # Ponte Visual-para-Código
 
 A **Ponte Visual-para-Código** é a funcionalidade emblemática do Hatcher - a tecnologia revolucionária que permite selecionar elementos diretamente na sua aplicação ao vivo e transformá-los em código preciso e específico para seu contexto.

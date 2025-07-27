@@ -1,3 +1,8 @@
+---
+title: 贡献 | 如何为 Hatcher IDE 开发做贡献
+description: 了解如何为 Hatcher IDE 做贡献。开源项目中代码贡献、文档、测试和社区参与的指南。
+---
+
 # 为 Hatcher 贡献
 
 感谢您对为 Hatcher 做出贡献的兴趣！本指南将帮助您开始为项目做出贡献。

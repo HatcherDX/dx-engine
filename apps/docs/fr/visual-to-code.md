@@ -1,3 +1,8 @@
+---
+title: Pont Visuel-vers-Code | Manipulation Directe d'Interface pour Génération de Code
+description: Découvrez le pont Visuel-vers-Code révolutionnaire de Hatcher qui transforme la manipulation directe d'interface en modifications de code précises. Pointez au lieu de décrire pour un meilleur développement IA.
+---
+
 # Pont Visuel-vers-Code
 
 Le **Pont Visuel-vers-Code** est la fonctionnalité phare de Hatcher - la technologie révolutionnaire qui vous permet de sélectionner des éléments directement dans votre application en direct et de les transformer en code précis et contextuel.

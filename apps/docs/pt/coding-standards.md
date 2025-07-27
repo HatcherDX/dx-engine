@@ -1,3 +1,8 @@
+---
+title: Padrões de Codificação | Diretrizes de Desenvolvimento do Hatcher IDE
+description: Padrões de codificação oficiais e diretrizes de desenvolvimento para Hatcher IDE. Melhores práticas para TypeScript, Vue, testes e manutenção da qualidade do código no projeto.
+---
+
 # Padrões de Código
 
 Este documento descreve os padrões de codificação e convenções para o projeto Hatcher. Seguir esses padrões garante consistência, manutenibilidade e código de alta qualidade em toda a base de código.

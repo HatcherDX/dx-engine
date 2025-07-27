@@ -1,3 +1,8 @@
+---
+title: KI-Engines | Claude Code, Gemini CLI und mehr mit Hatcher integrieren
+description: Konfigurieren und integrieren Sie mehrere KI-Coding-Assistenten mit Hatcher IDE. Unterstützung für Claude Code, Gemini CLI und andere KI-Engines für flexible, leistungsstarke Entwicklungsworkflows.
+---
+
 # KI-Engine Integration
 
 Hatcher ist mit einer flexiblen KI-Engine-Architektur entworfen, die es Ihnen ermöglicht, verschiedene KI-Anbieter je nach Ihren Bedürfnissen, Präferenzen und Projektanforderungen zu wählen und zwischen ihnen zu wechseln.

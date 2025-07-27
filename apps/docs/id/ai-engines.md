@@ -1,3 +1,8 @@
+---
+title: Mesin AI | Integrasikan Claude Code, Gemini CLI & Lainnya dengan Hatcher
+description: Konfigurasi dan integrasikan beberapa asisten coding AI dengan Hatcher IDE. Dukungan untuk Claude Code, Gemini CLI, dan mesin AI lainnya untuk alur kerja pengembangan yang fleksibel dan powerful.
+---
+
 # AI Engine
 
 Hatcher terintegrasi dengan beberapa asisten coding AI untuk memberikan fleksibilitas dan memanfaatkan kekuatan unik dari model yang berbeda.

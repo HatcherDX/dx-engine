@@ -1,3 +1,8 @@
+---
+title: Système Playbooks | Gestion Dynamique du Contexte IA pour les Équipes
+description: Maîtrisez le système Playbooks de Hatcher - la solution de nouvelle génération pour la gestion du contexte IA. Créez des Constitutions d'Entreprise dynamiques et gouvernables qui enseignent à l'IA les standards de codage et décisions architecturales de votre équipe.
+---
+
 # Système Playbooks
 
 Les **Playbooks** sont le cerveau contextuel de Hatcher - un système de fichiers de contexte dynamiques et évolutifs qui enseignent à l'IA comment comprendre, naviguer et modifier votre projet selon vos standards exacts.

@@ -1,3 +1,8 @@
+---
+title: AI 引擎 | 将 Claude Code、Gemini CLI 等与 Hatcher 集成
+description: 配置并集成多个 AI 编码助手与 Hatcher IDE。支持 Claude Code、Gemini CLI 和其他 AI 引擎，实现灵活强大的开发工作流。
+---
+
 # AI 引擎
 
 Hatcher 集成了多个 AI 编码助手，提供灵活性并利用不同模型的独特优势。

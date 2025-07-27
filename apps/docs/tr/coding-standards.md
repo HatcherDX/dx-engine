@@ -1,3 +1,8 @@
+---
+title: Kodlama Standartları | Hatcher IDE Geliştirme Yönergeleri
+description: Hatcher IDE için resmi kodlama standartları ve geliştirme yönergeleri. TypeScript, Vue, test ve projede kod kalitesini korumak için en iyi uygulamalar.
+---
+
 # Kodlama Standartları
 
 Bu belge, Hatcher projesi için kodlama standartları ve konvansiyonlarını açıklar. Bu standartları takip etmek, tüm kod tabanında tutarlılık, sürdürülebilirlik ve yüksek kaliteli kod sağlar.

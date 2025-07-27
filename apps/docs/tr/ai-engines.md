@@ -1,3 +1,8 @@
+---
+title: AI Motorları | Claude Code, Gemini CLI ve Daha Fazlasını Hatcher ile Entegre Edin
+description: Birden fazla AI kodlama asistanını Hatcher IDE ile yapılandırın ve entegre edin. Esnek, güçlü geliştirme iş akışları için Claude Code, Gemini CLI ve diğer AI motorları desteği.
+---
+
 # AI Motorları
 
 Hatcher, esneklik sağlamak ve farklı modellerin benzersiz güçlü yanlarından yararlanmak için birden fazla AI kodlama asistanı ile entegre olur.

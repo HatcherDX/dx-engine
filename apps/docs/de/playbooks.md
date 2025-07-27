@@ -1,3 +1,8 @@
+---
+title: Playbooks-System | Dynamisches KI-Kontext-Management für Teams
+description: Meistern Sie Hatchers Playbooks-System - die nächste Generation der KI-Kontext-Verwaltung. Erstellen Sie dynamische, steuerbare Unternehmenskonstitutionen, die der KI die Coding-Standards und Architekturentscheidungen Ihres Teams beibringen.
+---
+
 # Playbooks System
 
 **Playbooks** sind das kontextuelle Gehirn von Hatcher - ein System aus dynamischen, sich entwickelnden Kontextdateien, die der KI beibringen, wie sie Ihr Projekt nach Ihren exakten Standards verstehen, navigieren und modifizieren kann.

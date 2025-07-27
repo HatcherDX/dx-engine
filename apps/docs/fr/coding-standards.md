@@ -1,3 +1,8 @@
+---
+title: Standards de Codage | Directives de Développement de Hatcher IDE
+description: Standards de codage officiels et directives de développement pour Hatcher IDE. Meilleures pratiques pour TypeScript, Vue, les tests et le maintien de la qualité du code dans le projet.
+---
+
 # Normes de Codage
 
 Ce document décrit les normes de codage et les conventions pour le projet Hatcher. Suivre ces normes garantit la cohérence, la maintenabilité et un code de haute qualité dans toute la base de code.

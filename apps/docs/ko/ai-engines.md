@@ -1,3 +1,8 @@
+---
+title: AI 엔진 | Hatcher와 Claude Code, Gemini CLI 등 통합
+description: 여러 AI 코딩 어시스턴트를 Hatcher IDE와 구성하고 통합하세요. Claude Code, Gemini CLI 및 기타 AI 엔진을 지원하여 유연하고 강력한 개발 워크플로를 제공합니다.
+---
+
 # AI 엔진
 
 Hatcher는 여러 AI 코딩 도우미와 통합하여 유연성을 제공하고 다양한 모델의 고유한 장점을 활용합니다.

@@ -1,3 +1,8 @@
+---
+title: Beitragen | Wie man zur Entwicklung von Hatcher IDE beiträgt
+description: Erfahren Sie, wie Sie zu Hatcher IDE beitragen können. Richtlinien für Code-Beiträge, Dokumentation, Testing und Community-Teilnahme im Open-Source-Projekt.
+---
+
 # Zu Hatcher Beitragen
 
 Vielen Dank für Ihr Interesse, zu Hatcher beizutragen! Dieser Leitfaden hilft Ihnen beim Einstieg in die Projektbeiträge.

@@ -1,3 +1,8 @@
+---
+title: Roadmap | Rencana Pengembangan Masa Depan Hatcher IDE
+description: Jelajahi roadmap pengembangan Hatcher dan fitur-fitur yang akan datang. Lihat apa yang direncanakan untuk pengembangan berbantuan AI, integrasi baru, dan peningkatan platform.
+---
+
 # Roadmap
 
 Roadmap Hatcher menguraikan perjalanan kami dari proof-of-concept saat ini menjadi platform pengembangan berbantuan AI yang komprehensif.

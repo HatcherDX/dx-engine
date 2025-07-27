@@ -1,3 +1,8 @@
+---
+title: AIエンジン | Claude Code、Gemini CLIなどをHatcherと統合
+description: 複数のAIコーディングアシスタントをHatcher IDEと設定・統合します。Claude Code、Gemini CLI、その他のAIエンジンをサポートし、柔軟で強力な開発ワークフローを実現。
+---
+
 # AIエンジン
 
 Hatcherは複数のAIコーディングアシスタントと統合し、柔軟性を提供し、異なるモデルの独自の強みを活用します。

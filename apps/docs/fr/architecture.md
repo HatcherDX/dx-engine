@@ -1,3 +1,8 @@
+---
+title: Architecture | Conception Technique et Principes d'Ingénierie de Hatcher IDE
+description: Explorez l'architecture technique de Hatcher conçue pour l'Amplification Contrôlée. Découvrez la conception déterministe, l'approche agnostique des modèles et les principes d'ingénierie open source.
+---
+
 # Architecture
 
 Hatcher est construit comme une application Electron moderne avec une architecture monorepo qui privilégie la scalabilité, la maintenabilité et les performances.

@@ -1,3 +1,8 @@
+---
+title: Katkıda Bulunma | Hatcher IDE Geliştirmeye Nasıl Katkıda Bulunulur
+description: Hatcher IDE'ye nasıl katkıda bulunacağınızı öğrenin. Açık kaynak projede kod katkıları, dokümantasyon, test ve topluluk katılımı için yönergeler.
+---
+
 # Hatcher'a Katkıda Bulunma
 
 Hatcher'a katkıda bulunma ilginiz için teşekkürler! Bu rehber projeye katkıda bulunmaya başlamanızda yardımcı olacaktır.

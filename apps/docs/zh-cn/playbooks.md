@@ -1,3 +1,8 @@
+---
+title: 剧本系统 | 团队动态 AI 上下文管理
+description: 掌握 Hatcher 的剧本系统 - 下一代 AI 上下文管理解决方案。创建动态、可治理的企业宪法，教授 AI 您团队的编码标准和架构决策。
+---
+
 # Playbooks 系统
 
 Playbooks 系统是 Hatcher 对 AI 开发中上下文问题的第二代解决方案。相比于像 `Claude.md` 这样的静态文件提供起点，Playbooks 提供了一个动态、集中化和可治理的系统，作为你的 AI 代理的真正企业宪法。
