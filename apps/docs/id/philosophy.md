@@ -1,3 +1,8 @@
+---
+title: Filosofi | Amplifikasi Terkontrol dengan Hatcher IDE
+description: Pelajari prinsip-prinsip amplifikasi terkontrol dan bagaimana filosofi Hatcher memungkinkan pengembang memanfaatkan AI secara efektif sambil mempertahankan kualitas dan kontrol
+---
+
 # Filosofi: Amplifikasi Terkontrol
 
 > **Developer tetap menjadi ahli bedah, menggunakan AI sebagai skalpel presisi super.**
@@ -61,6 +66,12 @@ Bayangkan Anda dapat:
 - **Menerapkan dengan percaya diri** mengetahui bahwa itu persis seperti yang Anda inginkan
 
 Ini adalah pengembangan abad ke-21: **Manusia dalam strategi, AI dalam eksekusi**.
+
+## Pipeline Kualitas yang Dapat Dikonfigurasi
+
+Kontrol sejati berarti menggunakan alat yang tepat untuk pekerjaan. Hatcher memungkinkan pengembang untuk mendefinisikan pipeline kualitas otomatis mereka sendiri yang berjalan setelah setiap generasi AI. Anda dapat mengonfigurasi langkah-langkah kustom untuk linting, formatting, type-checking, dan testing menggunakan skrip proyek Anda sendiri.
+
+Yang penting, Anda juga dapat mendefinisikan perbaikan. Untuk kesalahan formatting sederhana, Anda dapat menyuruh Hatcher menjalankan `pnpm format` — perbaikan instan, deterministik, dan bebas token. Untuk kesalahan logika kompleks dalam tes, Anda dapat melibatkan AI. Pendekatan hibrid ini memastikan efisiensi dan keandalan, menyimpan kekuatan AI untuk masalah yang hanya bisa dipecahkan olehnya.
 
 ## Mengapa Ini Penting
 

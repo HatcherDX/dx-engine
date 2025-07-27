@@ -1,4 +1,9 @@
-# Hatcher''ı Tanıtıyoruz
+---
+title: Hatcher Nedir? | Giriş
+description: AI çağı için özel olarak tasarıyla nmış açık kaynak IDE olan Hatcher'ı keşfedin ve geliştiricilerin daha yüksek verimlilikle çalışmasını sağlayın
+---
+
+# Hatcher'ı Tanıtıyoruz
 
 **Hatcher** yazılım geliştirmenin bir sonraki evrimi - **Kontrollü Güçlendirme** yoluyla uygulama geliştirme şeklinizi dönüştüren bir IDE''dir.
 

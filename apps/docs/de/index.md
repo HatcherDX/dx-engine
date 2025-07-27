@@ -1,6 +1,8 @@
 ---
 # https://vitepress.dev/reference/default-theme-home-page
 layout: home
+title: Hatcher | Die IDE für Kontrollierte KI-Entwicklung
+description: Eine Open-Source-IDE, die professionellen Entwicklern deterministische Kontrolle über KI gibt. Visuell-zu-Code-Brücke, Team-Playbooks und Test-Auto-Korrektur für professionelle Entwicklungsteams.
 
 hero:
   name: ''

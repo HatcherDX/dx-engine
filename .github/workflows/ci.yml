@@ -34,6 +34,67 @@ jobs:
       - name: Run build
         run: pnpm run build
 
+  test-coverage:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '10.6.1'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Run tests with coverage
+        run: pnpm test:coverage
+
+      - name: Verify coverage report exists
+        run: |
+          if [ ! -f "coverage/coverage-summary.json" ]; then
+            echo "❌ Coverage summary not found"
+            exit 1
+          fi
+          echo "✅ Coverage summary found"
+          cat coverage/coverage-summary.json
+
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports
+          path: coverage/
+
+      - name: Upload coverage to repository
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+          # Create coverage branch if it doesn't exist
+          git checkout -B coverage-reports
+
+          # Copy coverage files to root for easy access
+          cp coverage/coverage-summary.json coverage-summary.json
+
+          # Add and commit coverage files
+          git add coverage-summary.json
+          git add coverage/
+
+          # Only commit if there are changes
+          if ! git diff --cached --quiet; then
+            git commit -m "📊 Update coverage reports [skip ci]"
+            git push origin coverage-reports --force
+          fi
+
   format-check:
     runs-on: ubuntu-latest
 

@@ -1,3 +1,8 @@
+---
+title: Primeros Pasos | Guía de Hatcher IDE para Desarrollo con IA
+description: Comienza con Hatcher IDE. Descarga, instala y empieza a construir con desarrollo controlado de IA. Guía completa de configuración para el IDE de código abierto que da a los desarrolladores control determinístico sobre la IA.
+---
+
 # Comenzando con Hatcher
 
 Bienvenido a Hatcher, el IDE diseñado para amplificación controlada en la era de la IA. Esta guía te ayudará a ponerte en marcha rápidamente.

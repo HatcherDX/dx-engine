@@ -1,6 +1,8 @@
 ---
 # https://vitepress.dev/reference/default-theme-home-page
 layout: home
+title: Hatcher | بيئة التطوير المتكاملة للتطوير المتحكم بالذكاء الاصطناعي
+description: بيئة تطوير متكاملة مفتوحة المصدر مصممة للمطورين المحترفين للاستفادة من قوة الذكاء الاصطناعي مع الحفاظ على التحكم والدقة في عملية التطوير
 
 hero:
   name: ''

@@ -651,7 +651,24 @@ export default defineConfig({
   head: [
     // Favicon and basic meta
     ['link', { rel: 'icon', href: '/favicon.ico' }],
-    ['meta', { name: 'theme-color', content: '#646cff' }],
+
+    // Theme color for mobile status bar - matches VitePress theme
+    ['meta', { name: 'theme-color', content: '#ffffff' }], // Light mode
+    [
+      'meta',
+      {
+        name: 'theme-color',
+        content: '#1b1b1f',
+        media: '(prefers-color-scheme: dark)',
+      },
+    ], // Dark mode
+
+    // Apple-specific mobile configuration
+    ['meta', { name: 'apple-mobile-web-app-capable', content: 'yes' }],
+    [
+      'meta',
+      { name: 'apple-mobile-web-app-status-bar-style', content: 'default' },
+    ],
 
     // Canonical URL - tells Google which is your preferred URL
     ['link', { rel: 'canonical', href: 'https://hatche.rs' }],
@@ -677,6 +694,16 @@ export default defineConfig({
       {
         property: 'og:image',
         content: 'https://hatche.rs/brand/egg-white.png',
+      },
+    ],
+    ['meta', { property: 'og:image:type', content: 'image/png' }],
+    ['meta', { property: 'og:image:width', content: '1200' }],
+    ['meta', { property: 'og:image:height', content: '630' }],
+    [
+      'meta',
+      {
+        property: 'og:image:alt',
+        content: 'Hatcher - The IDE for Controlled AI Development',
       },
     ],
     ['meta', { property: 'og:url', content: 'https://hatche.rs' }],
@@ -705,6 +732,13 @@ export default defineConfig({
       {
         name: 'twitter:image',
         content: 'https://hatche.rs/brand/egg-white.png',
+      },
+    ],
+    [
+      'meta',
+      {
+        name: 'twitter:image:alt',
+        content: 'Hatcher - The IDE for Controlled AI Development',
       },
     ],
     ['meta', { name: 'twitter:creator', content: '@HatcherDX' }],

@@ -1,3 +1,8 @@
+---
+title: Philosophie | Kontrollierte Verstärkung mit Hatcher IDE
+description: Erfahren Sie mehr über Kontrollierte Verstärkung, Hatchers Kernphilosophie für KI-unterstützte Entwicklung. Entdecken Sie, wie Sie menschliche Kontrolle beibehalten und gleichzeitig die Produktivität mit KI in der Softwareentwicklung steigern.
+---
+
 # Die Philosophie: Kontrollierte Verstärkung
 
 Im Herzen von Hatcher liegt eine fundamentale Philosophie: **Kontrollierte Verstärkung**. Dieses Konzept repräsentiert unseren Ansatz zur KI-unterstützten Entwicklung, bei dem künstliche Intelligenz menschliche Fähigkeiten verstärkt, während menschliche Kontrolle und Präzision erhalten bleiben.
@@ -172,6 +177,12 @@ Mit Kontrollierter Verstärkung wird Entwicklung zu einer fließenden Unterhaltu
 - **Automatisierte Systeme** stellen Qualität sicher
 
 Dies schafft eine Entwicklungserfahrung, die sowohl mächtig als auch vorhersagbar, schnell und kontrolliert ist.
+
+## Konfigurierbare Qualitäts-Pipelines
+
+Wahre Kontrolle bedeutet, das richtige Werkzeug für die Aufgabe zu verwenden. Hatcher ermöglicht es Entwicklern, ihre eigenen automatisierten Qualitäts-Pipelines zu definieren, die nach jeder KI-Generierung ausgeführt werden. Sie können benutzerdefinierte Schritte für Linting, Formatierung, Typprüfung und Tests unter Verwendung der eigenen Skripte Ihres Projekts konfigurieren.
+
+Entscheidend ist, dass Sie auch die Lösung definieren können. Für einen einfachen Formatierungsfehler können Sie Hatcher anweisen, `pnpm format` auszuführen —eine sofortige, deterministische und tokenfreie Lösung. Für einen komplexen logischen Fehler in einem Test können Sie die KI einbeziehen. Dieser hybride Ansatz gewährleistet Effizienz und Zuverlässigkeit und reserviert die Kraft der KI für die Probleme, die nur sie lösen kann.
 
 ## Jenseits individueller Entwicklung
 

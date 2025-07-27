@@ -1,6 +1,8 @@
 ---
 # https://vitepress.dev/reference/default-theme-home-page
 layout: home
+title: Hatcher | 제어된 AI 개발을 위한 IDE
+description: 개발 프로세스에서 제어력과 정확성을 유지하면서 AI의 힘을 활용하고자 하는 전문 개발자를 위해 설계된 오픈소스 통합 개발 환경
 
 hero:
   name: ''

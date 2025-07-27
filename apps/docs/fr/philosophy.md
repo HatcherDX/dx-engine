@@ -1,3 +1,8 @@
+---
+title: Philosophie | Amplification Contrôlée avec Hatcher IDE
+description: Découvrez l'Amplification Contrôlée, la philosophie centrale de Hatcher pour le développement assisté par IA. Apprenez comment maintenir le contrôle humain tout en amplifiant la productivité avec l'IA dans le développement logiciel.
+---
+
 # La Philosophie : Amplification Contrôlée
 
 Au cœur de Hatcher se trouve une philosophie fondamentale : **l'Amplification Contrôlée**. Ce concept représente notre approche du développement assisté par IA, où l'intelligence artificielle amplifie la capacité humaine tout en maintenant le contrôle et la précision humains.
@@ -172,6 +177,12 @@ Avec l'Amplification Contrôlée, le développement devient une conversation flu
 - **Les systèmes automatisés** assurent la qualité
 
 Cela crée une expérience de développement à la fois puissante et prévisible, rapide et contrôlée.
+
+## Pipelines de Qualité Configurables
+
+Le vrai contrôle signifie utiliser le bon outil pour le travail. Hatcher permet aux développeurs de définir leurs propres pipelines de qualité automatisés qui s'exécutent après chaque génération d'IA. Vous pouvez configurer des étapes personnalisées pour le linting, le formatage, la vérification de types et les tests en utilisant les scripts de votre propre projet.
+
+Crucially, vous pouvez aussi définir la solution. Pour une erreur simple de formatage, vous pouvez dire à Hatcher d'exécuter `pnpm format` —une solution instantanée, déterministe et sans tokens. Pour une erreur logique complexe dans un test, vous pouvez engager l'IA. Cette approche hybride assure efficacité et fiabilité, réservant la puissance de l'IA pour les problèmes que seule elle peut résoudre.
 
 ## Au-delà du Développement Individuel
 

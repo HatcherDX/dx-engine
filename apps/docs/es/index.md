@@ -1,6 +1,8 @@
 ---
 # https://vitepress.dev/reference/default-theme-home-page
 layout: home
+title: Hatcher | El IDE para Desarrollo con IA Controlada
+description: Un IDE de código abierto que brinda a los desarrolladores profesionales control determinístico sobre la IA. Puente visual-a-código, playbooks de equipo y auto-corrección de pruebas para equipos de desarrollo profesional.
 
 hero:
   name: ''

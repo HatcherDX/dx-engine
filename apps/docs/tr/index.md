@@ -1,6 +1,8 @@
 ---
 # https://vitepress.dev/reference/default-theme-home-page
 layout: home
+title: Hatcher | Kontrollü AI Geliştirme için IDE
+description: Geliştirme süreçlerinde kontrol ve hassasiyeti korurken AI’nın gücünden yararlanmak isteyen profesyonel geliştiriciler için tasarıyla nmış açık kaynak entegre geliştirme ortamı
 
 hero:
   name: ''

@@ -1,3 +1,8 @@
+---
+title: Felsefe | Hatcher IDE ile Kontrollü Amplifikasyon
+description: Kontrollü amplifikasyon ilkelerini öğrenin ve Hatcher'ın felsefesinin geliştiricilere kalite ve kontrolu korurken AI'ı etkili bir şekilde kullanma imkanı sağladığını anlayın
+---
+
 # Felsefe: Kontrollü Güçlendirme
 
 > **Geliştirici cerrah olarak kalır, AI''yı yüksek hassasiyetli neşter olarak kullanır.**
@@ -61,6 +66,12 @@ Bağlam değişimi yok. AI doğrudan geliştirme yaptığınız yerde çalışı
 - Tam istediğiniz şey olduğunu bilerek **güvenle uygulamak**
 
 Bu 21. yüzyıl geliştirmesi: **strateji insanda, yürütme AI''da**.
+
+## Yapılandırılabilir Kalite Boru Hatları
+
+Gerçek kontrol, iş için doğru aracı kullanmak demektir. Hatcher, geliştiricilerin her AI üretiminden sonra çalışan kendi otomatik kalite boru hatlarını tanımlamalarına olanak tanır. Projenizin kendi scriptlerini kullanarak linting, formatlama, tip kontrolü ve test için özel adımlar yapılandırabilirsiniz.
+
+Kritik olarak, düzeltmeyi de tanımlayabilirsiniz. Basit bir formatlama hatası için, Hatcher'a `pnpm format` çalıştırmasını söyleyebilirsiniz — anında, deterministik ve token-ücretsiz bir düzeltme. Bir testteki karmaşık mantıksal hata için AI'yı devreye sokabilirsiniz. Bu hibrit yaklaşım verimlilik ve güvenilirlik sağlar, AI'nın gücünü yalnızca onun çözebileceği sorunlar için saklı tutar.
 
 ## Neden Önemli
 

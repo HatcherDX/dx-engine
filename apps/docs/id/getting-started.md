@@ -1,3 +1,8 @@
+---
+title: Memulai | Panduan Hatcher IDE
+description: Panduan lengkap untuk mengunduh, menginstal, dan mengatur Hatcher IDE untuk memulai perjalanan Anda dalam pengembangan AI terkontrol
+---
+
 # Memulai dengan Hatcher
 
 Selamat datang di Hatcher, IDE yang dirancang untuk amplifikasi terkontrol di era AI. Panduan ini akan membantu Anda memulai dengan cepat.

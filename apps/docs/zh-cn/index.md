@@ -1,6 +1,8 @@
 ---
 # https://vitepress.dev/reference/default-theme-home-page
 layout: home
+title: Hatcher | 可控AI开发的集成开发环境
+description: 专为专业开发者设计的开源集成开发环境，让您在保持控制力和精确性的同时，充分发挥人工智能的强大力量
 
 hero:
   name: ''

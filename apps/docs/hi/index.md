@@ -1,6 +1,8 @@
 ---
 # https://vitepress.dev/reference/default-theme-home-page
 layout: home
+title: Hatcher | नियंत्रित AI विकास के लिए IDE
+description: पेशेवर डेवलपर्स के लिए डिज़ाइन किया गया ओपन-सोर्स एकीकृत विकास वातावरण जो AI की शक्ति का उपयोग करते समय अपनी विकास प्रक्रिया में नियंत्रण और सटीकता बनाए रखना चाहते हैं
 
 hero:
   name: ''

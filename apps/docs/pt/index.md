@@ -1,6 +1,8 @@
 ---
 # https://vitepress.dev/reference/default-theme-home-page
 layout: home
+title: Hatcher | O IDE para Desenvolvimento Controlado com IA
+description: Ambiente de desenvolvimento integrado de código aberto projetado para desenvolvedores profissionais que querem aproveitar o poder da IA mantendo controle e precisão em seu processo de desenvolvimento
 
 hero:
   name: ''

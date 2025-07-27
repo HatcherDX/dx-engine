@@ -1,3 +1,8 @@
+---
+title: 快速开始 | Hatcher IDE指南
+description: 下载、安装和设置Hatcher IDE的完整指南，开始您的可控AI开发之旅
+---
+
 # Hatcher 入门指南
 
 欢迎使用 Hatcher，这是一个为 AI 时代的可控放大而设计的 IDE。本指南将帮助您快速开始。

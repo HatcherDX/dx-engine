@@ -1,3 +1,8 @@
+---
+title: Başlarken | Hatcher IDE Rehberi
+description: Kontrollü AI geliştirme yolculuğunuza başlamak için Hatcher IDE'yi indirme, kurma ve ayarlama konusunda kapsamlı rehber
+---
+
 # Hatcher ile Başlangıç
 
 AI çağında kontrollü amplifikasyon için tasarlanmış IDE olan Hatcher'a hoş geldiniz. Bu kılavuz hızlı bir şekilde başlamanıza yardımcı olacaktır.

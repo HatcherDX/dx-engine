@@ -1,3 +1,8 @@
+---
+title: 시작하기 | Hatcher IDE 가이드
+description: 제어된 AI 개발 여정을 시작하기 위한 Hatcher IDE 다운로드, 설치 및 설정에 대한 완전한 가이드
+---
+
 # Hatcher 시작하기
 
 AI 시대의 제어된 증폭을 위해 설계된 IDE인 Hatcher에 오신 것을 환영합니다. 이 가이드는 빠르게 시작하는 데 도움이 됩니다.

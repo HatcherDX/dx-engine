@@ -1,6 +1,8 @@
 ---
 # https://vitepress.dev/reference/default-theme-home-page
 layout: home
+title: Hatcher | IDE untuk Pengembangan AI Terkontrol
+description: Lingkungan pengembangan terintegrasi open source yang dirancang untuk pengembang profesional yang ingin memanfaatkan kekuatan AI sambil mempertahankan kontrol dan presisi dalam proses pengembangan mereka
 
 hero:
   name: ''

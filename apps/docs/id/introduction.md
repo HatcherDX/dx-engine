@@ -1,3 +1,8 @@
+---
+title: Apa itu Hatcher? | Pengenalan
+description: Temukan Hatcher, IDE open source yang dirancang khusus untuk era AI, yang memungkinkan pengembang bekerja dengan efisiensi yang lebih tinggi
+---
+
 # Memperkenalkan Hatcher
 
 **Hatcher** adalah evolusi berikutnya dalam pengembangan perangkat lunak - sebuah IDE yang mengubah cara Anda membangun aplikasi melalui **Amplifikasi Terkontrol**.

@@ -178,6 +178,12 @@ With Controlled Amplification, development becomes a fluid conversation between 
 
 This creates a development experience that's both powerful and predictable, fast and controlled.
 
+## Configurable Quality Pipelines
+
+True control means using the right tool for the job. Hatcher allows developers to define their own automated quality pipelines that run after every AI generation. You can configure custom steps for linting, formatting, type-checking, and testing using your project's own scripts.
+
+Crucially, you can also define the fix. For a simple formatting error, you can tell Hatcher to run `pnpm format` —an instant, deterministic, and token-free fix. For a complex logical error in a test, you can engage the AI. This hybrid approach ensures efficiency and reliability, reserving the AI's power for the problems only it can solve.
+
 ## Beyond Individual Development
 
 Controlled Amplification scales to teams and organizations:

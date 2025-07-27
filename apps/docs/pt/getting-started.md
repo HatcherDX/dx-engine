@@ -1,3 +1,8 @@
+---
+title: Começando | Guia do Hatcher IDE
+description: Guia completo para baixar, instalar e configurar o Hatcher IDE para começar sua jornada no desenvolvimento controlado com IA
+---
+
 # Começando com o Hatcher
 
 Bem-vindo ao Hatcher, a IDE projetada para amplificação controlada na era da IA. Este guia irá ajudá-lo a começar rapidamente.

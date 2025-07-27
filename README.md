@@ -16,6 +16,7 @@
   <br /><br />
   <a href="ROADMAP.md"><img src="https://img.shields.io/badge/Project%20Status-Alpha-orange" alt="Project Status: Alpha"></a>
   <a href="LICENSE.md"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
+  <img src="https://img.shields.io/badge/dynamic/json?label=Coverage&query=%24.total.statements.pct&suffix=%25&url=https%3A%2F%2Fraw.githubusercontent.com%2FHatcherDX%2Fdx-engine%2Fcoverage-reports%2Fcoverage-summary.json&colorB=brightgreen&colorA=gray&style=flat" alt="Test Coverage">
   <a href="CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome"></a>
   <a href="https://twitter.com/HatcherDX"><img src="https://img.shields.io/twitter/follow/HatcherDX?style=social" alt="Follow on Twitter"></a>
 </p>
@@ -29,11 +30,11 @@ Software development is at an inflection point. While AI can generate 80% of an 
 
 ## The Problem We Solve
 
-Hatcher is built to eliminate the friction that AI introduces, transforming a frustrating cycle of trial-and-error into a fluid, intuitive workflow. We do this by solving three core problems:
+Hatcher is built to eliminate the friction that AI introduces, transforming a frustrating cycle of trial-and-error into a fluid, intuitive workflow.
 
-- **The Visual Disconnect:** We bridge the gap between your live, rendered application and the source code. Instead of describing a visual change, you simply point to it.
-- **The Context Void:** We replace static context files with a dynamic, centralized system of "Playbooks" that provides the AI with the right rules at the right time.
-- **The Loss of Control:** We provide a suite of tools, from automated test loops to visual diffs, that ensure the developer is always in command of the final output.
+- **Stop Describing. Start Pointing:** Bridge the gap between your live application and source code with the Visual-to-Code bridge.
+- **Your AI Forgets. Ours Remembers:** Replace static context files with dynamic Team Playbooks that provide the right architectural rules at the right time.
+- **No More Black Boxes. Just Power:** Maintain deterministic command over AI with visual diffs, **configurable quality pipelines**, and automated testing.
 
 ## Project Status: Alpha
 
@@ -103,6 +104,12 @@ _For more details on each item and future plans, see our full **[Project Roadmap
 We believe the future of development tools will be built by the community. If you are passionate about developer experience and the future of AI, we would love your help.
 
 Please read our **[CONTRIBUTING.md](CONTRIBUTING.md)** to learn how you can get involved, from reporting bugs to submitting your first pull request.
+
+## About the Author
+
+Hatcher is created by **Chriss Mejía**, a Principal AI Systems Architect & Founder with over 22 years of experience building complex platforms for companies ranging from early-stage YC startups to large-scale enterprises.
+
+This project is the culmination of years of R&D, born from his deep belief that the future of software lies in amplifying, not replacing, human intuition.
 
 ## License
 

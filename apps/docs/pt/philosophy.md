@@ -1,3 +1,8 @@
+---
+title: Filosofia | Amplificação Controlada com Hatcher IDE
+description: Aprenda os princípios da amplificação controlada e como a filosofia do Hatcher permite que desenvolvedores aproveitem a IA de forma eficaz mantendo qualidade e controle
+---
+
 # A Filosofia: Amplificação Controlada
 
 > **O desenvolvedor permanece como o cirurgião, usando a IA como um bisturi de alta precisão.**
@@ -61,6 +66,12 @@ Imagine poder:
 - **Aplicar com confiança** sabendo que é exatamente o que você quer
 
 Isso é desenvolvimento no século XXI: **humano na estratégia, IA na execução**.
+
+## Pipelines de Qualidade Configuráveis
+
+O verdadeiro controle significa usar a ferramenta certa para o trabalho. Hatcher permite que os desenvolvedores definam seus próprios pipelines de qualidade automatizados que executam após cada geração de IA. Você pode configurar etapas personalizadas para linting, formatação, verificação de tipos e testes usando os scripts do seu próprio projeto.
+
+Crucialmente, você também pode definir a solução. Para um erro simples de formatação, você pode dizer ao Hatcher para executar `pnpm format` —uma solução instantânea, determinística e sem tokens. Para um erro lógico complexo em um teste, você pode envolver a IA. Esta abordagem híbrida garante eficiência e confiabilidade, reservando o poder da IA para os problemas que apenas ela pode resolver.
 
 ## Por Que Isso Importa
 

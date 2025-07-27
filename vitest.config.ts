@@ -60,7 +60,7 @@ export default defineConfig({
     // Istanbul coverage configuration - automatic
     coverage: {
       provider: 'istanbul',
-      reporter: ['text', 'json', 'html'],
+      reporter: ['text', 'json-summary', 'json', 'html'],
       reportsDirectory: 'coverage',
       enabled: true,
       clean: true,

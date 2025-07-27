@@ -1,3 +1,8 @@
+---
+title: O que é Hatcher? | Introdução
+description: Descubra o Hatcher, o IDE de código aberto projetado especificamente para a era da IA, que permite aos desenvolvedores trabalhar com maior eficiência
+---
+
 # Apresentando o Hatcher
 
 **Hatcher** é a próxima evolução no desenvolvimento de software - uma IDE que transforma como você constrói aplicações através de **Amplificação Controlada**.

@@ -1,3 +1,8 @@
+---
+title: 什么是 Hatcher？ | 介绍
+description: 探索 Hatcher，这是一个专为AI时代设计的开源集成开发环境，让开发者能够更高效地工作
+---
+
 # 介绍 Hatcher
 
 **Hatcher** 是软件开发的下一步演进 - 一个通过**可控放大**改变您构建应用程序方式的 IDE。

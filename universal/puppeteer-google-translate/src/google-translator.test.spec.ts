@@ -524,6 +524,42 @@ describe('GoogleTranslator - Actual Class Tests', () => {
     expect(result).toBe('translated text content')
   })
 
+  it('should execute page evaluation function directly to cover lines 213-218', async () => {
+    const translator = new GoogleTranslator({}, mockBrowserFactory)
+
+    // Mock page.evaluate to actually execute and return the function result
+    mockPage.evaluate.mockImplementation((fn: () => string) => {
+      // Simulate the DOM environment inside page.evaluate
+      const mockElements = [
+        { textContent: 'translated ' },
+        { textContent: 'text ' },
+        { textContent: null }, // This should be filtered out
+        { textContent: '' }, // This should be filtered out
+        { textContent: '  ' }, // This should be filtered out (whitespace only)
+        { textContent: 'content' },
+      ]
+
+      // Mock document.querySelectorAll
+      const mockDocument = {
+        querySelectorAll: () => mockElements,
+      }
+
+      // Execute the function with mocked document
+      const originalDocument = global.document
+      try {
+        global.document = mockDocument as any
+        return Promise.resolve(fn())
+      } finally {
+        global.document = originalDocument
+      }
+    })
+
+    const result = await translator.translateText('hello world', 'en', 'es')
+
+    expect(result).toBe('translated text content')
+    expect(mockPage.evaluate).toHaveBeenCalledWith(expect.any(Function))
+  })
+
   it('should handle empty spans in translation result', async () => {
     const translator = new GoogleTranslator(
       { verbose: false },
