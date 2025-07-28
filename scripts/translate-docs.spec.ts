@@ -180,7 +180,7 @@ describe('Translate Docs Script Functions', () => {
     expect(result.processedContent).toContain('__PRESERVE_2__')
   })
 
-  it('should test error handling and retry logic', () => {
+  it('should test error handling and retry logic', async () => {
     const createRetryHandler = (maxRetries: number) => {
       return async (operation: () => Promise<any>, context: string) => {
         let lastError: Error | null = null
@@ -212,7 +212,9 @@ describe('Translate Docs Script Functions', () => {
 
     // Test successful operation
     const successOperation = () => Promise.resolve('success')
-    expect(retryHandler(successOperation, 'test')).resolves.toBe('success')
+    await expect(retryHandler(successOperation, 'test')).resolves.toBe(
+      'success'
+    )
   })
 
   it('should test batch processing logic', () => {

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { MarkdownProtectionService } from '../services/MarkdownProtectionService.js'
 import { DEFAULT_PROTECTION_CONFIG } from '../types/index.js'
 
@@ -39,6 +39,7 @@ Some text`
       const content = `---
 title: Test Page
 description: A test page
+name: Translatable Name
 tags: [test, example]
 ---
 
@@ -48,13 +49,17 @@ tags: [test, example]
 
       expect(result.content).toContain('[#f0#]')
       expect(result.protectedElements.frontmatter).toHaveLength(1)
+      // title and description values SHOULD be extracted for translation
       expect(result.yamlTexts).toContain('Test Page')
       expect(result.yamlTexts).toContain('A test page')
+      // and other translatable fields should be too
+      expect(result.yamlTexts).toContain('Translatable Name')
 
-      // Check that structure is preserved in protected frontmatter
+      // Check that structure is preserved with tokens in protected frontmatter
       const protectedFrontmatter = result.protectedElements.frontmatter[0]
-      expect(protectedFrontmatter).toContain('[#y1#]') // title token
-      expect(protectedFrontmatter).toContain('[#y2#]') // description token
+      expect(protectedFrontmatter).toContain('title: [#y1#]') // title value tokenized
+      expect(protectedFrontmatter).toContain('description: [#y2#]') // description value tokenized
+      expect(protectedFrontmatter).toContain('[#y3#]') // name token
       expect(protectedFrontmatter).toContain('tags: [test, example]') // non-translatable preserved
     })
 
@@ -84,6 +89,7 @@ tags: [test, example]
     it('should handle complex markdown with multiple protection types', () => {
       const content = `---
 title: API Reference
+name: API Documentation Guide
 ---
 
 # API Documentation
@@ -103,13 +109,18 @@ See <a href="/docs">documentation</a> for more info.`
       expect(result.protectedElements.inlineCode).toHaveLength(1)
       expect(result.protectedElements.codeBlocks).toHaveLength(1)
       expect(result.protectedElements.htmlTags).toHaveLength(2) // <a>, </a>
+      // title value SHOULD be extracted for translation
       expect(result.yamlTexts).toContain('API Reference')
+      // and name field should be too
+      expect(result.yamlTexts).toContain('API Documentation Guide')
     })
 
     it('should extract translatable YAML texts', () => {
       const content = `---
 title: My Page
 description: Page description
+name: Translatable Page Name
+tagline: A great tagline
 author: John Doe
 date: 2024-01-01
 published: true
@@ -117,8 +128,12 @@ published: true
 
       const result = service.protect(content)
 
+      // title and description values SHOULD be extracted for translation
       expect(result.yamlTexts).toContain('My Page')
       expect(result.yamlTexts).toContain('Page description')
+      // and other translatable fields should be too
+      expect(result.yamlTexts).toContain('Translatable Page Name')
+      expect(result.yamlTexts).toContain('A great tagline')
       expect(result.yamlTexts).not.toContain('John Doe') // author names shouldn't be translated
       expect(result.yamlTexts).not.toContain('2024-01-01') // dates shouldn't be translated
       expect(result.yamlTexts).not.toContain('true') // booleans shouldn't be translated
@@ -155,16 +170,18 @@ Use \`fetch()\` for API calls`
       const content = `---
 title: Test Page
 description: A test description
+name: Test Name
 ---
 
 # Content`
 
       const protectedContent = service.protect(content)
 
-      // Simulate translated content with YAML block containing translations
+      // Now title, description and name are all extracted for translation
+      // Simulate the translation process by replacing the YAML block with translated texts
       const translatedContent = protectedContent.content.replace(
-        /\[#yaml#\]\nTest Page\nA test description\n\[#yaml#\]/,
-        '[#yaml#]\nPágina de Prueba\nUna descripción de prueba\n[#yaml#]'
+        /\[#yaml#\]\nTest Page\nA test description\nTest Name\n\[#yaml#\]/,
+        '[#yaml#]\nPágina de Prueba\nUna descripción de prueba\nNombre de Prueba\n[#yaml#]'
       )
 
       const translatedProtectedContent = {
@@ -174,8 +191,11 @@ description: A test description
 
       const restored = service.restore(translatedProtectedContent, [])
 
+      // title and description should now be translated
       expect(restored).toContain('title: Página de Prueba')
       expect(restored).toContain('description: Una descripción de prueba')
+      // and name should be translated too
+      expect(restored).toContain('name: Nombre de Prueba')
     })
 
     it('should restore content without automatic corrections (preserving original)', () => {

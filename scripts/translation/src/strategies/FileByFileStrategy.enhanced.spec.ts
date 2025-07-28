@@ -8,6 +8,24 @@ import type {
   FileTranslationResult,
 } from '../types/index.js'
 
+// Mock the puppeteer-google-translate package
+vi.mock('@hatcherdx/puppeteer-google-translate', () => ({
+  DEFAULT_CONFIG: {
+    headless: true,
+    slowMo: 0,
+    timeout: 30000,
+    maxRetries: 3,
+    retryDelay: 1000,
+    verbose: false,
+  },
+  GoogleTranslator: vi.fn(),
+  BrowserFactory: vi.fn(),
+  MockBrowserFactory: vi.fn(),
+  TranslationError: vi.fn(),
+  BrowserError: vi.fn(),
+  ERROR_CODES: {},
+}))
+
 // Mock all dependencies
 vi.mock('../services/TranslationService.js')
 vi.mock('../services/FileProcessingService.js')

@@ -103,7 +103,9 @@ export class MarkdownProtectionService implements IMarkdownProtectionService {
           (frontmatter) => {
             let processedFrontmatter = frontmatter
 
-            // Extract translatable YAML values while preserving structure
+            // Extract translatable YAML values while preserving key structure
+            // NOTE: YAML keys (title:, description:, etc.) are preserved in English
+            // but their values are extracted for translation
             processedFrontmatter = processedFrontmatter.replace(
               /(\s+(?:title|name|text|tagline|details|description):\s*['"]?)([^'"\n]+)(['"]?)/g,
               (match, prefix, value, suffix) => {

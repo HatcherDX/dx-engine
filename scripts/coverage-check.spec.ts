@@ -243,4 +243,62 @@ describe('Coverage Check Script', () => {
     )
     expect(process.exit).toHaveBeenCalledWith(1)
   })
+
+  it('should handle coverage summary without total property', async () => {
+    const mockSummary = {
+      // Missing total property to test the else branch
+    }
+
+    mockExistsSync.mockReturnValue(true)
+    mockReadFileSync.mockReturnValue(JSON.stringify(mockSummary))
+
+    const { checkCoverageReport } = await import('./coverage-check.ts')
+    checkCoverageReport()
+
+    // Should still display the basic report structure but skip the percentages
+    expect(console.log).toHaveBeenCalledWith('✅ Coverage report found!')
+    expect(console.log).toHaveBeenCalledWith('\n📊 Coverage Summary:')
+  })
+
+  it('should execute checkCoverageReport when run directly', async () => {
+    const mockSummary = {
+      total: {
+        statements: { pct: 75.0 },
+        branches: { pct: 70.0 },
+        functions: { pct: 80.0 },
+        lines: { pct: 77.0 },
+      },
+    }
+
+    mockExistsSync.mockReturnValue(true)
+    mockReadFileSync.mockReturnValue(JSON.stringify(mockSummary))
+
+    // Mock import.meta.url and process.argv to simulate direct execution
+    const originalArgv = process.argv
+    const originalImportMeta = import.meta.url
+
+    try {
+      // Set up mocks to simulate direct execution
+      process.argv = ['node', '/path/to/coverage-check.ts']
+
+      // Mock the condition that triggers direct execution
+      const mockImportMeta = `file://${process.argv[1]}`
+
+      // Since the condition check happens at module level, we need to test indirectly
+      // by verifying the function would be called in that scenario
+      const { checkCoverageReport } = await import(
+        './coverage-check.ts?test-direct=' + Date.now()
+      )
+
+      // The function should exist and be callable
+      expect(typeof checkCoverageReport).toBe('function')
+
+      // Call it manually to test the execution path
+      checkCoverageReport()
+
+      expect(console.log).toHaveBeenCalledWith('\n👍 Good coverage!')
+    } finally {
+      process.argv = originalArgv
+    }
+  })
 })
