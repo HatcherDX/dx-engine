@@ -70,3 +70,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 }
 
 export { checkCoverageReport }
+
+// Test function to simulate direct execution for coverage testing
+export function simulateDirectExecution(): void {
+  checkCoverageReport()
+}

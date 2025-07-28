@@ -258,10 +258,12 @@ process.on('SIGTERM', (): void => {
   process.exit(143)
 })
 
-// Run the main function
-main().catch((error: unknown) => {
-  const errorMessage =
-    error instanceof Error ? error.message : 'Unknown error occurred'
-  console.error(colors.red('💥 Unhandled error:'), errorMessage)
-  process.exit(1)
-})
+// Only run the main function if this script is executed directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().catch((error: unknown) => {
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error occurred'
+    console.error(colors.red('💥 Unhandled error:'), errorMessage)
+    process.exit(1)
+  })
+}
