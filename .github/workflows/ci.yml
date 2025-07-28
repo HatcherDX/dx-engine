@@ -88,9 +88,9 @@ jobs:
           # Copy coverage files to root for easy access
           cp coverage/coverage-summary.json coverage-summary.json
 
-          # Add and commit coverage files
+          # Add and commit coverage files (force add ignored files)
           git add coverage-summary.json
-          git add coverage/
+          git add -f coverage/
 
           # Only commit if there are changes
           if ! git diff --cached --quiet; then
