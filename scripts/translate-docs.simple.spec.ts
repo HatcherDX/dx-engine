@@ -28,7 +28,7 @@ describe('Translate Docs - Simple Execution Coverage', () => {
 
     // Mock console and process to prevent side effects
     global.console = { ...console, log: vi.fn(), error: vi.fn(), warn: vi.fn() }
-    global.process = { ...process, exit: vi.fn(), on: vi.fn() } as any
+    global.process = { ...process, exit: vi.fn(), on: vi.fn() } as unknown
   })
 
   afterEach(() => {

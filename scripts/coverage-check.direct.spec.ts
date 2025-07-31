@@ -35,7 +35,7 @@ describe('Coverage Check Script - Direct Execution', () => {
       argv: ['node', '/Users/test/scripts/coverage-check.ts'],
       exit: vi.fn(),
       cwd: vi.fn(() => '/Users/test'),
-    } as any
+    } as unknown
 
     // Mock successful coverage check by default
     mockExistsSync.mockReturnValue(true)

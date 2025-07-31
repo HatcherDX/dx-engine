@@ -50,7 +50,7 @@ describe('MainWindow - Simple Execution Coverage', () => {
     global.process = {
       ...process,
       cwd: vi.fn(() => '/test/project'),
-    } as any
+    } as unknown
 
     // Mock import.meta.env
     vi.stubGlobal('import.meta', {

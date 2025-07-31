@@ -97,7 +97,7 @@ describe('MainWindow - Execution Coverage', () => {
       },
     }
 
-    mockBrowserWindow.mockReturnValue(mockWindow as any)
+    mockBrowserWindow.mockReturnValue(mockWindow as unknown)
 
     try {
       const mainWindowModule = await import(

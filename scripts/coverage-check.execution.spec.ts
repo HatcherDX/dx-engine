@@ -34,7 +34,7 @@ describe('Coverage Check Script - Direct Execution Coverage', () => {
       cwd: vi.fn(() => '/test/project'),
       exit: vi.fn(),
       argv: ['node', '/path/to/coverage-check.ts'],
-    } as any
+    } as unknown
   })
 
   afterEach(() => {

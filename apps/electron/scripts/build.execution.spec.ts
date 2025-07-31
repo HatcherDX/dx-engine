@@ -69,7 +69,7 @@ describe('Electron Build Script - Execution Coverage', () => {
         NODE_ENV: 'test',
       },
       platform: 'darwin',
-    } as any
+    } as unknown
   })
 
   afterEach(() => {

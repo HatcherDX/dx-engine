@@ -44,7 +44,7 @@ describe('Translate Docs Script - Direct Coverage', () => {
       argv: ['node', 'translate-docs.ts'],
       exit: vi.fn(),
       on: vi.fn(),
-    } as any
+    } as unknown
   })
 
   afterEach(() => {

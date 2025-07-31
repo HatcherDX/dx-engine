@@ -32,7 +32,7 @@ describe('Coverage Check Script - Targeted Line 69', () => {
       ...process,
       exit: vi.fn(),
       cwd: vi.fn(() => '/test'),
-    } as any
+    } as unknown
 
     // Mock successful coverage check
     mockExistsSync.mockReturnValue(true)

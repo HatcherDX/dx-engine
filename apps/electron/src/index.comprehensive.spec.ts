@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import type { MockProcess } from '../../../types/test-mocks'
 
 // Mock all Electron dependencies
 const mockApp = {
@@ -64,7 +65,7 @@ describe('Electron Index - Comprehensive Coverage', () => {
       platform: 'darwin',
       exit: vi.fn(),
       cwd: vi.fn(() => '/test/project'),
-    } as any
+    } as MockProcess
 
     // Setup default successful mocks
     mockExistsSync.mockReturnValue(true)

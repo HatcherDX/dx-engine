@@ -1,0 +1,223 @@
+@import 'tailwindcss';
+
+/* Custom CSS properties for theme system */
+:root {
+  /* Light theme colors */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --bg-tertiary: #f1f5f9;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-tertiary: #64748b;
+  --border-primary: #e2e8f0;
+  --border-secondary: #cbd5e1;
+  --accent-primary: #0ea5e9;
+  --accent-secondary: #0284c7;
+
+  /* Sidebar colors */
+  --bg-sidebar: #f1f5f9;
+  --bg-sidebar-header: #e2e8f0;
+  --border-sidebar: #cbd5e1;
+  --resize-handle-color: #94a3b8;
+  --resize-handle-hover: #64748b;
+
+  /* Layout */
+  --header-height: 40px;
+  --sidebar-width: 270px;
+  --sidebar-min-width: 270px;
+  --sidebar-max-width: 500px;
+  --resize-handle-width: 4px;
+  --border-radius: 8px;
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg:
+    0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-normal: 300ms ease;
+  --transition-slow: 500ms ease;
+
+  /* Hover effects - stronger and more visible */
+  --hover-bg-light: #e2e8f0;
+  --hover-bg-dark: #334155;
+}
+
+/* Dark theme colors */
+.dark {
+  --bg-primary: #0f172a;
+  --bg-secondary: #111827;
+  --bg-tertiary: #334155;
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-tertiary: #94a3b8;
+  --border-primary: #334155;
+  --border-secondary: #475569;
+  --accent-primary: #38bdf8;
+  --accent-secondary: #0ea5e9;
+
+  /* Dark sidebar colors - darker than main content */
+  --bg-sidebar: #0a0f1a;
+  --bg-sidebar-header: #0a0f1a;
+  --border-sidebar: #374151;
+  --resize-handle-color: #374151;
+  --resize-handle-hover: #4b5563;
+
+  /* Hover effects for dark mode - stronger and more visible */
+  --hover-bg-light: #1e293b;
+  --hover-bg-dark: #1e293b;
+}
+
+/* Platform-specific styling */
+.platform-macos {
+  --header-height: 40px;
+}
+
+.platform-windows {
+  --header-height: 40px;
+}
+
+.platform-linux {
+  --header-height: 40px;
+}
+
+/* Platform-specific sidebar header adjustments */
+.sidebar-header.platform-macos .sidebar-header-left {
+  /* Empty space for macOS traffic lights */
+  width: 78px;
+}
+
+.sidebar-header.platform-windows .sidebar-header-left,
+.sidebar-header.platform-linux .sidebar-header-left {
+  /* Logo space for Windows/Linux */
+  padding-left: 0px;
+}
+
+/* SOLO PARA PC: Remove left padding from .sidebar-header directly */
+.sidebar-header.platform-windows,
+.sidebar-header.platform-linux {
+  padding-left: 0px !important;
+}
+
+/* Global styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  height: 100%;
+  font-family:
+    'Inter',
+    system-ui,
+    -apple-system,
+    sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition:
+    background-color var(--transition-normal),
+    color var(--transition-normal);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-secondary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-tertiary);
+}
+
+/* Focus styles */
+*:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+/* Selection styles */
+::selection {
+  background-color: var(--accent-primary);
+  color: white;
+}
+
+/* Utilities */
+.glass-effect {
+  backdrop-filter: blur(12px) saturate(150%);
+  background-color: rgba(255, 255, 255, 0.8);
+}
+
+.dark .glass-effect {
+  background-color: rgba(15, 23, 42, 0.8);
+}
+
+/* Animation utilities */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in var(--transition-normal);
+}
+
+.animate-slide-up {
+  animation: slide-up var(--transition-normal);
+}
+
+.animate-slide-down {
+  animation: slide-down var(--transition-normal);
+}
+
+/* Button hover effect utility */
+.button-hover-effect {
+  transition: background-color var(--transition-fast);
+  border-radius: 0;
+}
+
+.button-hover-effect:hover {
+  background-color: var(--hover-bg-light);
+}
+
+.dark .button-hover-effect:hover {
+  background-color: var(--hover-bg-dark);
+}

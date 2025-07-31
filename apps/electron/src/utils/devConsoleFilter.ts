@@ -37,6 +37,18 @@ const HARMLESS_PATTERNS = [
 ]
 
 /**
+ * Check if a message matches any of the harmless patterns
+ * Exported for testing purposes
+ */
+export function isHarmlessDevToolsMessage(message: string): boolean {
+  if (!message || typeof message !== 'string' || !message.trim()) {
+    return false
+  }
+
+  return HARMLESS_PATTERNS.some((pattern) => pattern.test(message))
+}
+
+/**
  * Setup console filtering for development
  * Only filters very specific harmless DevTools messages
  */
@@ -56,11 +68,7 @@ export function setupDevConsoleFilter(
     const message = args.join(' ')
 
     // Only filter if message matches our VERY specific harmless patterns
-    const isHarmless = HARMLESS_PATTERNS.some((pattern) =>
-      pattern.test(message)
-    )
-
-    if (!isHarmless) {
+    if (!isHarmlessDevToolsMessage(message)) {
       // Show ALL other errors - this is critical for debugging
       originalConsoleError.apply(console, ['[MAIN]', ...args])
     }
@@ -71,11 +79,7 @@ export function setupDevConsoleFilter(
     const message = args.join(' ')
 
     // Only filter if message matches our VERY specific harmless patterns
-    const isHarmless = HARMLESS_PATTERNS.some((pattern) =>
-      pattern.test(message)
-    )
-
-    if (!isHarmless) {
+    if (!isHarmlessDevToolsMessage(message)) {
       // Show ALL other warnings - this is important for debugging
       originalConsoleWarn.apply(console, ['[MAIN]', ...args])
     }
@@ -86,11 +90,7 @@ export function setupDevConsoleFilter(
     const message = args.join(' ')
 
     // Only filter if message matches our VERY specific harmless patterns
-    const isHarmless = HARMLESS_PATTERNS.some((pattern) =>
-      pattern.test(message)
-    )
-
-    if (!isHarmless) {
+    if (!isHarmlessDevToolsMessage(message)) {
       // Show ALL other logs - preserve debugging information
       originalConsoleLog.apply(console, ['[MAIN]', ...args])
     }
@@ -104,11 +104,4 @@ export function setupDevConsoleFilter(
       console.log = originalConsoleLog
     },
   }
-}
-
-/**
- * Check if a message matches harmless patterns
- */
-export function isHarmlessDevToolsMessage(message: string): boolean {
-  return HARMLESS_PATTERNS.some((pattern) => pattern.test(message))
 }

@@ -148,7 +148,7 @@ describe('IPCRenderer Class - Simple Coverage', () => {
 
   it('should test async message handling patterns', async () => {
     // Test async patterns used by the renderer
-    const asyncHandler = async (data: any) => {
+    const asyncHandler = async (data: unknown) => {
       return new Promise((resolve) => {
         setTimeout(() => resolve(data), 0)
       })
@@ -175,7 +175,7 @@ describe('IPCRenderer Class - Simple Coverage', () => {
 
   it('should test message validation patterns', () => {
     // Test message validation logic
-    const isValidMessage = (message: any) => {
+    const isValidMessage = (message: unknown) => {
       return (
         typeof message === 'object' &&
         message !== null &&

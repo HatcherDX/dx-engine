@@ -59,7 +59,7 @@ describe('Generate Icons - Enhanced Coverage', () => {
       argv: ['node', 'generate-icons.ts'],
       exit: vi.fn(),
       on: vi.fn(),
-    } as any
+    } as unknown
 
     // Default mocks for successful path
     mockExistsSync.mockReturnValue(true)

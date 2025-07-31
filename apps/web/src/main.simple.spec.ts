@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import type { MockDocument } from '../../../types/test-mocks'
 
 // Mock Vue dependencies
 vi.mock('vue', () => ({
@@ -14,7 +15,7 @@ vi.mock('./App.vue', () => ({
 }))
 
 describe('Web Main - Simple Coverage', () => {
-  let mockDocument: any
+  let mockDocument: MockDocument
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -31,7 +32,7 @@ describe('Web Main - Simple Coverage', () => {
 
   afterEach(() => {
     // Clean up mocks
-    delete (global as any).document
+    delete (global as unknown).document
   })
 
   it('should import and execute main.ts', async () => {
@@ -54,7 +55,7 @@ describe('Web Main - Simple Coverage', () => {
       mount: vi.fn(),
     }
 
-    mockCreateApp.mockReturnValue(mockApp as any)
+    mockCreateApp.mockReturnValue(mockApp as unknown)
 
     // Test the pattern used in main.ts
     const App = {}

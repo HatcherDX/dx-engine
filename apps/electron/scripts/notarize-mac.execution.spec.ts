@@ -42,7 +42,7 @@ describe('Notarize Mac Script - Execution Coverage', () => {
           productFilename: 'DX Engine',
         },
       },
-    } as any
+    } as unknown
 
     const notarizeMac = async (context: AfterPackContext) => {
       const { electronPlatformName, appOutDir } = context
@@ -82,7 +82,7 @@ describe('Notarize Mac Script - Execution Coverage', () => {
           productFilename: 'DX Engine',
         },
       },
-    } as any
+    } as unknown
 
     const notarizeMac = async (context: AfterPackContext) => {
       const { electronPlatformName, appOutDir } = context
@@ -117,7 +117,7 @@ describe('Notarize Mac Script - Execution Coverage', () => {
           productFilename: 'Custom App Name',
         },
       },
-    } as any
+    } as unknown
 
     const notarizeMac = async (context: AfterPackContext) => {
       const { electronPlatformName, appOutDir } = context
@@ -158,7 +158,7 @@ describe('Notarize Mac Script - Execution Coverage', () => {
           productFilename: 'DX Engine',
         },
       },
-    } as any
+    } as unknown
 
     const notarizeMac = async (context: AfterPackContext) => {
       const { electronPlatformName, appOutDir } = context
@@ -199,7 +199,7 @@ describe('Notarize Mac Script - Execution Coverage', () => {
           productFilename: 'Test App',
         },
       },
-    } as any
+    } as unknown
 
     const notarizeMac = async (context: AfterPackContext) => {
       const { electronPlatformName, appOutDir } = context
@@ -273,7 +273,7 @@ describe('Notarize Mac Script - Execution Coverage', () => {
           productFilename: 'Test Product',
         },
       },
-    } as any
+    } as unknown
 
     const extractContextData = (context: AfterPackContext) => {
       const { electronPlatformName, appOutDir } = context
@@ -302,7 +302,7 @@ describe('Notarize Mac Script - Execution Coverage', () => {
           productFilename: 'Production App',
         },
       },
-    } as any
+    } as unknown
 
     process.env.APPLE_ID = 'prod@company.com'
     process.env.APPLE_PASSWORD = 'secure-password'

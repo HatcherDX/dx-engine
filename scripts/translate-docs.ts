@@ -4,6 +4,7 @@ import { translateDocumentation } from './translation/dist/index.js'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { rmSync, existsSync } from 'fs'
+import type { ProgressInfo } from '../types/test-mocks'
 
 // Types for professional TypeScript development
 interface ColorFunction {
@@ -23,7 +24,7 @@ interface Colors {
 interface TranslationConfig {
   overwriteExisting: boolean
   verbose: boolean
-  onProgress: (progress: any) => void
+  onProgress: (progress: ProgressInfo) => void
 }
 
 type SupportedLanguageCode =
@@ -142,7 +143,7 @@ async function main(): Promise<void> {
     const config: TranslationConfig = {
       overwriteExisting: true, // Always overwrite since we cleaned first
       verbose: false, // Reduce verbosity to avoid spam
-      onProgress: (progress: any) => {
+      onProgress: (progress: ProgressInfo) => {
         const phase: string = colors.cyan(progress.phase.toUpperCase())
         const percent: string = colors.green(
           `${progress.overallProgress.toFixed(1)}%`

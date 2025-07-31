@@ -30,7 +30,7 @@ describe('IPC Module - Simple Coverage', () => {
     }
 
     // Mock setTimeout
-    global.setTimeout = vi.fn() as any
+    global.setTimeout = vi.fn() as unknown
   })
 
   afterEach(() => {
@@ -106,7 +106,7 @@ describe('IPC Module - Simple Coverage', () => {
 
   it('should test user ID validation', () => {
     // Test user ID validation patterns
-    const validateUserID = (userID: any) => {
+    const validateUserID = (userID: unknown) => {
       return typeof userID === 'number' && userID > 0
     }
 

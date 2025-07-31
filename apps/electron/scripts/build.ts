@@ -11,9 +11,9 @@ const __dirname = path.dirname(__filename)
 
 const version = process.env.VITE_APP_VERSION
 const isDev = process.env.NODE_ENV === 'development'
-const appName = isDev ? 'DX Engine Dev' : 'DX Engine'
+const appName = isDev ? 'Hatcher Dev' : 'Hatcher'
 const appId = isDev ? 'com.hatcherdx.engine-dev' : 'com.hatcherdx.engine'
-const shortcutName = isDev ? 'DX Engine Dev' : 'DX Engine'
+const shortcutName = isDev ? 'Hatcher Dev' : 'Hatcher'
 
 console.log('Is development environment:', isDev, appName)
 console.log('APP version:', version)
@@ -41,7 +41,8 @@ cpSync(
 
 const config: Configuration = {
   appId: 'com.hatcherdx.engine',
-  productName: 'DX Engine',
+  productName: 'Hatcher',
+  copyright: 'Copyright © 2025 Hatcher',
   directories: {
     output: 'dist-final',
     buildResources: 'build',

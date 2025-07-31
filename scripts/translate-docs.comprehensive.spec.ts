@@ -47,7 +47,7 @@ describe('Translate Docs Script - Comprehensive Coverage', () => {
       ...process,
       argv: ['node', 'translate-docs.ts'],
       exit: vi.fn(),
-    } as any
+    } as unknown
 
     // Setup default mock returns
     mockJoin.mockImplementation((...args) => args.join('/'))

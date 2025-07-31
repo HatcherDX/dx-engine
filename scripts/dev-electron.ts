@@ -53,11 +53,42 @@ function startElectron() {
     'pnpm',
     ['--filter', '@hatcherdx/dx-engine-electron', 'dev'],
     {
-      stdio: 'inherit',
+      stdio: 'pipe',
       cwd: process.cwd(),
       shell: isWin,
     }
   )
+
+  // Filter Electron output to remove harmless DevTools errors
+  electronApp.stdout?.on('data', (data) => {
+    const output = data.toString()
+    // Only show output that doesn't contain harmless DevTools errors
+    if (
+      !output.includes('Request Autofill.enable failed') &&
+      !output.includes('Request Autofill.setAddresses failed') &&
+      !output.includes("Unexpected token 'H'") &&
+      !output.includes('HTTP/1.1 4') &&
+      !output.includes('is not valid JSON') &&
+      !output.includes('chrome-devtools-frontend.appspot.com')
+    ) {
+      process.stdout.write(output)
+    }
+  })
+
+  electronApp.stderr?.on('data', (data) => {
+    const output = data.toString()
+    // Filter stderr as well
+    if (
+      !output.includes('Request Autofill.enable failed') &&
+      !output.includes('Request Autofill.setAddresses failed') &&
+      !output.includes("Unexpected token 'H'") &&
+      !output.includes('HTTP/1.1 4') &&
+      !output.includes('is not valid JSON') &&
+      !output.includes('chrome-devtools-frontend.appspot.com')
+    ) {
+      process.stderr.write(output)
+    }
+  })
 
   electronApp.on('error', (error) => {
     console.error('❌ Failed to start Electron:', error.message)

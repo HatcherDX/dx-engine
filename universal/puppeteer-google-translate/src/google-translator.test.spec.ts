@@ -547,7 +547,7 @@ describe('GoogleTranslator - Actual Class Tests', () => {
       // Execute the function with mocked document
       const originalDocument = global.document
       try {
-        global.document = mockDocument as any
+        global.document = mockDocument as unknown
         return Promise.resolve(fn())
       } finally {
         global.document = originalDocument

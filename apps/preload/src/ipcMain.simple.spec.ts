@@ -145,7 +145,7 @@ describe('IPCMain Class - Simple Coverage', () => {
       }
 
       const mockGetAllWindows = vi.mocked(BrowserWindow.getAllWindows)
-      mockGetAllWindows.mockReturnValue([mockWindow as any])
+      mockGetAllWindows.mockReturnValue([mockWindow as unknown])
 
       // Test sending message
       instance.send('testMessage', 'test data')

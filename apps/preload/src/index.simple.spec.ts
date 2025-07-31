@@ -33,7 +33,7 @@ describe('Preload Index - Simple Coverage', () => {
         electron: '22.0.0',
         chrome: '106.0.0',
       },
-    } as any
+    } as unknown
   })
 
   afterEach(() => {
@@ -64,7 +64,7 @@ describe('Preload Index - Simple Coverage', () => {
       on: vi.fn(),
     }
 
-    mockIPCRenderer.mockReturnValue(mockIpcRenderer as any)
+    mockIPCRenderer.mockReturnValue(mockIpcRenderer as unknown)
 
     const electronAPI = {
       versions: process.versions,

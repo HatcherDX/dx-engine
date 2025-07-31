@@ -23,7 +23,7 @@ describe('Electron Build Script - Simple Import Coverage', () => {
         VITE_APP_VERSION: '1.0.0',
         NODE_ENV: 'test',
       },
-    } as any
+    } as unknown
   })
 
   afterEach(() => {

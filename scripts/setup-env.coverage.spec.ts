@@ -39,7 +39,7 @@ describe('Setup Environment Script - Coverage Testing', () => {
     global.process = {
       ...process,
       cwd: vi.fn(() => '/test/project'),
-    } as any
+    } as unknown
   })
 
   afterEach(() => {

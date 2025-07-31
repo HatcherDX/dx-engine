@@ -161,7 +161,7 @@ describe('MainWindow - Actual Coverage', () => {
       loadURL: vi.fn(() => Promise.resolve()),
     }
 
-    mockBrowserWindow.mockReturnValue(mockWindow as any)
+    mockBrowserWindow.mockReturnValue(mockWindow as unknown)
 
     try {
       const mainWindowModule = await import('./mainWindow.ts')

@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.5] - 2025-07-30
+
+### Added
+
+#### Core Application UI & Theming
+
+- **New Professional IDE Shell** introduced a completely redesigned, multi-panel user interface that serves as the foundation for all core workflows.
+- **Light & Dark Themes** Hatcher now includes meticulously designed light and dark themes to accommodate developer preferences and reduce eye strain.
+- **Foundations for Four Core Modes** The new UI establishes the distinct workspaces for Hatcher's primary functions, each with a unique contextual sidebar:
+  - Generative Mode: A focused environment for AI-driven code generation, featuring a **"Background Tasks"** panel to monitor configurable quality pipelines (linting, testing, etc.).
+  - Visual Mode: The groundwork for our Visual-to-Code bridge, featuring a "Layers" panel inspired by professional design tools to manage the UI hierarchy.
+  - Code Mode: A dedicated space for the future AI-powered editor, complete with a familiar file "Explorer".
+  - Timeline:
+- **Timeline Mode** A complete Git control center designed for "Intelligent Commits" and assisted code reviews, featuring a "Changes" and "History" panel.
+
+### Development Experience
+
+- **Platform Simulation Mode:** Added a new menu for development builds that allows simulating how the application's UI will look and feel on macOS, Windows, and Linux, streamlining cross-platform development.
+
+### Improved
+
+- **Test Coverage Increased:** Project-wide test coverage has been significantly increased to over 79% for Statements and Lines, with a major focus on improving Branch coverage to ensure the reliability of the core application shell.
+
 ## [0.3.0] - 2025-07-24
 
 ### Added

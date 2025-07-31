@@ -49,7 +49,7 @@ describe('Notarize Mac Script - Simple Coverage', () => {
           productFilename: 'TestApp',
         },
       },
-    } as any
+    } as unknown
 
     try {
       const result = await notarizeMac(mockContext)
@@ -73,7 +73,7 @@ describe('Notarize Mac Script - Simple Coverage', () => {
           productFilename: 'TestApp',
         },
       },
-    } as any
+    } as unknown
 
     const result = await notarizeMac(mockContext)
 

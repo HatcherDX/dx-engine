@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import type { MockProcess } from '../../../types/test-mocks'
 
 describe('Electron Main Process - Simple Import Test', () => {
   let originalConsole: typeof console
@@ -21,7 +22,7 @@ describe('Electron Main Process - Simple Import Test', () => {
       platform: 'test',
       cwd: vi.fn(() => '/test'),
       exit: vi.fn(),
-    } as any
+    } as MockProcess
   })
 
   afterEach(() => {

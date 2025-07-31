@@ -1,12 +1,34 @@
-import { BrowserWindow } from 'electron'
+import { BrowserWindow, session } from 'electron'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { isDev, isPackaged } from '/@/utils/'
+import { setupApplicationMenu } from './menu'
+
+/**
+ * Configure Content Security Policy headers
+ */
+function setupCSP() {
+  // Configure CSP headers for security
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    const cspValue = isDev
+      ? "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' ws: wss: http://localhost:* http://127.0.0.1:*; img-src 'self' data:;"
+      : "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; img-src 'self' data:;"
+
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [cspValue],
+      },
+    })
+  })
+}
 
 /**
  * Creates a new browser window with proper configuration
  */
 async function createWindow() {
+  // Setup CSP before creating window
+  setupCSP()
   // Find the correct icon path
   const iconPaths = [
     join(__dirname, '../build/icon.png'),
@@ -24,6 +46,19 @@ async function createWindow() {
     show: false,
     // Set the application icon if found
     ...(iconPath && { icon: iconPath }),
+    // Custom title bar configuration
+    titleBarStyle: 'hidden',
+    titleBarOverlay: {
+      color: '#00000000', // Transparent
+      symbolColor: '#ffffff', // White symbols for dark themes
+      height: 40,
+    },
+    // Remove frame on Windows/Linux, keep native on macOS for traffic lights
+    frame: process.platform === 'darwin',
+    // Platform-specific configurations
+    ...(process.platform === 'darwin' && {
+      trafficLightPosition: { x: 16, y: 12 }, // Standard traffic lights position
+    }),
     webPreferences: {
       // https://www.electronjs.org/docs/latest/api/webview-tag#warning
       webviewTag: false,
@@ -40,6 +75,9 @@ async function createWindow() {
    */
   browserWindow.on('ready-to-show', () => {
     browserWindow?.show()
+
+    // Setup application menu
+    setupApplicationMenu()
 
     // Only auto-open DevTools in development mode
     if (isDev) {
