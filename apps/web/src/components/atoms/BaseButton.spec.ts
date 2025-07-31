@@ -162,11 +162,10 @@ describe('BaseButton', () => {
   it('should handle click with event object', async () => {
     const wrapper = mount(BaseButton)
 
-    const mockEvent = new MouseEvent('click')
-    await wrapper.vm.handleClick(mockEvent)
+    await wrapper.trigger('click')
 
     expect(wrapper.emitted('click')).toHaveLength(1)
-    expect(wrapper.emitted('click')![0][0]).toBe(mockEvent)
+    expect(wrapper.emitted('click')![0][0]).toBeInstanceOf(MouseEvent)
   })
 
   it('should not handle click when disabled via method', async () => {
@@ -176,8 +175,7 @@ describe('BaseButton', () => {
       },
     })
 
-    const mockEvent = new MouseEvent('click')
-    await wrapper.vm.handleClick(mockEvent)
+    await wrapper.trigger('click')
 
     expect(wrapper.emitted('click')).toBeFalsy()
   })

@@ -22,12 +22,42 @@ describe('Web Main - Simple Coverage', () => {
 
     // Mock document and DOM
     mockDocument = {
-      querySelector: vi.fn(() => ({
-        id: 'app',
-      })),
+      body: {
+        style: {},
+      },
+      documentElement: {
+        style: {},
+        classList: {
+          add: vi.fn(),
+          remove: vi.fn(),
+          contains: vi.fn(),
+        },
+      },
+      querySelector: vi.fn(
+        () =>
+          ({
+            id: 'app',
+            tagName: 'DIV',
+            style: {},
+            appendChild: vi.fn(),
+            insertBefore: vi.fn(),
+            removeChild: vi.fn(),
+            setAttribute: vi.fn(),
+            getAttribute: vi.fn(),
+            classList: {
+              add: vi.fn(),
+              remove: vi.fn(),
+              contains: vi.fn(),
+            },
+            children: [],
+            parentNode: null,
+          }) as unknown as HTMLElement
+      ),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
     }
 
-    global.document = mockDocument
+    global.document = mockDocument as unknown as Document
   })
 
   afterEach(() => {
@@ -55,7 +85,9 @@ describe('Web Main - Simple Coverage', () => {
       mount: vi.fn(),
     }
 
-    mockCreateApp.mockReturnValue(mockApp as unknown)
+    mockCreateApp.mockReturnValue(
+      mockApp as unknown as ReturnType<typeof createApp>
+    )
 
     // Test the pattern used in main.ts
     const App = {}

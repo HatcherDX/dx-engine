@@ -45,7 +45,7 @@ describe('PlayButton', () => {
     await wrapper.trigger('click')
 
     expect(wrapper.emitted('play')).toHaveLength(1)
-    expect(wrapper.vm.isPlaying).toBe(true)
+    expect(wrapper.classes()).toContain('is-playing')
     expect(wrapper.classes()).toContain('is-playing')
   })
 
@@ -77,7 +77,7 @@ describe('PlayButton', () => {
     // Second click to stop playing
     await wrapper.trigger('click')
     expect(wrapper.emitted('stop')).toHaveLength(1)
-    expect(wrapper.vm.isPlaying).toBe(false)
+    expect(wrapper.classes()).not.toContain('is-playing')
     expect(wrapper.classes()).not.toContain('is-playing')
   })
 
@@ -91,50 +91,50 @@ describe('PlayButton', () => {
     await wrapper.trigger('click')
 
     expect(wrapper.emitted('play')).toBeFalsy()
-    expect(wrapper.vm.isPlaying).toBe(false)
+    expect(wrapper.classes()).not.toContain('is-playing')
   })
 
-  it('should handle click method directly', () => {
+  it('should handle click method directly', async () => {
     const wrapper = mount(PlayButton)
 
-    wrapper.vm.handleClick()
+    await wrapper.trigger('click')
 
     expect(wrapper.emitted('play')).toHaveLength(1)
-    expect(wrapper.vm.isPlaying).toBe(true)
+    expect(wrapper.classes()).toContain('is-playing')
   })
 
-  it('should not handle click when disabled via method', () => {
+  it('should not handle click when disabled via method', async () => {
     const wrapper = mount(PlayButton, {
       props: {
         disabled: true,
       },
     })
 
-    wrapper.vm.handleClick()
+    await wrapper.trigger('click')
 
     expect(wrapper.emitted('play')).toBeFalsy()
-    expect(wrapper.vm.isPlaying).toBe(false)
+    expect(wrapper.classes()).not.toContain('is-playing')
   })
 
   it('should toggle state correctly through multiple clicks', async () => {
     const wrapper = mount(PlayButton)
 
     // Initially not playing
-    expect(wrapper.vm.isPlaying).toBe(false)
+    expect(wrapper.classes()).not.toContain('is-playing')
 
     // Click to play
     await wrapper.trigger('click')
-    expect(wrapper.vm.isPlaying).toBe(true)
+    expect(wrapper.classes()).toContain('is-playing')
     expect(wrapper.emitted('play')).toHaveLength(1)
 
     // Click to stop
     await wrapper.trigger('click')
-    expect(wrapper.vm.isPlaying).toBe(false)
+    expect(wrapper.classes()).not.toContain('is-playing')
     expect(wrapper.emitted('stop')).toHaveLength(1)
 
     // Click to play again
     await wrapper.trigger('click')
-    expect(wrapper.vm.isPlaying).toBe(true)
+    expect(wrapper.classes()).toContain('is-playing')
     expect(wrapper.emitted('play')).toHaveLength(2)
   })
 
@@ -159,15 +159,15 @@ describe('PlayButton', () => {
 
     // Start playing
     await wrapper.trigger('click')
-    expect(wrapper.vm.isPlaying).toBe(true)
+    expect(wrapper.classes()).toContain('is-playing')
 
     // Disable the button
     await wrapper.setProps({ disabled: true })
-    expect(wrapper.vm.isPlaying).toBe(true) // State should remain
+    expect(wrapper.classes()).toContain('is-playing') // State should remain
 
     // Enable the button again
     await wrapper.setProps({ disabled: false })
-    expect(wrapper.vm.isPlaying).toBe(true) // State should still be maintained
+    expect(wrapper.classes()).toContain('is-playing') // State should still be maintained
   })
 
   it('should handle rapid clicking correctly', async () => {
@@ -181,6 +181,6 @@ describe('PlayButton', () => {
 
     expect(wrapper.emitted('play')).toHaveLength(2)
     expect(wrapper.emitted('stop')).toHaveLength(2)
-    expect(wrapper.vm.isPlaying).toBe(false) // Should end in stopped state
+    expect(wrapper.classes()).not.toContain('is-playing') // Should end in stopped state
   })
 })

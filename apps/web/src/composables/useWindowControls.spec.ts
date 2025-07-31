@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { useWindowControls } from './useWindowControls'
 
 describe('useWindowControls', () => {
-  let mockElectronAPI: unknown
+  let mockElectronAPI: { send: ReturnType<typeof vi.fn> }
 
   beforeEach(() => {
     mockElectronAPI = {
@@ -29,7 +29,7 @@ describe('useWindowControls', () => {
       electronAPI: mockElectronAPI,
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
-    } as unknown
+    } as unknown as Window & { electronAPI: typeof mockElectronAPI }
 
     global.document = {
       body: { ...mockElement },

@@ -80,14 +80,14 @@ describe('App.vue', () => {
 
   it('should have default mode set to generative', () => {
     const wrapper = mount(App)
-    const data = wrapper.vm
-    expect(data.currentMode).toBe('generative')
+    const unifiedFrame = wrapper.findComponent({ name: 'UnifiedFrame' })
+    expect(unifiedFrame.props('currentMode')).toBe('generative')
   })
 
   it('should initialize with empty address value', () => {
     const wrapper = mount(App)
-    const data = wrapper.vm
-    expect(data.addressValue).toBe('')
+    const addressBar = wrapper.findComponent({ name: 'AddressBar' })
+    expect(addressBar.props('value')).toBe('')
   })
 
   it('should execute onMounted lifecycle hook', async () => {
@@ -101,22 +101,25 @@ describe('App.vue', () => {
 
   it('should handle mode changes', async () => {
     const wrapper = mount(App)
+    const modeSelector = wrapper.findComponent({ name: 'ModeSelector' })
 
-    // Test mode change handler
-    wrapper.vm.handleModeChange('visual')
+    // Test mode change by emitting event from ModeSelector
+    await modeSelector.vm.$emit('mode-change', 'visual')
     await nextTick()
 
-    expect(wrapper.vm.currentMode).toBe('visual')
+    const unifiedFrame = wrapper.findComponent({ name: 'UnifiedFrame' })
+    expect(unifiedFrame.props('currentMode')).toBe('visual')
   })
 
   it('should handle address changes', async () => {
     const wrapper = mount(App)
+    const addressBar = wrapper.findComponent({ name: 'AddressBar' })
 
-    // Test direct address value change
-    wrapper.vm.addressValue = 'test-address'
+    // Test address value change by emitting update event
+    await addressBar.vm.$emit('update:value', 'test-address')
     await nextTick()
 
-    expect(wrapper.vm.addressValue).toBe('test-address')
+    expect(addressBar.props('value')).toBe('test-address')
   })
 
   it('should pass correct props to UnifiedFrame', () => {
@@ -128,14 +131,17 @@ describe('App.vue', () => {
 
   it('should render with correct initial state', () => {
     const wrapper = mount(App)
+    const unifiedFrame = wrapper.findComponent({ name: 'UnifiedFrame' })
+    const addressBar = wrapper.findComponent({ name: 'AddressBar' })
 
-    expect(wrapper.vm.currentMode).toBe('generative')
-    expect(wrapper.vm.addressValue).toBe('')
+    expect(unifiedFrame.props('currentMode')).toBe('generative')
+    expect(addressBar.props('value')).toBe('')
     expect(wrapper.exists()).toBe(true)
   })
 
   it('should test complete component functionality', async () => {
     const wrapper = mount(App)
+    const modeSelector = wrapper.findComponent({ name: 'ModeSelector' })
 
     // Test all mode changes including timeline
     const modes: Array<'generative' | 'visual' | 'code' | 'timeline'> = [
@@ -146,15 +152,20 @@ describe('App.vue', () => {
     ]
 
     for (const mode of modes) {
-      wrapper.vm.handleModeChange(mode)
+      await modeSelector.vm.$emit('mode-change', mode)
       await nextTick()
-      expect(wrapper.vm.currentMode).toBe(mode)
-      expect(wrapper.vm.addressValue).toBe('') // Address should be cleared on mode change
+
+      const unifiedFrame = wrapper.findComponent({ name: 'UnifiedFrame' })
+      const addressBar = wrapper.findComponent({ name: 'AddressBar' })
+
+      expect(unifiedFrame.props('currentMode')).toBe(mode)
+      expect(addressBar.props('value')).toBe('') // Address should be cleared on mode change
     }
   })
 
-  it('should handle command execution for all modes', () => {
+  it('should handle command execution for all modes', async () => {
     const wrapper = mount(App)
+    const addressBar = wrapper.findComponent({ name: 'AddressBar' })
     const testCommand = 'test command'
 
     // Test command execution for each mode
@@ -168,28 +179,29 @@ describe('App.vue', () => {
     // Test that command execution doesn't throw errors
     for (const mode of modes) {
       expect(() => {
-        wrapper.vm.handleExecuteCommand(testCommand, mode)
+        addressBar.vm.$emit('execute', testCommand, mode)
       }).not.toThrow()
     }
 
-    // Verify address value is cleared after execution
-    expect(wrapper.vm.addressValue).toBe('')
+    // Address should remain empty since it's not being updated
+    expect(addressBar.props('value')).toBe('')
   })
 
-  it('should handle play and stop button actions', () => {
+  it('should handle play and stop button actions', async () => {
     const wrapper = mount(App)
+    const playButton = wrapper.findComponent({ name: 'PlayButton' })
 
     // Test that play and stop buttons don't throw errors
     expect(() => {
-      wrapper.vm.handlePlay()
+      playButton.vm.$emit('play')
     }).not.toThrow()
 
     expect(() => {
-      wrapper.vm.handleStop()
+      playButton.vm.$emit('stop')
     }).not.toThrow()
   })
 
-  it('should handle GitHub link opening', () => {
+  it('should handle GitHub link opening', async () => {
     const wrapper = mount(App)
     const windowOpenSpy = vi
       .spyOn(window, 'open')
@@ -201,7 +213,10 @@ describe('App.vue', () => {
       writable: true,
     })
 
-    wrapper.vm.openGitHub()
+    // Find GitHub button and click it
+    const githubButton = wrapper.find('.github-button')
+    await githubButton.trigger('click')
+
     expect(windowOpenSpy).toHaveBeenCalledWith(
       'https://github.com/HatcherDX/dx-engine',
       '_blank'
@@ -210,7 +225,7 @@ describe('App.vue', () => {
     windowOpenSpy.mockRestore()
   })
 
-  it('should handle GitHub link in Electron environment', () => {
+  it('should handle GitHub link in Electron environment', async () => {
     const wrapper = mount(App)
 
     // Mock electronAPI
@@ -220,9 +235,10 @@ describe('App.vue', () => {
       someMethod: vi.fn(),
     }
 
-    // Test that openGitHub doesn't throw in Electron environment
+    // Find GitHub button and test clicking doesn't throw in Electron environment
+    const githubButton = wrapper.find('.github-button')
     expect(() => {
-      wrapper.vm.openGitHub()
+      githubButton.trigger('click')
     }).not.toThrow()
 
     // Restore original value

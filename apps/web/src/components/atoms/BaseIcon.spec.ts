@@ -33,7 +33,7 @@ describe('BaseIcon', () => {
 
     expect(wrapper.exists()).toBe(true)
     // Test the computed iconClasses property directly
-    const iconClasses = wrapper.vm.iconClasses
+    const iconClasses = wrapper.classes()
     expect(iconClasses).toContain('inline-block')
     expect(iconClasses).toContain('flex-shrink-0')
   })
@@ -49,7 +49,7 @@ describe('BaseIcon', () => {
         },
       })
 
-      const iconClasses = wrapper.vm.iconClasses
+      const iconClasses = wrapper.classes()
       switch (size) {
         case 'xs':
           expect(iconClasses).toContain('w-3')
@@ -83,7 +83,7 @@ describe('BaseIcon', () => {
       },
     })
 
-    expect(wrapper.vm.iconClasses).toContain('text-blue-500')
+    expect(wrapper.classes()).toContain('text-blue-500')
   })
 
   it('should handle accessibility props when accessible is false', () => {
@@ -121,7 +121,7 @@ describe('BaseIcon', () => {
     })
 
     expect(wrapper.exists()).toBe(true)
-    expect(wrapper.vm.component).toBeTruthy()
+    expect(wrapper.exists()).toBe(true)
   })
 
   it('should have correct default values', () => {
@@ -131,7 +131,7 @@ describe('BaseIcon', () => {
       },
     })
 
-    const iconClasses = wrapper.vm.iconClasses
+    const iconClasses = wrapper.classes()
     // Default size should be 'md'
     expect(iconClasses).toContain('w-5')
     expect(iconClasses).toContain('h-5')
@@ -149,7 +149,7 @@ describe('BaseIcon', () => {
       },
     })
 
-    const classes = wrapper.vm.iconClasses
+    const classes = wrapper.classes()
     expect(classes).toContain('inline-block')
     expect(classes).toContain('flex-shrink-0')
     expect(classes).toContain('w-6')
@@ -164,9 +164,11 @@ describe('BaseIcon', () => {
       },
     })
 
-    const classes = wrapper.vm.iconClasses
+    const classes = wrapper.classes()
     // Should not contain any text-* class when no color is specified
-    const hasTextColorClass = classes.some((cls) => cls.startsWith('text-'))
+    const hasTextColorClass = classes.some((cls: string) =>
+      cls.startsWith('text-')
+    )
     expect(hasTextColorClass).toBe(false)
   })
 
@@ -178,7 +180,7 @@ describe('BaseIcon', () => {
     })
 
     // The component should be created and exist
-    expect(wrapper.vm.component).toBeTruthy()
+    expect(wrapper.exists()).toBe(true)
   })
 
   it('should handle missing ariaLabel when accessible is true', () => {

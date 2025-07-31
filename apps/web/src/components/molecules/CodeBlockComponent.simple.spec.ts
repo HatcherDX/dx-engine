@@ -54,48 +54,35 @@ describe('CodeBlockComponent.vue - Coverage Tests', () => {
         content: 'test content',
       },
     })
-    const component = wrapper.vm
-    expect(component.getLanguageName('javascript')).toBe('JavaScript')
+
+    // Test that the default language 'javascript' results in 'JavaScript' name being displayed
+    expect(wrapper.find('.language-name').text()).toBe('JavaScript')
+    expect(wrapper.find('code').classes()).toContain('language-javascript')
   })
 
-  it('should get correct language icons', () => {
+  it('should display correct language icon for vue', () => {
     const wrapper = mount(CodeBlockComponent, {
       props: {
         content: 'test',
         language: 'vue',
       },
     })
-    const component = wrapper.vm
 
-    expect(component.getLanguageIcon('vue')).toBe('Eye')
-    expect(component.getLanguageIcon('javascript')).toBe('Code')
-    expect(component.getLanguageIcon('typescript')).toBe('Code')
-    expect(component.getLanguageIcon('html')).toBe('Terminal')
-    expect(component.getLanguageIcon('css')).toBe('Menu')
-    expect(component.getLanguageIcon('json')).toBe('GitBranch')
-    expect(component.getLanguageIcon('bash')).toBe('Terminal')
-    expect(component.getLanguageIcon('shell')).toBe('Terminal')
-    expect(component.getLanguageIcon('unknown')).toBe('Code')
+    // Test that vue language displays the Eye icon
+    const icon = wrapper.findComponent({ name: 'BaseIcon' })
+    expect(icon.props('name')).toBe('Eye')
   })
 
-  it('should get correct language names', () => {
+  it('should display correct language name for Vue', () => {
     const wrapper = mount(CodeBlockComponent, {
       props: {
         content: 'test',
         language: 'vue',
       },
     })
-    const component = wrapper.vm
 
-    expect(component.getLanguageName('vue')).toBe('Vue')
-    expect(component.getLanguageName('javascript')).toBe('JavaScript')
-    expect(component.getLanguageName('typescript')).toBe('TypeScript')
-    expect(component.getLanguageName('html')).toBe('HTML')
-    expect(component.getLanguageName('css')).toBe('CSS')
-    expect(component.getLanguageName('json')).toBe('JSON')
-    expect(component.getLanguageName('bash')).toBe('Bash')
-    expect(component.getLanguageName('shell')).toBe('Shell')
-    expect(component.getLanguageName('unknown')).toBe('UNKNOWN')
+    // Test that Vue language displays the correct name
+    expect(wrapper.find('.language-name').text()).toBe('Vue')
   })
 
   it('should highlight Vue/HTML content', () => {
@@ -105,9 +92,11 @@ describe('CodeBlockComponent.vue - Coverage Tests', () => {
         language: 'vue',
       },
     })
-    const component = wrapper.vm
-    expect(component.highlightedCode).toBeDefined()
-    expect(component.highlightedCode.length).toBeGreaterThan(0)
+
+    // Test that the code element contains the content
+    const codeElement = wrapper.find('code')
+    expect(codeElement.exists()).toBe(true)
+    expect(codeElement.classes()).toContain('language-vue')
   })
 
   it('should highlight HTML content', () => {

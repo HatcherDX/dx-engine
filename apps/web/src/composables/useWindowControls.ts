@@ -40,7 +40,8 @@ export function useWindowControls() {
   const updateMaximizedState = async () => {
     if (isElectron) {
       try {
-        isMaximized.value = await window.electronAPI.send('isWindowMaximized')
+        const result = await window.electronAPI.send('isWindowMaximized')
+        isMaximized.value = Boolean(result)
       } catch (error) {
         console.error('Failed to get window state:', error)
       }

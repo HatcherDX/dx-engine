@@ -138,12 +138,12 @@ describe('BaseLogo', () => {
     consoleSpy.mockRestore()
   })
 
-  it('should handle error via method call', () => {
+  it('should handle error via method call', async () => {
     const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
     const wrapper = mount(BaseLogo)
 
-    wrapper.vm.handleError()
+    await wrapper.trigger('error')
 
     expect(consoleSpy).toHaveBeenCalledWith('Logo failed to load')
 

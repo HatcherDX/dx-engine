@@ -1,4 +1,5 @@
 // Common types for test mocks across the project
+import type { MockedFunction } from 'vitest'
 
 export interface MockProcess {
   platform: NodeJS.Platform
@@ -57,15 +58,24 @@ export interface MockCall {
 }
 
 export interface ConsoleSpy {
-  log: ReturnType<typeof vi.spyOn>
-  error: ReturnType<typeof vi.spyOn>
-  warn: ReturnType<typeof vi.spyOn>
+  log: MockedFunction<(...data: unknown[]) => void>
+  error: MockedFunction<(...data: unknown[]) => void>
+  warn: MockedFunction<(...data: unknown[]) => void>
 }
 
 export interface MockDocument {
   body: {
     style: Record<string, string>
   }
+  documentElement: {
+    style: Record<string, string>
+    classList: {
+      add: (className: string) => void
+      remove: (className: string) => void
+      contains: (className: string) => boolean
+    }
+  }
+  querySelector: (selector: string) => HTMLElement | null
   createElement?: (tagName: string) => HTMLElement
   addEventListener: (event: string, callback: EventListener) => void
   removeEventListener: (event: string, callback: EventListener) => void
@@ -74,7 +84,7 @@ export interface MockDocument {
 // Type for Vitest mock functions
 export type MockFunction<
   T extends (...args: unknown[]) => unknown = (...args: unknown[]) => unknown,
-> = ReturnType<typeof vi.fn<T>>
+> = MockedFunction<T>
 
 export interface MenuTemplate {
   [key: string]: unknown
@@ -82,5 +92,23 @@ export interface MenuTemplate {
 
 export interface MockElement {
   tagName: string
+  style: Record<string, string>
+  appendChild: MockedFunction<(child: Node) => Node>
+  insertBefore: MockedFunction<
+    (newNode: Node, referenceNode: Node | null) => Node
+  >
+  removeChild: MockedFunction<(child: Node) => Node>
+  setAttribute: MockedFunction<(name: string, value: string) => void>
+  getAttribute: MockedFunction<(name: string) => string | null>
+  classList: {
+    add: MockedFunction<(className: string) => void>
+    remove: MockedFunction<(className: string) => void>
+    contains: MockedFunction<(className: string) => boolean>
+  }
+  children: unknown[]
+  parentNode: Node | null
+  measureText?: MockedFunction<(text: string) => { width: number }>
+  font?: string
+  getContext?: MockedFunction<(contextId: string) => MockElement | null>
   [key: string]: unknown
 }
