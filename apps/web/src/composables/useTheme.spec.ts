@@ -14,22 +14,30 @@ describe('useTheme', () => {
   beforeEach(() => {
     // Mock document and window
     mockDocument = {
+      body: {
+        style: {},
+      },
       documentElement: {
+        style: {},
         classList: {
           add: vi.fn(),
           remove: vi.fn(),
+          contains: vi.fn(),
         },
       },
+      querySelector: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
     }
 
-    global.document = mockDocument
+    global.document = mockDocument as unknown as Document
 
     global.window = {
       navigator: {
         userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
       },
       electronAPI: undefined,
-    } as unknown
+    } as unknown as Window & typeof globalThis
   })
 
   afterEach(() => {
@@ -51,7 +59,7 @@ describe('useTheme', () => {
       navigator: {
         userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
       },
-    } as unknown
+    } as unknown as Window & typeof globalThis
 
     const theme = useTheme()
     theme.setPlatform('macos') // Set platform for test
@@ -64,7 +72,7 @@ describe('useTheme', () => {
       navigator: {
         userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
       },
-    } as unknown
+    } as unknown as Window & typeof globalThis
 
     const theme = useTheme()
     theme.setPlatform('windows') // Set platform for test
@@ -77,7 +85,7 @@ describe('useTheme', () => {
       navigator: {
         userAgent: 'Mozilla/5.0 (X11; Linux x86_64)',
       },
-    } as unknown
+    } as unknown as Window & typeof globalThis
 
     const theme = useTheme()
     theme.setPlatform('linux') // Set platform for test
@@ -141,7 +149,7 @@ describe('useTheme', () => {
       electronAPI: {
         setTheme: mockSetTheme,
       },
-    } as unknown
+    } as unknown as Window & typeof globalThis
 
     const theme = useTheme()
 
@@ -159,7 +167,7 @@ describe('useTheme', () => {
     global.window = {
       ...global.window,
       electronAPI: undefined,
-    } as unknown
+    } as unknown as Window & typeof globalThis
 
     const theme = useTheme()
 

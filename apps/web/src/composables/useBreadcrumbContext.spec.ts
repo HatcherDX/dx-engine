@@ -1,12 +1,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { useBreadcrumbContext } from './useBreadcrumbContext'
+import type { MockStorage } from '../../../../types/test-mocks'
 
 describe('useBreadcrumbContext', () => {
-  let mockLocalStorage: Storage
+  let mockLocalStorage: MockStorage
 
   beforeEach(() => {
     // Mock localStorage
     mockLocalStorage = {
+      length: 0,
+      clear: vi.fn(),
+      key: vi.fn(),
       getItem: vi.fn(),
       setItem: vi.fn(),
       removeItem: vi.fn(),
@@ -27,7 +31,7 @@ describe('useBreadcrumbContext', () => {
   })
 
   it('should initialize with default context', () => {
-    mockLocalStorage.getItem.mockReturnValue(null)
+    vi.mocked(mockLocalStorage.getItem).mockReturnValue(null)
 
     const breadcrumb = useBreadcrumbContext()
 
@@ -50,7 +54,9 @@ describe('useBreadcrumbContext', () => {
       generative: { projectPath: '/custom/path/' },
       visual: { currentUrl: 'https://custom.com' },
     }
-    mockLocalStorage.getItem.mockReturnValue(JSON.stringify(storedContext))
+    vi.mocked(mockLocalStorage.getItem).mockReturnValue(
+      JSON.stringify(storedContext)
+    )
 
     const breadcrumb = useBreadcrumbContext()
 
@@ -61,7 +67,7 @@ describe('useBreadcrumbContext', () => {
   })
 
   it('should handle localStorage load errors gracefully', () => {
-    mockLocalStorage.getItem.mockImplementation(() => {
+    vi.mocked(mockLocalStorage.getItem).mockImplementation(() => {
       throw new Error('Storage error')
     })
 
@@ -81,7 +87,7 @@ describe('useBreadcrumbContext', () => {
   })
 
   it('should handle invalid JSON in localStorage', () => {
-    mockLocalStorage.getItem.mockReturnValue('invalid json')
+    vi.mocked(mockLocalStorage.getItem).mockReturnValue('invalid json')
 
     const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
@@ -99,7 +105,7 @@ describe('useBreadcrumbContext', () => {
   })
 
   it('should save context to localStorage on changes', async () => {
-    mockLocalStorage.getItem.mockReturnValue(null)
+    vi.mocked(mockLocalStorage.getItem).mockReturnValue(null)
 
     const breadcrumb = useBreadcrumbContext()
 
@@ -115,7 +121,7 @@ describe('useBreadcrumbContext', () => {
   })
 
   it('should handle localStorage save errors gracefully', async () => {
-    mockLocalStorage.setItem.mockImplementation(() => {
+    vi.mocked(mockLocalStorage.setItem).mockImplementation(() => {
       throw new Error('Storage error')
     })
 

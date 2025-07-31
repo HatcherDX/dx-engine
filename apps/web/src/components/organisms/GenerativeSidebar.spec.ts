@@ -87,23 +87,38 @@ describe('GenerativeSidebar.vue', () => {
   it('should apply correct task status classes', () => {
     const wrapper = mount(GenerativeSidebar)
 
-    // Test that getStatusClass method works correctly
-    const component = wrapper.vm
-    expect(component.getStatusClass('success')).toBe('status-success')
-    expect(component.getStatusClass('running')).toBe('status-running')
-    expect(component.getStatusClass('error')).toBe('status-error')
-    expect(component.getStatusClass('inactive')).toBe('status-inactive')
+    // Test that different status classes are applied in the DOM
+    const statusIndicators = wrapper.findAll('.status-indicator')
+    const statusClasses = statusIndicators
+      .map((indicator) =>
+        Array.from(indicator.element.classList).find((cls) =>
+          cls.startsWith('status-')
+        )
+      )
+      .filter(Boolean)
+
+    expect(statusClasses.length).toBeGreaterThan(0)
+    expect(statusClasses).toContain('status-success')
+    expect(statusClasses).toContain('status-running')
+    expect(statusClasses).toContain('status-inactive')
   })
 
   it('should have initial background tasks data', () => {
     const wrapper = mount(GenerativeSidebar)
-    const component = wrapper.vm
 
-    expect(component.backgroundTasks).toBeDefined()
-    expect(component.backgroundTasks.length).toBeGreaterThan(0)
-    expect(component.backgroundTasks[0]).toHaveProperty('id')
-    expect(component.backgroundTasks[0]).toHaveProperty('title')
-    expect(component.backgroundTasks[0]).toHaveProperty('command')
-    expect(component.backgroundTasks[0]).toHaveProperty('status')
+    // Test that tasks are rendered in the DOM instead of accessing internal data
+    const taskRows = wrapper.findAll('.task-row')
+    const taskTitles = wrapper.findAll('.task-title')
+    const taskCommands = wrapper.findAll('.task-command')
+    const statusIndicators = wrapper.findAll('.status-indicator')
+
+    expect(taskRows.length).toBeGreaterThan(0)
+    expect(taskTitles.length).toBeGreaterThan(0)
+    expect(taskCommands.length).toBeGreaterThan(0)
+    expect(statusIndicators.length).toBeGreaterThan(0)
+
+    // Verify structure exists
+    expect(taskRows.length).toBe(taskTitles.length)
+    expect(taskRows.length).toBe(statusIndicators.length)
   })
 })

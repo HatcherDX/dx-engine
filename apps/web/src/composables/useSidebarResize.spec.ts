@@ -1,16 +1,27 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import type { MockedFunction } from 'vitest'
 import { useSidebarResize } from './useSidebarResize'
-import type { MockCall, MockDocument } from '../../../../types/test-mocks'
+import type {
+  MockCall,
+  MockDocument,
+  MockStorage,
+  MockMouseEvent,
+  MockElement,
+} from '../../../../types/test-mocks'
 
 describe('useSidebarResize', () => {
-  let mockLocalStorage: Storage
+  let mockLocalStorage: MockStorage
   let mockDocument: MockDocument
 
   beforeEach(() => {
     // Mock localStorage
     mockLocalStorage = {
+      length: 0,
+      clear: vi.fn(),
+      key: vi.fn(),
       getItem: vi.fn(),
       setItem: vi.fn(),
+      removeItem: vi.fn(),
     }
 
     Object.defineProperty(global, 'localStorage', {
@@ -20,6 +31,7 @@ describe('useSidebarResize', () => {
 
     // Mock document
     const mockElement = {
+      tagName: 'DIV',
       style: {},
       appendChild: vi.fn(),
       insertBefore: vi.fn(),
@@ -40,10 +52,14 @@ describe('useSidebarResize', () => {
       documentElement: { ...mockElement },
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
-      createElement: vi.fn(() => ({ ...mockElement })),
+      querySelector: vi.fn(),
+      createElement: vi.fn(() => ({ ...mockElement }) as MockElement),
     }
 
-    global.document = mockDocument
+    Object.defineProperty(global, 'document', {
+      value: mockDocument,
+      writable: true,
+    })
   })
 
   afterEach(() => {
@@ -127,12 +143,34 @@ describe('useSidebarResize', () => {
 
   it('should start resize on mouse down', () => {
     const sidebar = useSidebarResize()
-    const mockEvent = {
+    const mockEvent: MockMouseEvent = {
       clientX: 100,
+      clientY: 0,
       preventDefault: vi.fn(),
-    } as unknown
+      stopPropagation: vi.fn(),
+      bubbles: false,
+      cancelable: true,
+      cancelBubble: false,
+      composed: false,
+      composedPath: vi.fn(() => []),
+      currentTarget: null,
+      defaultPrevented: false,
+      eventPhase: 2,
+      initEvent: vi.fn(),
+      isTrusted: false,
+      returnValue: true,
+      srcElement: null,
+      target: null,
+      timeStamp: Date.now(),
+      type: 'mousedown',
+      NONE: 0,
+      CAPTURING_PHASE: 1,
+      AT_TARGET: 2,
+      BUBBLING_PHASE: 3,
+      stopImmediatePropagation: vi.fn(),
+    }
 
-    sidebar.startResize(mockEvent)
+    sidebar.startResize(mockEvent as MouseEvent)
 
     expect(sidebar.isResizing.value).toBe(true)
     expect(mockDocument.body.style.cursor).toBe('col-resize')
@@ -152,18 +190,67 @@ describe('useSidebarResize', () => {
     const sidebar = useSidebarResize()
     sidebar.sidebarWidth.value = 300
 
-    const mockStartEvent = {
+    const mockStartEvent: MockMouseEvent = {
       clientX: 100,
+      clientY: 0,
       preventDefault: vi.fn(),
-    } as unknown
+      stopPropagation: vi.fn(),
+      bubbles: false,
+      cancelable: true,
+      cancelBubble: false,
+      composed: false,
+      composedPath: vi.fn(() => []),
+      currentTarget: null,
+      defaultPrevented: false,
+      eventPhase: 2,
+      initEvent: vi.fn(),
+      isTrusted: false,
+      returnValue: true,
+      srcElement: null,
+      target: null,
+      timeStamp: Date.now(),
+      type: 'mousedown',
+      NONE: 0,
+      CAPTURING_PHASE: 1,
+      AT_TARGET: 2,
+      BUBBLING_PHASE: 3,
+      stopImmediatePropagation: vi.fn(),
+    }
 
-    sidebar.startResize(mockStartEvent)
+    sidebar.startResize(mockStartEvent as MouseEvent)
 
     // Simulate mouse move
-    const mockMoveEvent = { clientX: 120 } as unknown
-    const mouseMoveHandler = mockDocument.addEventListener.mock.calls.find(
-      (call: MockCall) => call[0] === 'mousemove'
-    )[1]
+    const mockMoveEvent: MockMouseEvent = {
+      clientX: 120,
+      clientY: 0,
+      preventDefault: vi.fn(),
+      stopPropagation: vi.fn(),
+      bubbles: false,
+      cancelable: true,
+      cancelBubble: false,
+      composed: false,
+      composedPath: vi.fn(() => []),
+      currentTarget: null,
+      defaultPrevented: false,
+      eventPhase: 2,
+      initEvent: vi.fn(),
+      isTrusted: false,
+      returnValue: true,
+      srcElement: null,
+      target: null,
+      timeStamp: Date.now(),
+      type: 'mousemove',
+      NONE: 0,
+      CAPTURING_PHASE: 1,
+      AT_TARGET: 2,
+      BUBBLING_PHASE: 3,
+      stopImmediatePropagation: vi.fn(),
+    }
+    const mouseMoveHandler = (
+      mockDocument.addEventListener as unknown as MockedFunction<
+        (event: string, callback: EventListener) => void
+      >
+    ).mock.calls.find((call: MockCall) => call[0] === 'mousemove')![1]
 
     mouseMoveHandler(mockMoveEvent)
 
@@ -175,18 +262,67 @@ describe('useSidebarResize', () => {
     const sidebar = useSidebarResize()
     sidebar.sidebarWidth.value = 300
 
-    const mockStartEvent = {
+    const mockStartEvent: MockMouseEvent = {
       clientX: 100,
+      clientY: 0,
       preventDefault: vi.fn(),
-    } as unknown
+      stopPropagation: vi.fn(),
+      bubbles: false,
+      cancelable: true,
+      cancelBubble: false,
+      composed: false,
+      composedPath: vi.fn(() => []),
+      currentTarget: null,
+      defaultPrevented: false,
+      eventPhase: 2,
+      initEvent: vi.fn(),
+      isTrusted: false,
+      returnValue: true,
+      srcElement: null,
+      target: null,
+      timeStamp: Date.now(),
+      type: 'mousedown',
+      NONE: 0,
+      CAPTURING_PHASE: 1,
+      AT_TARGET: 2,
+      BUBBLING_PHASE: 3,
+      stopImmediatePropagation: vi.fn(),
+    }
 
-    sidebar.startResize(mockStartEvent)
+    sidebar.startResize(mockStartEvent as MouseEvent)
 
     // Try to resize beyond maximum
-    const mockMoveEvent = { clientX: 400 } as unknown // Delta of 300, would make width 600
-    const mouseMoveHandler = mockDocument.addEventListener.mock.calls.find(
-      (call: MockCall) => call[0] === 'mousemove'
-    )[1]
+    const mockMoveEvent: MockMouseEvent = {
+      clientX: 400,
+      clientY: 0,
+      preventDefault: vi.fn(),
+      stopPropagation: vi.fn(),
+      bubbles: false,
+      cancelable: true,
+      cancelBubble: false,
+      composed: false,
+      composedPath: vi.fn(() => []),
+      currentTarget: null,
+      defaultPrevented: false,
+      eventPhase: 2,
+      initEvent: vi.fn(),
+      isTrusted: false,
+      returnValue: true,
+      srcElement: null,
+      target: null,
+      timeStamp: Date.now(),
+      type: 'mousemove',
+      NONE: 0,
+      CAPTURING_PHASE: 1,
+      AT_TARGET: 2,
+      BUBBLING_PHASE: 3,
+      stopImmediatePropagation: vi.fn(),
+    } // Delta of 300, would make width 600
+    const mouseMoveHandler = (
+      mockDocument.addEventListener as unknown as MockedFunction<
+        (event: string, callback: EventListener) => void
+      >
+    ).mock.calls.find((call: MockCall) => call[0] === 'mousemove')![1]
 
     mouseMoveHandler(mockMoveEvent)
 
@@ -198,18 +334,67 @@ describe('useSidebarResize', () => {
     const sidebar = useSidebarResize()
     sidebar.sidebarWidth.value = 300
 
-    const mockStartEvent = {
+    const mockStartEvent: MockMouseEvent = {
       clientX: 100,
+      clientY: 0,
       preventDefault: vi.fn(),
-    } as unknown
+      stopPropagation: vi.fn(),
+      bubbles: false,
+      cancelable: true,
+      cancelBubble: false,
+      composed: false,
+      composedPath: vi.fn(() => []),
+      currentTarget: null,
+      defaultPrevented: false,
+      eventPhase: 2,
+      initEvent: vi.fn(),
+      isTrusted: false,
+      returnValue: true,
+      srcElement: null,
+      target: null,
+      timeStamp: Date.now(),
+      type: 'mousedown',
+      NONE: 0,
+      CAPTURING_PHASE: 1,
+      AT_TARGET: 2,
+      BUBBLING_PHASE: 3,
+      stopImmediatePropagation: vi.fn(),
+    }
 
-    sidebar.startResize(mockStartEvent)
+    sidebar.startResize(mockStartEvent as MouseEvent)
 
     // Try to resize below minimum
-    const mockMoveEvent = { clientX: 50 } // Delta of -50, would make width 250
-    const mouseMoveHandler = mockDocument.addEventListener.mock.calls.find(
-      (call: MockCall) => call[0] === 'mousemove'
-    )[1]
+    const mockMoveEvent: MockMouseEvent = {
+      clientX: 50,
+      clientY: 0,
+      preventDefault: vi.fn(),
+      stopPropagation: vi.fn(),
+      bubbles: false,
+      cancelable: true,
+      cancelBubble: false,
+      composed: false,
+      composedPath: vi.fn(() => []),
+      currentTarget: null,
+      defaultPrevented: false,
+      eventPhase: 2,
+      initEvent: vi.fn(),
+      isTrusted: false,
+      returnValue: true,
+      srcElement: null,
+      target: null,
+      timeStamp: Date.now(),
+      type: 'mousemove',
+      NONE: 0,
+      CAPTURING_PHASE: 1,
+      AT_TARGET: 2,
+      BUBBLING_PHASE: 3,
+      stopImmediatePropagation: vi.fn(),
+    } // Delta of -50, would make width 250
+    const mouseMoveHandler = (
+      mockDocument.addEventListener as unknown as MockedFunction<
+        (event: string, callback: EventListener) => void
+      >
+    ).mock.calls.find((call: MockCall) => call[0] === 'mousemove')![1]
 
     mouseMoveHandler(mockMoveEvent)
 
@@ -220,21 +405,71 @@ describe('useSidebarResize', () => {
   it('should handle mouse up during resize', () => {
     const sidebar = useSidebarResize()
 
-    const mockStartEvent = {
+    const mockStartEvent: MockMouseEvent = {
       clientX: 100,
+      clientY: 0,
       preventDefault: vi.fn(),
-    } as unknown
+      stopPropagation: vi.fn(),
+      bubbles: false,
+      cancelable: true,
+      cancelBubble: false,
+      composed: false,
+      composedPath: vi.fn(() => []),
+      currentTarget: null,
+      defaultPrevented: false,
+      eventPhase: 2,
+      initEvent: vi.fn(),
+      isTrusted: false,
+      returnValue: true,
+      srcElement: null,
+      target: null,
+      timeStamp: Date.now(),
+      type: 'mousedown',
+      NONE: 0,
+      CAPTURING_PHASE: 1,
+      AT_TARGET: 2,
+      BUBBLING_PHASE: 3,
+      stopImmediatePropagation: vi.fn(),
+    }
 
-    sidebar.startResize(mockStartEvent)
+    sidebar.startResize(mockStartEvent as MouseEvent)
 
     expect(sidebar.isResizing.value).toBe(true)
 
     // Simulate mouse up
-    const mouseUpHandler = mockDocument.addEventListener.mock.calls.find(
-      (call: MockCall) => call[0] === 'mouseup'
-    )[1]
+    const mouseUpHandler = (
+      mockDocument.addEventListener as unknown as MockedFunction<
+        (event: string, callback: EventListener) => void
+      >
+    ).mock.calls.find((call: MockCall) => call[0] === 'mouseup')![1]
 
-    mouseUpHandler()
+    const mockMouseUpEvent: MockMouseEvent = {
+      clientX: 0,
+      clientY: 0,
+      preventDefault: vi.fn(),
+      stopPropagation: vi.fn(),
+      bubbles: false,
+      cancelable: true,
+      cancelBubble: false,
+      composed: false,
+      composedPath: vi.fn(() => []),
+      currentTarget: null,
+      defaultPrevented: false,
+      eventPhase: 2,
+      initEvent: vi.fn(),
+      isTrusted: false,
+      returnValue: true,
+      srcElement: null,
+      target: null,
+      timeStamp: Date.now(),
+      type: 'mouseup',
+      NONE: 0,
+      CAPTURING_PHASE: 1,
+      AT_TARGET: 2,
+      BUBBLING_PHASE: 3,
+      stopImmediatePropagation: vi.fn(),
+    }
+    mouseUpHandler(mockMouseUpEvent as Event)
 
     expect(sidebar.isResizing.value).toBe(false)
     expect(mockDocument.body.style.cursor).toBe('')
@@ -257,29 +492,128 @@ describe('useSidebarResize', () => {
     const sidebar = useSidebarResize()
     sidebar.sidebarWidth.value = 300
 
-    const mockStartEvent = {
+    const mockStartEvent: MockMouseEvent = {
       clientX: 100,
+      clientY: 0,
       preventDefault: vi.fn(),
-    } as unknown
+      stopPropagation: vi.fn(),
+      bubbles: false,
+      cancelable: true,
+      cancelBubble: false,
+      composed: false,
+      composedPath: vi.fn(() => []),
+      currentTarget: null,
+      defaultPrevented: false,
+      eventPhase: 2,
+      initEvent: vi.fn(),
+      isTrusted: false,
+      returnValue: true,
+      srcElement: null,
+      target: null,
+      timeStamp: Date.now(),
+      type: 'mousedown',
+      NONE: 0,
+      CAPTURING_PHASE: 1,
+      AT_TARGET: 2,
+      BUBBLING_PHASE: 3,
+      stopImmediatePropagation: vi.fn(),
+    }
 
-    sidebar.startResize(mockStartEvent)
+    sidebar.startResize(mockStartEvent as MouseEvent)
 
     // Test normal width during drag
-    const mockMoveEvent1 = { clientX: 110 } // Delta of 10, width would be 310
-    const mouseMoveHandler = mockDocument.addEventListener.mock.calls.find(
-      (call: MockCall) => call[0] === 'mousemove'
-    )[1]
+    const mockMoveEvent1: MockMouseEvent = {
+      clientX: 110,
+      clientY: 0,
+      preventDefault: vi.fn(),
+      stopPropagation: vi.fn(),
+      bubbles: false,
+      cancelable: true,
+      cancelBubble: false,
+      composed: false,
+      composedPath: vi.fn(() => []),
+      currentTarget: null,
+      defaultPrevented: false,
+      eventPhase: 2,
+      initEvent: vi.fn(),
+      isTrusted: false,
+      returnValue: true,
+      srcElement: null,
+      target: null,
+      timeStamp: Date.now(),
+      type: 'mousemove',
+      NONE: 0,
+      CAPTURING_PHASE: 1,
+      AT_TARGET: 2,
+      BUBBLING_PHASE: 3,
+      stopImmediatePropagation: vi.fn(),
+    } // Delta of 10, width would be 310
+    const mouseMoveHandler = (
+      mockDocument.addEventListener as unknown as MockedFunction<
+        (event: string, callback: EventListener) => void
+      >
+    ).mock.calls.find((call: MockCall) => call[0] === 'mousemove')![1]
 
     mouseMoveHandler(mockMoveEvent1)
     expect(mockDocument.body.style.cursor).toBe('col-resize')
 
     // Test at minimum width
-    const mockMoveEvent2 = { clientX: 30 } // Delta of -70, width would be 230 (below min)
+    const mockMoveEvent2: MockMouseEvent = {
+      clientX: 30,
+      clientY: 0,
+      preventDefault: vi.fn(),
+      stopPropagation: vi.fn(),
+      bubbles: false,
+      cancelable: true,
+      cancelBubble: false,
+      composed: false,
+      composedPath: vi.fn(() => []),
+      currentTarget: null,
+      defaultPrevented: false,
+      eventPhase: 2,
+      initEvent: vi.fn(),
+      isTrusted: false,
+      returnValue: true,
+      srcElement: null,
+      target: null,
+      timeStamp: Date.now(),
+      type: 'mousemove',
+      NONE: 0,
+      CAPTURING_PHASE: 1,
+      AT_TARGET: 2,
+      BUBBLING_PHASE: 3,
+      stopImmediatePropagation: vi.fn(),
+    } // Delta of -70, width would be 230 (below min)
     mouseMoveHandler(mockMoveEvent2)
     expect(mockDocument.body.style.cursor).toBe('e-resize')
 
     // Test at maximum width
-    const mockMoveEvent3 = { clientX: 300 } // Delta of 200, width would be 500 (at max)
+    const mockMoveEvent3: MockMouseEvent = {
+      clientX: 300,
+      clientY: 0,
+      preventDefault: vi.fn(),
+      stopPropagation: vi.fn(),
+      bubbles: false,
+      cancelable: true,
+      cancelBubble: false,
+      composed: false,
+      composedPath: vi.fn(() => []),
+      currentTarget: null,
+      defaultPrevented: false,
+      eventPhase: 2,
+      initEvent: vi.fn(),
+      isTrusted: false,
+      returnValue: true,
+      srcElement: null,
+      target: null,
+      timeStamp: Date.now(),
+      type: 'mousemove',
+      NONE: 0,
+      CAPTURING_PHASE: 1,
+      AT_TARGET: 2,
+      BUBBLING_PHASE: 3,
+      stopImmediatePropagation: vi.fn(),
+    } // Delta of 200, width would be 500 (at max)
     mouseMoveHandler(mockMoveEvent3)
     expect(mockDocument.body.style.cursor).toBe('w-resize')
   })

@@ -62,7 +62,7 @@ describe('Web Main - Simple Coverage', () => {
 
   afterEach(() => {
     // Clean up mocks
-    delete (global as unknown).document
+    delete (global as Record<string, unknown>).document
   })
 
   it('should import and execute main.ts', async () => {

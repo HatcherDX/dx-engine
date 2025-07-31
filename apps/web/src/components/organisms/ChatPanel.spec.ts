@@ -86,7 +86,7 @@ describe('ChatPanel.vue', () => {
     const textarea = wrapper.find('textarea')
 
     await textarea.setValue('Test message')
-    expect(wrapper.vm.inputMessage).toBe('Test message')
+    expect(textarea.element.value).toBe('Test message')
   })
 
   it('should send message on Enter key press', async () => {
@@ -102,8 +102,11 @@ describe('ChatPanel.vue', () => {
     // Allow some time for async operations
     await new Promise((resolve) => setTimeout(resolve, 10))
 
-    expect(wrapper.vm.inputMessage).toBe('')
-    expect(wrapper.vm.userMessages.length).toBe(1)
+    // Test that message was sent by checking textarea is cleared
+    expect(textarea.element.value).toBe('')
+    // Test that welcome message is hidden after sending
+    const greeting = wrapper.find('.central-greeting')
+    expect(greeting.exists()).toBe(false)
   })
 
   it('should not send empty messages', async () => {
@@ -113,7 +116,9 @@ describe('ChatPanel.vue', () => {
     await textarea.setValue('   ')
     await textarea.trigger('keydown.enter')
 
-    expect(wrapper.vm.userMessages.length).toBe(0)
+    // Test that no message was sent by checking welcome is still visible
+    const greeting = wrapper.find('.central-greeting')
+    expect(greeting.exists()).toBe(true)
   })
 
   it('should hide welcome message after sending first message', async () => {
@@ -127,7 +132,9 @@ describe('ChatPanel.vue', () => {
     // Allow some time for async operations
     await new Promise((resolve) => setTimeout(resolve, 10))
 
-    expect(wrapper.vm.showWelcome).toBe(false)
+    // Test that welcome message is hidden by checking DOM
+    const greeting = wrapper.find('.central-greeting')
+    expect(greeting.exists()).toBe(false)
   })
 
   it('should show typing indicator after sending message', async () => {
@@ -141,7 +148,9 @@ describe('ChatPanel.vue', () => {
     // Allow some time for async operations
     await new Promise((resolve) => setTimeout(resolve, 10))
 
-    expect(wrapper.vm.isTyping).toBe(true)
+    // Test that typing indicator appears in DOM
+    const typingIndicator = wrapper.find('.typing-indicator')
+    expect(typingIndicator.exists()).toBe(true)
   })
 
   it('should auto-resize textarea on input', async () => {
@@ -165,8 +174,9 @@ describe('ChatPanel.vue', () => {
     await textarea.setValue('Test message')
     await textarea.trigger('keydown', { key: 'Enter', shiftKey: true })
 
-    // Should not send message
-    expect(wrapper.vm.userMessages.length).toBe(0)
+    // Should not send message - welcome should still be visible
+    const greeting = wrapper.find('.central-greeting')
+    expect(greeting.exists()).toBe(true)
   })
 
   it('should apply generative mode classes', () => {

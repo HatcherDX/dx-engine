@@ -76,9 +76,13 @@ export interface MockDocument {
     }
   }
   querySelector: (selector: string) => HTMLElement | null
-  createElement?: (tagName: string) => HTMLElement
-  addEventListener: (event: string, callback: EventListener) => void
-  removeEventListener: (event: string, callback: EventListener) => void
+  createElement?: (tagName: string) => MockElement
+  addEventListener: MockedFunction<
+    (event: string, callback: EventListener) => void
+  >
+  removeEventListener: MockedFunction<
+    (event: string, callback: EventListener) => void
+  >
 }
 
 // Type for Vitest mock functions
@@ -110,5 +114,49 @@ export interface MockElement {
   measureText?: MockedFunction<(text: string) => { width: number }>
   font?: string
   getContext?: MockedFunction<(contextId: string) => MockElement | null>
+  [key: string]: unknown
+}
+
+// Complete Storage interface for localStorage/sessionStorage mocks
+export interface MockStorage extends Storage {
+  length: number
+  clear: MockedFunction<() => void>
+  getItem: MockedFunction<(key: string) => string | null>
+  key: MockedFunction<(index: number) => string | null>
+  removeItem: MockedFunction<(key: string) => void>
+  setItem: MockedFunction<(key: string, value: string) => void>
+}
+
+// MouseEvent interface for event mocking
+export interface MockMouseEvent extends Partial<MouseEvent> {
+  clientX: number
+  clientY: number
+  preventDefault: MockedFunction<() => void>
+  stopPropagation: MockedFunction<() => void>
+  stopImmediatePropagation: MockedFunction<() => void>
+  button?: number
+  buttons?: number
+  bubbles: boolean
+  cancelable: boolean
+  cancelBubble: boolean
+  composed: boolean
+  composedPath: MockedFunction<() => EventTarget[]>
+  currentTarget: EventTarget | null
+  defaultPrevented: boolean
+  eventPhase: number
+  initEvent: MockedFunction<
+    (type: string, bubbles?: boolean, cancelable?: boolean) => void
+  >
+  isTrusted: boolean
+  returnValue: boolean
+  srcElement: EventTarget | null
+  target: EventTarget | null
+  timeStamp: number
+  type: string
+  // Event phase constants
+  readonly NONE: 0
+  readonly CAPTURING_PHASE: 1
+  readonly AT_TARGET: 2
+  readonly BUBBLING_PHASE: 3
   [key: string]: unknown
 }

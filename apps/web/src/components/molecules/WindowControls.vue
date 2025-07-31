@@ -9,7 +9,7 @@
       <!-- Windows/Linux order: Minimize, Maximize, Close -->
       <WindowMinimizeButton @click="minimizeWindow" />
       <WindowMaximizeButton
-        :is-maximized="isMaximized.value"
+        :is-maximized="isMaximized"
         @click="maximizeWindow"
       />
       <WindowCloseButton @click="closeWindow" />

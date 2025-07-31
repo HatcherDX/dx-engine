@@ -25,11 +25,14 @@ describe('useWindowControls', () => {
       parentNode: null,
     }
 
-    global.window = {
-      electronAPI: mockElectronAPI,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-    } as unknown as Window & { electronAPI: typeof mockElectronAPI }
+    Object.defineProperty(global, 'window', {
+      value: {
+        electronAPI: mockElectronAPI,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      },
+      writable: true,
+    })
 
     global.document = {
       body: { ...mockElement },
@@ -37,7 +40,7 @@ describe('useWindowControls', () => {
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
       createElement: vi.fn(() => ({ ...mockElement })),
-    } as unknown
+    } as unknown as Document
   })
 
   afterEach(() => {
@@ -52,7 +55,7 @@ describe('useWindowControls', () => {
   })
 
   it('should detect non-Electron environment', () => {
-    global.window = {} as unknown
+    global.window = {} as unknown as Window & typeof globalThis
 
     const controls = useWindowControls()
 
@@ -97,7 +100,7 @@ describe('useWindowControls', () => {
   })
 
   it('should not minimize in non-Electron environment', async () => {
-    global.window = {} as unknown
+    global.window = {} as unknown as Window & typeof globalThis
 
     const controls = useWindowControls()
 
