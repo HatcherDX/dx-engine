@@ -9,7 +9,7 @@ vi.mock('../../composables/useWindowControls', () => ({
     maximizeWindow: vi.fn(),
     closeWindow: vi.fn(),
     handleDoubleClick: vi.fn(),
-    isMaximized: { value: false },
+    isMaximized: false,
     isElectron: true,
   }),
 }))

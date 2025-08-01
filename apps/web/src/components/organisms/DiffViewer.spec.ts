@@ -15,7 +15,7 @@ vi.mock('../atoms/BaseButton.vue', () => ({
   default: {
     name: 'BaseButton',
     template:
-      '<button class="base-button" @click="$emit(\'click\')"><slot /></button>',
+      '<button :class="[\'base-button\', $props.class]" @click="$emit(\'click\')"><slot /></button>',
     props: ['variant', 'size', 'class'],
     emits: ['click'],
   },
@@ -268,7 +268,7 @@ describe('DiffViewer.vue', () => {
     const wrapper = mount(DiffViewer)
 
     // Check that expand toggle buttons exist
-    const expandButtons = wrapper.findAll('.expand-toggle')
+    const expandButtons = wrapper.findAll('.expand-button')
     expect(expandButtons.length).toBeGreaterThan(0)
 
     // Check that file diffs are rendered (at least one expanded)
@@ -323,10 +323,10 @@ describe('DiffViewer.vue', () => {
     let fileDiffs = wrapper.findAll('.file-diff')
     const initialCount = fileDiffs.length
 
-    // Click on a file header to toggle expansion
-    const fileHeaders = wrapper.findAll('.file-header')
-    if (fileHeaders.length > 1) {
-      await fileHeaders[1].trigger('click')
+    // Click on an expand button to toggle expansion
+    const expandButtons = wrapper.findAll('.expand-button')
+    if (expandButtons.length > 0) {
+      await expandButtons[0].trigger('click')
 
       // Check that expansion changed
       fileDiffs = wrapper.findAll('.file-diff')

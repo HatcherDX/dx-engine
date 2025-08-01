@@ -61,11 +61,12 @@ describe('CodeSidebar.vue', () => {
     expect(fileNames.length).toBeGreaterThan(0)
   })
 
-  it('should apply selected class to selected file', () => {
+  it('should apply selected class to selected file', async () => {
     const wrapper = mount(CodeSidebar)
+    await wrapper.vm.$nextTick()
 
     // Check if there's a selected file by looking for the selected CSS class
-    const selectedItem = wrapper.find('.file-item.selected')
+    const selectedItem = wrapper.find('.file-item.file-selected')
     expect(selectedItem.exists()).toBe(true)
   })
 
@@ -78,14 +79,17 @@ describe('CodeSidebar.vue', () => {
 
   it('should handle file selection', async () => {
     const wrapper = mount(CodeSidebar)
+    await wrapper.vm.$nextTick()
+
     const fileItems = wrapper.findAll('.file-item')
 
     if (fileItems.length > 0) {
       // Click on a file item
       await fileItems[0].trigger('click')
+      await wrapper.vm.$nextTick()
 
       // Check that a selected class is applied
-      const selectedItems = wrapper.findAll('.file-item.selected')
+      const selectedItems = wrapper.findAll('.file-item.file-selected')
       expect(selectedItems.length).toBeGreaterThan(0)
     }
   })
@@ -124,11 +128,13 @@ describe('CodeSidebar.vue', () => {
     if (fileItems.length > 0) {
       // Show context menu first
       await fileItems[0].trigger('contextmenu')
+      await wrapper.vm.$nextTick()
       let contextMenu = wrapper.find('.context-menu')
 
       if (contextMenu.exists()) {
-        // Click elsewhere to hide context menu
-        await wrapper.trigger('click')
+        // Click on the context menu itself to hide it
+        await contextMenu.trigger('click')
+        await wrapper.vm.$nextTick()
 
         // Check that context menu is hidden
         contextMenu = wrapper.find('.context-menu')
@@ -321,6 +327,7 @@ describe('CodeSidebar.vue', () => {
 
   it('should maintain context menu state correctly', async () => {
     const wrapper = mount(CodeSidebar)
+    await wrapper.vm.$nextTick()
     const fileItems = wrapper.findAll('.file-item')
 
     // Initial state - no context menu visible
@@ -330,6 +337,7 @@ describe('CodeSidebar.vue', () => {
     if (fileItems.length > 0) {
       // Show context menu
       await fileItems[0].trigger('contextmenu')
+      await wrapper.vm.$nextTick()
 
       contextMenu = wrapper.find('.context-menu')
       expect(contextMenu.exists()).toBe(true)

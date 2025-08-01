@@ -202,7 +202,50 @@ describe('App.vue', () => {
   })
 
   it('should handle GitHub link opening', async () => {
-    const wrapper = mount(App)
+    const wrapper = mount(App, {
+      global: {
+        stubs: {
+          UnifiedFrame: {
+            template: '<div class="unified-frame"><slot /></div>',
+          },
+          ModeSelector: {
+            template: '<div class="mode-selector"></div>',
+          },
+          AddressBar: {
+            template: '<div class="address-bar"></div>',
+          },
+          BaseLogo: {
+            template: '<div class="base-logo"></div>',
+          },
+          BaseIcon: {
+            template: '<div class="base-icon"></div>',
+          },
+          BaseButton: {
+            template:
+              '<button class="base-button github-button"><slot /></button>',
+          },
+          PlayButton: {
+            template: '<div class="play-button"></div>',
+          },
+          GenerativeSidebar: {
+            template: '<div class="generative-sidebar"></div>',
+          },
+          VisualSidebar: {
+            template: '<div class="visual-sidebar"></div>',
+          },
+          CodeSidebar: {
+            template: '<div class="code-sidebar"></div>',
+          },
+          TimelineSidebar: {
+            template: '<div class="timeline-sidebar"></div>',
+          },
+          ChatPanel: {
+            template: '<div class="chat-panel"></div>',
+          },
+        },
+      },
+    })
+
     const windowOpenSpy = vi
       .spyOn(window, 'open')
       .mockImplementation(() => null)
@@ -213,8 +256,12 @@ describe('App.vue', () => {
       writable: true,
     })
 
-    // Find GitHub button and click it
+    // Wait for component to mount and render
+    await wrapper.vm.$nextTick()
+
+    // Find GitHub button and click it (the button is in generative mode by default)
     const githubButton = wrapper.find('.github-button')
+    expect(githubButton.exists()).toBe(true)
     await githubButton.trigger('click')
 
     expect(windowOpenSpy).toHaveBeenCalledWith(
@@ -226,7 +273,49 @@ describe('App.vue', () => {
   })
 
   it('should handle GitHub link in Electron environment', async () => {
-    const wrapper = mount(App)
+    const wrapper = mount(App, {
+      global: {
+        stubs: {
+          UnifiedFrame: {
+            template: '<div class="unified-frame"><slot /></div>',
+          },
+          ModeSelector: {
+            template: '<div class="mode-selector"></div>',
+          },
+          AddressBar: {
+            template: '<div class="address-bar"></div>',
+          },
+          BaseLogo: {
+            template: '<div class="base-logo"></div>',
+          },
+          BaseIcon: {
+            template: '<div class="base-icon"></div>',
+          },
+          BaseButton: {
+            template:
+              '<button class="base-button github-button"><slot /></button>',
+          },
+          PlayButton: {
+            template: '<div class="play-button"></div>',
+          },
+          GenerativeSidebar: {
+            template: '<div class="generative-sidebar"></div>',
+          },
+          VisualSidebar: {
+            template: '<div class="visual-sidebar"></div>',
+          },
+          CodeSidebar: {
+            template: '<div class="code-sidebar"></div>',
+          },
+          TimelineSidebar: {
+            template: '<div class="timeline-sidebar"></div>',
+          },
+          ChatPanel: {
+            template: '<div class="chat-panel"></div>',
+          },
+        },
+      },
+    })
 
     // Mock electronAPI
     const originalElectronAPI = (window as unknown as { electronAPI?: unknown })
@@ -235,8 +324,12 @@ describe('App.vue', () => {
       someMethod: vi.fn(),
     }
 
+    // Wait for component to mount and render
+    await wrapper.vm.$nextTick()
+
     // Find GitHub button and test clicking doesn't throw in Electron environment
     const githubButton = wrapper.find('.github-button')
+    expect(githubButton.exists()).toBe(true)
     expect(() => {
       githubButton.trigger('click')
     }).not.toThrow()

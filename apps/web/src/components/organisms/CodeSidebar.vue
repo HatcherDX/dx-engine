@@ -80,7 +80,7 @@ interface FileNode {
   children?: FileNode[]
 }
 
-const selectedFileId = ref<string>('app-vue')
+const selectedFileId = ref<string>('package-json')
 
 const contextMenu = ref({
   visible: false,

@@ -65,7 +65,7 @@ describe('VisualSidebar.vue', () => {
     const wrapper = mount(VisualSidebar)
 
     // Check if there's a selected component in DOM
-    const selectedItem = wrapper.find('.layer-item.selected')
+    const selectedItem = wrapper.find('.layer-item.layer-selected')
     expect(selectedItem.exists()).toBe(true)
   })
 
@@ -78,7 +78,7 @@ describe('VisualSidebar.vue', () => {
       await layerItems[0].trigger('click')
 
       // Check that selection changes in DOM
-      const selectedItems = wrapper.findAll('.layer-item.selected')
+      const selectedItems = wrapper.findAll('.layer-item.layer-selected')
       expect(selectedItems.length).toBeGreaterThan(0)
     }
   })
@@ -171,7 +171,7 @@ describe('VisualSidebar.vue', () => {
       await layerItems[0].trigger('click')
 
       // Check that selection is visible in DOM
-      const selectedItems = wrapper.findAll('.layer-item.selected')
+      const selectedItems = wrapper.findAll('.layer-item.layer-selected')
       expect(selectedItems.length).toBeGreaterThan(0)
     }
   })
@@ -209,7 +209,7 @@ describe('VisualSidebar.vue', () => {
       await layerItems[0].trigger('click')
 
       // Check that selected class is applied in DOM
-      const selectedItems = wrapper.findAll('.layer-item.selected')
+      const selectedItems = wrapper.findAll('.layer-item.layer-selected')
       expect(selectedItems.length).toBeGreaterThan(0)
     }
   })
@@ -281,14 +281,14 @@ describe('VisualSidebar.vue', () => {
 
     if (layerItems.length > 1) {
       // Initial selection should exist
-      let selectedItems = wrapper.findAll('.layer-item.selected')
+      let selectedItems = wrapper.findAll('.layer-item.layer-selected')
       expect(selectedItems.length).toBeGreaterThan(0)
 
       // Select different component
       await layerItems[1].trigger('click')
 
       // Check that selection updated in DOM
-      selectedItems = wrapper.findAll('.layer-item.selected')
+      selectedItems = wrapper.findAll('.layer-item.layer-selected')
       expect(selectedItems.length).toBeGreaterThan(0)
     }
   })

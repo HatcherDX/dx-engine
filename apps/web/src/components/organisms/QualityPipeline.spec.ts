@@ -123,7 +123,7 @@ describe('QualityPipeline.vue', () => {
     await stepHeaders[0].trigger('click')
 
     // Check that success message appears in DOM
-    const successMessage = wrapper.find('.step-success-message')
+    const successMessage = wrapper.find('.step-message.success')
     expect(successMessage.exists()).toBe(true)
     expect(successMessage.text()).toContain('All syntax is valid')
   })
@@ -354,7 +354,7 @@ describe('QualityPipeline.vue', () => {
     await stepHeaders[0].trigger('click')
 
     const errorItems = wrapper.findAll('.error-item')
-    const successMessage = wrapper.find('.step-success-message')
+    const successMessage = wrapper.find('.step-message.success')
 
     // Success step should not have error items
     expect(errorItems.length).toBe(2) // Only from error step
@@ -368,7 +368,7 @@ describe('QualityPipeline.vue', () => {
     // Expand pending step (should not show success message)
     await stepHeaders[3].trigger('click')
 
-    const successMessages = wrapper.findAll('.step-success-message')
+    const successMessages = wrapper.findAll('.step-message.success')
     const errorItems = wrapper.findAll('.error-item')
 
     // Pending step should not add success messages or errors

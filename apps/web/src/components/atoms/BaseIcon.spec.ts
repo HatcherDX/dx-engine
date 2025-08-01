@@ -2,8 +2,18 @@ import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import BaseIcon from './BaseIcon.vue'
 
-// Mock the icon imports
+// Type for accessing computed properties in tests
+interface BaseIconVM {
+  iconClasses: string[]
+}
+
+type BaseIconWrapper = ReturnType<typeof mount<typeof BaseIcon>> & {
+  vm: BaseIconVM
+}
+
+// Mock the dynamic import for icons by mocking the entire BaseIcon component approach
 vi.mock('./icons/Eye.vue', () => ({
+  __esModule: true,
   default: {
     name: 'EyeIcon',
     template: '<svg data-testid="eye-icon"><path /></svg>',
@@ -14,6 +24,7 @@ vi.mock('./icons/Eye.vue', () => ({
 }))
 
 vi.mock('./icons/Code.vue', () => ({
+  __esModule: true,
   default: {
     name: 'CodeIcon',
     template: '<svg data-testid="code-icon"><path /></svg>',
@@ -23,33 +34,62 @@ vi.mock('./icons/Code.vue', () => ({
   },
 }))
 
+vi.mock('./icons/ArrowRight.vue', () => ({
+  __esModule: true,
+  default: {
+    name: 'ArrowRightIcon',
+    template: '<svg data-testid="arrow-right-icon"><path /></svg>',
+    __isTeleport: false,
+    __isKeepAlive: false,
+    __isSuspense: false,
+  },
+}))
+
+vi.mock('./icons/Terminal.vue', () => ({
+  __esModule: true,
+  default: {
+    name: 'TerminalIcon',
+    template: '<svg data-testid="terminal-icon"><path /></svg>',
+    __isTeleport: false,
+    __isKeepAlive: false,
+    __isSuspense: false,
+  },
+}))
+
 describe('BaseIcon', () => {
-  it('should render with default props', () => {
+  it('should render with default props', async () => {
     const wrapper = mount(BaseIcon, {
       props: {
         name: 'Eye',
       },
-    })
+    }) as BaseIconWrapper
 
     expect(wrapper.exists()).toBe(true)
-    // Test the computed iconClasses property directly
-    const iconClasses = wrapper.classes()
+    // Wait for async component to load
+    await wrapper.vm.$nextTick()
+
+    // Test the computed iconClasses property
+    const iconClasses = wrapper.vm.iconClasses
     expect(iconClasses).toContain('inline-block')
     expect(iconClasses).toContain('flex-shrink-0')
+    expect(iconClasses).toContain('w-5') // default size md
+    expect(iconClasses).toContain('h-5')
   })
 
-  it('should render with different sizes', () => {
+  it('should render with different sizes', async () => {
     const sizes = ['xs', 'sm', 'md', 'lg', 'xl'] as const
 
-    sizes.forEach((size) => {
+    for (const size of sizes) {
       const wrapper = mount(BaseIcon, {
         props: {
           name: 'Eye',
           size,
         },
-      })
+      }) as BaseIconWrapper
 
-      const iconClasses = wrapper.classes()
+      await wrapper.vm.$nextTick()
+      const iconClasses = wrapper.vm.iconClasses
+
       switch (size) {
         case 'xs':
           expect(iconClasses).toContain('w-3')
@@ -72,18 +112,20 @@ describe('BaseIcon', () => {
           expect(iconClasses).toContain('h-8')
           break
       }
-    })
+    }
   })
 
-  it('should handle custom color', () => {
+  it('should handle custom color', async () => {
     const wrapper = mount(BaseIcon, {
       props: {
         name: 'Eye',
         color: 'blue-500',
       },
-    })
+    }) as BaseIconWrapper
 
-    expect(wrapper.classes()).toContain('text-blue-500')
+    await wrapper.vm.$nextTick()
+    const iconClasses = wrapper.vm.iconClasses
+    expect(iconClasses).toContain('text-blue-500')
   })
 
   it('should handle accessibility props when accessible is false', () => {
@@ -124,14 +166,15 @@ describe('BaseIcon', () => {
     expect(wrapper.exists()).toBe(true)
   })
 
-  it('should have correct default values', () => {
+  it('should have correct default values', async () => {
     const wrapper = mount(BaseIcon, {
       props: {
         name: 'Eye',
       },
-    })
+    }) as BaseIconWrapper
 
-    const iconClasses = wrapper.classes()
+    await wrapper.vm.$nextTick()
+    const iconClasses = wrapper.vm.iconClasses
     // Default size should be 'md'
     expect(iconClasses).toContain('w-5')
     expect(iconClasses).toContain('h-5')
@@ -140,33 +183,35 @@ describe('BaseIcon', () => {
     expect(wrapper.props('accessible')).toBe(false)
   })
 
-  it('should compute icon classes correctly', () => {
+  it('should compute icon classes correctly', async () => {
     const wrapper = mount(BaseIcon, {
       props: {
         name: 'Eye',
         size: 'lg',
         color: 'red-600',
       },
-    })
+    }) as BaseIconWrapper
 
-    const classes = wrapper.classes()
-    expect(classes).toContain('inline-block')
-    expect(classes).toContain('flex-shrink-0')
-    expect(classes).toContain('w-6')
-    expect(classes).toContain('h-6')
-    expect(classes).toContain('text-red-600')
+    await wrapper.vm.$nextTick()
+    const iconClasses = wrapper.vm.iconClasses
+    expect(iconClasses).toContain('inline-block')
+    expect(iconClasses).toContain('flex-shrink-0')
+    expect(iconClasses).toContain('w-6')
+    expect(iconClasses).toContain('h-6')
+    expect(iconClasses).toContain('text-red-600')
   })
 
-  it('should not add color class when color is undefined', () => {
+  it('should not add color class when color is undefined', async () => {
     const wrapper = mount(BaseIcon, {
       props: {
         name: 'Eye',
       },
-    })
+    }) as BaseIconWrapper
 
-    const classes = wrapper.classes()
+    await wrapper.vm.$nextTick()
+    const iconClasses = wrapper.vm.iconClasses
     // Should not contain any text-* class when no color is specified
-    const hasTextColorClass = classes.some((cls: string) =>
+    const hasTextColorClass = iconClasses.some((cls: string) =>
       cls.startsWith('text-')
     )
     expect(hasTextColorClass).toBe(false)
