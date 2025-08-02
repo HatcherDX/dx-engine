@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useTheme } from './composables/useTheme'
 import { useBreadcrumbContext } from './composables/useBreadcrumbContext'
 import { useChatSidebar } from './composables/useChatSidebar'
+import { useOnboarding } from './composables/useOnboarding'
 import UnifiedFrame from './components/templates/UnifiedFrame.vue'
 import ModeSelector from './components/molecules/ModeSelector.vue'
 import AddressBar from './components/molecules/AddressBar.vue'
@@ -15,6 +16,11 @@ import VisualSidebar from './components/organisms/VisualSidebar.vue'
 import CodeSidebar from './components/organisms/CodeSidebar.vue'
 import TimelineSidebar from './components/organisms/TimelineSidebar.vue'
 import ChatPanel from './components/organisms/ChatPanel.vue'
+import OnboardingWelcome from './components/organisms/OnboardingWelcome.vue'
+import OnboardingProjectSelection from './components/organisms/OnboardingProjectSelection.vue'
+import OnboardingTaskSelection from './components/organisms/OnboardingTaskSelection.vue'
+import OnboardingTaskDetail from './components/organisms/OnboardingTaskDetail.vue'
+import OnboardingTransition from './components/organisms/OnboardingTransition.vue'
 import type { ModeType } from './components/molecules/ModeSelector.vue'
 
 // Initialize theme system
@@ -34,6 +40,9 @@ const {
   setMode: setChatMode,
 } = useChatSidebar()
 
+// Initialize onboarding
+const { isOnboardingActive, currentStep } = useOnboarding()
+
 // Application state
 const currentMode = ref<ModeType>('generative')
 const addressValue = ref('')
@@ -41,6 +50,7 @@ const addressValue = ref('')
 // Initialize application
 onMounted(async () => {
   // Application initialized silently
+  // Initial AI context will be set based on onboarding completion
 })
 
 // Mode handling
@@ -120,7 +130,19 @@ const openGitHub = () => {
 </script>
 
 <template>
-  <UnifiedFrame :current-mode="currentMode">
+  <!-- Onboarding Overlay -->
+  <div v-if="isOnboardingActive" class="onboarding-overlay">
+    <OnboardingWelcome v-if="currentStep === 'welcome'" />
+    <OnboardingProjectSelection
+      v-else-if="currentStep === 'project-selection'"
+    />
+    <OnboardingTaskSelection v-else-if="currentStep === 'task-selection'" />
+    <OnboardingTaskDetail v-else-if="currentStep === 'task-detail'" />
+    <OnboardingTransition v-else-if="currentStep === 'transition'" />
+  </div>
+
+  <!-- Main Application -->
+  <UnifiedFrame v-show="!isOnboardingActive" :current-mode="currentMode">
     <!-- Sidebar content -->
     <template #sidebar-header>
       <div class="sidebar-header-content">
@@ -561,6 +583,17 @@ strong {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Onboarding Overlay */
+.onboarding-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999;
+  background-color: var(--bg-primary);
 }
 
 @media (max-width: 768px) {

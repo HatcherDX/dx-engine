@@ -42,6 +42,9 @@ async function createWindow() {
   const iconPath = iconPaths.find((path) => existsSync(path))
 
   const browserWindow = new BrowserWindow({
+    // Default window size
+    width: 1024,
+    height: 768,
     // Use 'ready-to-show' event to show window
     show: false,
     // Set the application icon if found
