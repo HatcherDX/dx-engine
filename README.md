@@ -18,9 +18,22 @@
   <a href="LICENSE.md"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
   <img src="https://img.shields.io/badge/dynamic/json?label=Coverage&query=%24.total.statements.pct&suffix=%25&url=https%3A%2F%2Fraw.githubusercontent.com%2FHatcherDX%2Fdx-engine%2Fcoverage-reports%2Fcoverage-summary.json&colorB=brightgreen&colorA=gray&style=flat" alt="Test Coverage">
   <a href="CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome"></a>
+  <br />
   <a href="https://twitter.com/HatcherDX"><img src="https://img.shields.io/twitter/follow/HatcherDX?style=social" alt="Follow on Twitter"></a>
+  <a href="https://discord.gg/cZ7PZvnMk4"><img src="https://img.shields.io/badge/Discord-HatcherDX-5865F2?style=social&logo=discord" alt="Hatcher on Discord"></a>
+  <a href="https://github.com/HatcherDX/dx-engine"><img src="https://img.shields.io/github/stars/HatcherDX/dx-engine?style=social" alt="Star on GitHub"></a>
+  <br />
+  <a href="#supported-platforms"><img src="https://img.shields.io/badge/macOS-Supported-green.svg?style=flat&logo=apple&colorB=brightgreen&colorA=gray&style=flat" alt="macOS Supported"></a>
+  <a href="#supported-platforms"><img src="https://img.shields.io/badge/Linux-Supported-green.svg?style=flat&logo=linux&colorB=brightgreen&colorA=gray&style=flat" alt="Linux Supported"></a>
+  <a href="#supported-platforms"><img src="https://img.shields.io/badge/Windows-Planned-lightgrey.svg?style=flat&logo=windows&colorA=3c3c3c" alt="Windows Planned"></a>
 </p>
-<br><br><br>
+<br>
+
+<p align="center">
+  <img src="./.github/assets/GenUI.png" alt="Hatcher GenUI Screenshot" width="800">
+</p>
+
+<br>
 
 ## The Vision: Controlled Amplification
 
@@ -38,7 +51,9 @@ Hatcher is built to eliminate the friction that AI introduces, transforming a fr
 
 ## Project Status: Alpha
 
-Hatcher is currently in a very early stage of development. The core `Visual-to-Code` technology has been validated in a private proof-of-concept, and we are now building the foundational MVP.
+## Project Status: Alpha
+
+Hatcher is currently in a very early stage of development, but it's built on a robust foundation. The core `Visual-to-Code` technology has been validated in a private proof-of-concept, and key infrastructure, like our integrated terminal, is architected for performance and reliability, matching the professional-grade experience of industry leaders like VSCode. We are now building the foundational MVP.
 
 We are building in public and welcome the community to join us on this journey. Expect bugs, rapid changes, and an open conversation about the future of development.
 
@@ -48,6 +63,14 @@ Uses:
 - Typescript
 - Turborepo
 - Vite (for Electron builds)
+
+## Supported Platforms
+
+For our initial MVP, Hatcher's primary development and testing focus is on **macOS** and **Linux**. As an independent open-source project, we are prioritizing the environments most common among our target users and where we can ensure a first-class, stable experience through automated testing.
+
+Hatcher for Linux is officially built and validated for both **`x86_64`** (Intel/AMD) and **`aarch64`** (ARM) architectures. Our automated test suite runs on the latest Ubuntu LTS release, and the application is expected to work on most modern Debian-based distributions.
+
+While the application may also run on Windows, we currently lack the dedicated hardware and resources to provide official support. We believe that robust Windows support is a significant business opportunity. We are open to strategic partnerships, sponsorships, or direct support from organizations like Microsoft to fund a dedicated team and the necessary licenses to make Hatcher a premier, fully-supported IDE on the Windows platform.
 
 ## More Than an IDE: Your Productivity Anchor
 
@@ -60,6 +83,44 @@ We believe that in an attention-fractured world, the most revolutionary IDE isn'
 ## Getting Started
 
 The first alpha version of Hatcher is scheduled for release soon. The easiest way to get started will be to download the official release for your operating system from our **[GitHub Releases](https://github.com/HatcherDX/dx-engine/releases)** page. Stay tuned!
+
+### Prerequisites
+
+**Important:** This project requires Node.js 22 or higher and uses node-pty v1.1.0-beta34 for terminal functionality.
+
+#### Node.js 22 Setup
+
+##### Option 1: Using nvm (Recommended)
+
+```bash
+# Install nvm if you don't have it
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+
+# Restart your terminal or run:
+source ~/.zshrc
+
+# Install and use Node.js 22
+nvm install 22
+nvm use 22
+nvm alias default 22
+```
+
+##### Option 2: Automatic Setup Script
+
+```bash
+# Run our setup script to configure Node.js 22 automatically
+./scripts/setup-node.sh
+```
+
+#### Dependencies
+
+After setting up Node.js 22, install dependencies:
+
+```bash
+pnpm install
+```
+
+**Note:** If you encounter terminal issues, the project automatically uses node-pty v1.1.0-beta34 which is compatible with modern Electron versions.
 
 ### Environment Variables
 

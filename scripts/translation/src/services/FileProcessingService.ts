@@ -2,7 +2,7 @@ import { promises as fs } from 'fs'
 import { join, dirname, basename, extname, relative } from 'path'
 import { glob } from 'glob'
 import type {
-  IFileProcessingService,
+  FileProcessingServiceInterface,
   FileProcessingConfig,
   FileTranslationResult,
   ValidationResult,
@@ -17,7 +17,7 @@ import {
  * Professional file processing service for handling markdown files
  * and directory operations with validation and error handling
  */
-export class FileProcessingService implements IFileProcessingService {
+export class FileProcessingService implements FileProcessingServiceInterface {
   /**
    * Get list of source markdown files based on configuration
    */

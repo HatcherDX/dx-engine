@@ -55,7 +55,7 @@ export interface TranslationResult {
 /**
  * Browser factory interface for dependency injection
  */
-export interface IBrowserFactory {
+export interface BrowserFactoryInterface {
   createBrowser(
     config: GoogleTranslatorConfig
   ): Promise<import('puppeteer-core').Browser>
@@ -65,7 +65,7 @@ export interface IBrowserFactory {
 /**
  * Translation service interface
  */
-export interface ITranslationService {
+export interface TranslationServiceInterface {
   translateText(request: TranslationRequest): Promise<TranslationResult>
   close(): Promise<void>
 }

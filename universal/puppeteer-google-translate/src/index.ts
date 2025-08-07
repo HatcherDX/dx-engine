@@ -11,8 +11,8 @@ export type {
   GoogleTranslatorConfig,
   TranslationRequest,
   TranslationResult,
-  ITranslationService,
-  IBrowserFactory,
+  TranslationServiceInterface,
+  BrowserFactoryInterface,
   ErrorCode,
 } from './types/index.js'
 

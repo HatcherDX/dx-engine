@@ -4,8 +4,8 @@ import type {
   GoogleTranslatorConfig,
   TranslationRequest,
   TranslationResult,
-  ITranslationService,
-  IBrowserFactory,
+  TranslationServiceInterface,
+  BrowserFactoryInterface,
 } from './types/index.js'
 import {
   TranslationError,
@@ -19,7 +19,7 @@ import { BrowserFactory } from './factories/BrowserFactory.js'
  * Professional Google Translator implementation with robust error handling,
  * retry logic, and dependency injection support
  */
-export class GoogleTranslator implements ITranslationService {
+export class GoogleTranslator implements TranslationServiceInterface {
   private browser: Browser | null = null
   private browserPromise: Promise<Browser> | null = null
   private page: Page | null = null
@@ -27,7 +27,7 @@ export class GoogleTranslator implements ITranslationService {
 
   constructor(
     config: GoogleTranslatorConfig = {},
-    private readonly browserFactory: IBrowserFactory = new BrowserFactory()
+    private readonly browserFactory: BrowserFactoryInterface = new BrowserFactory()
   ) {
     this.config = { ...DEFAULT_CONFIG, ...config }
   }

@@ -27,6 +27,15 @@ dx-engine/
 
 ## Comandos de Desarrollo
 
+### 🚨 REGLA CRÍTICA: CONTROL DE COMMITS
+
+**NUNCA HACER COMMITS AUTOMÁTICAMENTE - SOLO EL DESARROLLADOR DECIDE**
+
+- ❌ `git commit` automático - PROHIBIDO ABSOLUTO
+- ❌ Commits con nombres genéricos - PROHIBIDO
+- ✅ Solo el desarrollador decide cuándo commitear
+- ✅ Solo el desarrollador escribe los mensajes de commit
+
 ### 🚨 REGLA CRÍTICA: GESTIÓN DE DEPENDENCIAS
 
 **NUNCA USAR NPM EN ESTE PROYECTO - SOLO PNPM**
@@ -148,6 +157,264 @@ const emit = defineEmits(['click'])
 - NUNCA usar require(): Siempre ES6 imports
 - NUNCA usar 'as any': Usar tipos TypeScript específicos
 - Props estáticas sin binding: `title="Texto"` en lugar de `:title="'Texto'"`
+
+### 🚨 REGLA CRÍTICA: CONVENCIONES DE INTERFACES TYPESCRIPT MODERNAS
+
+**NUNCA USAR EL PREFIJO `I` EN INTERFACES - ESTILO OBSOLETO**
+
+La convención del prefijo `I` (como `ITerminal`, `IUser`, `IConfig`) es obsoleta y no se recomienda en TypeScript moderno.
+
+**❌ INCORRECTO - Estilo obsoleto:**
+
+```typescript
+interface ITerminal {
+  id: string
+  status: 'online' | 'offline'
+}
+
+interface IUserOptions {
+  name: string
+  email: string
+}
+```
+
+**✅ CORRECTO - Estilo moderno:**
+
+```typescript
+interface Terminal {
+  id: string
+  status: 'online' | 'offline'
+}
+
+interface UserOptions {
+  name: string
+  email: string
+}
+```
+
+**RAZONES PARA EVITAR EL PREFIJO `I`:**
+
+1. **TypeScript ya diferencia tipos y valores** - No necesitas el prefijo para saber que es una interfaz
+2. **Mejor legibilidad** - Nombres más limpios y descriptivos
+3. **Consistencia con la comunidad** - Angular, React, Node.js, etc., usan este estilo moderno
+4. **Facilita refactoring** - Si cambias de interface a type, no necesitas cambiar el nombre
+
+**CONVENCIONES DE NAMING MODERNAS:**
+
+- ✅ `Terminal` (nombre descriptivo directo)
+- ✅ `TerminalConfig` (con sufijo semántico)
+- ✅ `TerminalOptions` (con sufijo semántico)
+- ✅ `UserProps` (para componentes Vue/React)
+- ✅ `APIResponse<T>` (genérico descriptivo)
+
+**ESTA REGLA ES OBLIGATORIA PARA MANTENER CONSISTENCIA CON EL ECOSISTEMA TYPESCRIPT MODERNO.**
+
+### 🚨 REGLA CRÍTICA: DOCUMENTACIÓN TSDOC OBLIGATORIA
+
+**TODA FUNCIÓN, CLASE, INTERFACE Y TIPO DEBE TENER DOCUMENTACIÓN TSDOC**
+
+**ANTES DE CADA CAMBIO DE CÓDIGO, REFRESCAR O CREAR DOCUMENTACIÓN TSDOC:**
+
+````typescript
+/**
+ * Calculates the average of two numbers using arithmetic mean.
+ *
+ * @remarks
+ * This method is part of the {@link core-library#Statistics | Statistics subsystem}.
+ * Used for basic mathematical operations throughout the application.
+ *
+ * @param x - The first input number
+ * @param y - The second input number
+ * @returns The arithmetic mean of `x` and `y`
+ *
+ * @example
+ * ```typescript
+ * const result = getAverage(10, 20);
+ * console.log(result); // 15
+ * ```
+ *
+ * @throws {@link ValidationError}
+ * Thrown when either parameter is not a valid number
+ *
+ * @beta
+ * @since 1.0.0
+ */
+public static getAverage(x: number, y: number): number {
+  return (x + y) / 2.0;
+}
+````
+
+**TAGS TSDOC OBLIGATORIOS:**
+
+- `@param` - Para cada parámetro de función
+- `@returns` - Para valor de retorno (si no es void)
+- `@throws` - Para excepciones posibles
+- `@example` - Al menos un ejemplo de uso
+- `@remarks` - Contexto adicional y propósito
+- `@since` - Versión donde se introdujo
+
+**TAGS TSDOC DE ESTADO:**
+
+- `@alpha` - API experimental, puede cambiar
+- `@beta` - API estable pero puede cambiar
+- `@public` - API pública estable
+- `@internal` - Solo para uso interno
+- `@deprecated` - Marcado para eliminación
+
+**DOCUMENTACIÓN ESPECÍFICA POR TIPO:**
+
+````typescript
+/**
+ * Configuration interface for terminal creation options.
+ *
+ * @remarks
+ * Used throughout the terminal system to standardize terminal initialization.
+ * All properties are optional with sensible defaults.
+ *
+ * @public
+ * @since 1.0.0
+ */
+interface TerminalOptions {
+  /**
+   * Display name for the terminal tab.
+   * @defaultValue "Terminal"
+   */
+  name?: string
+
+  /**
+   * Working directory for the terminal session.
+   * @defaultValue Current working directory
+   */
+  cwd?: string
+
+  /**
+   * Shell command to execute.
+   * @defaultValue System default shell
+   */
+  shell?: string
+}
+
+/**
+ * Manages terminal instances and their lifecycle.
+ *
+ * @remarks
+ * Central hub for all terminal operations including creation, destruction,
+ * and communication with the underlying shell processes.
+ *
+ * @example
+ * ```typescript
+ * const manager = new TerminalManager();
+ * const terminal = await manager.createTerminal({
+ *   name: "Development",
+ *   cwd: "/home/user/project"
+ * });
+ * ```
+ *
+ * @public
+ * @since 1.0.0
+ */
+class TerminalManager {
+  /**
+   * Creates a new terminal instance with specified options.
+   *
+   * @param options - Configuration for the new terminal
+   * @returns Promise that resolves to the created terminal instance
+   *
+   * @throws {@link TerminalCreationError}
+   * Thrown when terminal creation fails due to system constraints
+   *
+   * @example
+   * ```typescript
+   * const terminal = await manager.createTerminal({
+   *   name: "Node.js",
+   *   shell: "node"
+   * });
+   * ```
+   */
+  async createTerminal(options: TerminalOptions): Promise<Terminal> {
+    // Implementation
+  }
+}
+````
+
+**REGLAS DE DOCUMENTACIÓN:**
+
+- ❌ **INACEPTABLE**: Código sin documentación TSDoc
+- ❌ **INACEPTABLE**: Documentación en español
+- ❌ **INACEPTABLE**: Documentación incompleta (sin @param/@returns)
+- ❌ **INACEPTABLE**: Cambios sin actualizar documentación TSDoc existente
+- ✅ **OBLIGATORIO**: Documentación completa en inglés
+- ✅ **OBLIGATORIO**: Ejemplos de uso funcionalmente correctos
+- ✅ **OBLIGATORIO**: Referencias cruzadas con {@link}
+- ✅ **OBLIGATORIO**: Al hacer cambios, refrescar TSDoc existente o crear nueva documentación
+- ✅ **OBLIGATORIO**: Usar TSDoc como banco de contexto para entender el sistema
+
+**POLÍTICA DE ACTUALIZACIÓN DE TSDOC:**
+
+Cada cambio de código DEBE incluir actualización de documentación TSDoc:
+
+1. **Al modificar funciones existentes**: Actualizar @param, @returns, @example
+2. **Al agregar nuevas funciones**: Documentación TSDoc completa obligatoria
+3. **Al refactorizar**: Verificar y actualizar todas las referencias {@link}
+4. **Al cambiar comportamiento**: Actualizar @remarks y @example
+
+**ESTA POLÍTICA GARANTIZA QUE LA DOCUMENTACIÓN SIRVA COMO BANCO DE CONTEXTO CONFIABLE PARA FUTURAS MODIFICACIONES.**
+
+**ESTRUCTURA OBLIGATORIA DE TSDOC:**
+
+Según las mejores prácticas de Microsoft TSDoc, cada archivo debe seguir esta estructura:
+
+````typescript
+/**
+ * @fileoverview Brief description of the file's purpose.
+ *
+ * @description
+ * Detailed explanation of the module/component functionality,
+ * its role within the system, and key architectural decisions.
+ *
+ * @example
+ * ```typescript
+ * // Functional example showing typical usage
+ * const example = new MyClass()
+ * const result = await example.process()
+ * ```
+ *
+ * @author Hatcher DX Team
+ * @since 1.0.0
+ * @public
+ */
+
+/**
+ * Class/interface description.
+ *
+ * @remarks
+ * Additional context, implementation notes, or architectural considerations.
+ * Use {@link RelatedClass} for cross-references.
+ *
+ * @public | @internal | @beta
+ */
+export class MyClass {
+  /**
+   * Method description explaining what it does.
+   *
+   * @param paramName - Description of the parameter
+   * @returns Description of return value with {@link ReturnType}
+   *
+   * @throws {@link ErrorType} Description of when this error occurs
+   *
+   * @example
+   * ```typescript
+   * const result = await myClass.methodName('input')
+   * console.log(result) // Expected output
+   * ```
+   *
+   * @public
+   */
+  async methodName(paramName: string): Promise<ReturnType> {
+    // Implementation
+  }
+}
+````
 
 ### Comentarios en Código
 

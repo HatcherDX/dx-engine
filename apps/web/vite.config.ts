@@ -31,9 +31,13 @@ export default defineConfig({
     assetsDir: '.',
     rollupOptions: {
       input: join(PACKAGE_ROOT, 'index.html'),
+      external: ['node-pty', 'electron'],
     },
     emptyOutDir: true,
     reportCompressedSize: false,
+  },
+  optimizeDeps: {
+    exclude: ['node-pty', 'electron', '@hatcherdx/terminal-system'],
   },
   plugins: [vue()],
 })

@@ -5,7 +5,7 @@ import type {
   ValidationResult,
   ValidationError,
   ValidationWarning,
-  IConfigurationValidator,
+  ConfigurationValidatorInterface,
 } from '../types/index.js'
 import {
   SUPPORTED_LANGUAGES,
@@ -95,7 +95,7 @@ const TranslationJobConfigSchema = z.object({
 /**
  * Configuration service with validation and defaults
  */
-export class ConfigurationService implements IConfigurationValidator {
+export class ConfigurationService implements ConfigurationValidatorInterface {
   /**
    * Create a default translation job configuration
    */

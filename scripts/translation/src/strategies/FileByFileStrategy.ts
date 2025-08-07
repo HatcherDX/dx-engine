@@ -1,5 +1,5 @@
 import type {
-  ITranslationStrategy,
+  TranslationStrategyInterface,
   TranslationJobConfig,
   BatchTranslationResult,
   FileTranslationContext,
@@ -21,7 +21,7 @@ import {
  * Processes one file across all languages before moving to the next file
  * This ensures completeness and consistency across all languages
  */
-export class FileByFileStrategy implements ITranslationStrategy {
+export class FileByFileStrategy implements TranslationStrategyInterface {
   private translationService: TranslationService | null = null
   private fileProcessingService: FileProcessingService
   private protectionService: MarkdownProtectionService

@@ -4,6 +4,7 @@ import { useTheme } from './composables/useTheme'
 import { useBreadcrumbContext } from './composables/useBreadcrumbContext'
 import { useChatSidebar } from './composables/useChatSidebar'
 import { useOnboarding } from './composables/useOnboarding'
+import { useTerminalModeDetector } from './composables/useTerminalModeDetector'
 import UnifiedFrame from './components/templates/UnifiedFrame.vue'
 import ModeSelector from './components/molecules/ModeSelector.vue'
 import AddressBar from './components/molecules/AddressBar.vue'
@@ -16,6 +17,7 @@ import VisualSidebar from './components/organisms/VisualSidebar.vue'
 import CodeSidebar from './components/organisms/CodeSidebar.vue'
 import TimelineSidebar from './components/organisms/TimelineSidebar.vue'
 import ChatPanel from './components/organisms/ChatPanel.vue'
+import TerminalPanel from './components/organisms/TerminalPanel.vue'
 import OnboardingWelcome from './components/organisms/OnboardingWelcome.vue'
 import OnboardingProjectSelection from './components/organisms/OnboardingProjectSelection.vue'
 import OnboardingTaskSelection from './components/organisms/OnboardingTaskSelection.vue'
@@ -25,6 +27,9 @@ import type { ModeType } from './components/molecules/ModeSelector.vue'
 
 // Initialize theme system
 const { platform } = useTheme()
+
+// Initialize terminal mode detector
+const terminalModeDetector = useTerminalModeDetector()
 
 // Initialize breadcrumb context
 const { getContextForMode, simulateFileChange } = useBreadcrumbContext()
@@ -51,6 +56,18 @@ const addressValue = ref('')
 onMounted(async () => {
   // Application initialized silently
   // Initial AI context will be set based on onboarding completion
+
+  // Initialize terminal mode detector
+  try {
+    console.log('[App] Initializing terminal mode detector...')
+    await terminalModeDetector.detectModeWithFallback()
+    console.log(
+      '[App] Terminal mode detector initialized:',
+      terminalModeDetector.currentMode.value
+    )
+  } catch (error) {
+    console.error('[App] Failed to initialize terminal mode detector:', error)
+  }
 })
 
 // Mode handling
@@ -354,6 +371,11 @@ const openGitHub = () => {
         </div>
       </div>
     </div>
+
+    <!-- Terminal Panel - Only in Code mode -->
+    <template #terminal-panel>
+      <TerminalPanel />
+    </template>
 
     <!-- Chat Panel - Persistent across all modes -->
     <template #chat-panel>

@@ -5,6 +5,11 @@ vi.mock('electron', () => ({
   contextBridge: {
     exposeInMainWorld: vi.fn(),
   },
+  ipcRenderer: {
+    on: vi.fn(),
+    send: vi.fn(),
+    invoke: vi.fn(),
+  },
 }))
 
 // Mock the IPCRenderer module
@@ -40,6 +45,9 @@ describe('preload script', () => {
         versions: process.versions,
         send: expect.any(Function),
         on: expect.any(Function),
+        invoke: expect.any(Function),
+        sendTerminalInput: expect.any(Function),
+        sendTerminalResize: expect.any(Function),
       })
     )
   })
@@ -49,20 +57,30 @@ describe('preload script', () => {
     const mockIPCRenderer = {
       send: vi.fn(),
       on: vi.fn(),
+      invoke: vi.fn(),
     }
 
     const electronAPI = {
       versions: process.versions,
       send: mockIPCRenderer.send,
       on: mockIPCRenderer.on,
+      invoke: mockIPCRenderer.invoke,
+      sendTerminalInput: vi.fn(),
+      sendTerminalResize: vi.fn(),
     }
 
     expect(electronAPI).toHaveProperty('versions')
     expect(electronAPI).toHaveProperty('send')
     expect(electronAPI).toHaveProperty('on')
+    expect(electronAPI).toHaveProperty('invoke')
+    expect(electronAPI).toHaveProperty('sendTerminalInput')
+    expect(electronAPI).toHaveProperty('sendTerminalResize')
     expect(electronAPI.versions).toBe(process.versions)
     expect(typeof electronAPI.send).toBe('function')
     expect(typeof electronAPI.on).toBe('function')
+    expect(typeof electronAPI.invoke).toBe('function')
+    expect(typeof electronAPI.sendTerminalInput).toBe('function')
+    expect(typeof electronAPI.sendTerminalResize).toBe('function')
   })
 
   it('should export types from types/index.js', async () => {

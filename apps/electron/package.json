@@ -36,11 +36,15 @@
   },
   "devDependencies": {
     "@electron/notarize": "^3.0.1",
+    "@electron/rebuild": "^4.0.1",
     "@hatcherdx/dx-engine-preload": "workspace:*",
     "@types/node": "^22.14.1",
+    "@types/uuid": "^9.0.0",
     "electron": "35.1.4",
     "electron-builder": "26.0.12",
+    "electron-rebuild": "^3.2.9",
     "electron-updater": "6.6.2",
+    "node-pty": "^1.1.0-beta34",
     "terser-webpack-plugin": "^5.3.14",
     "typescript": "5.8.3",
     "vite": "6.2.6",
@@ -48,6 +52,11 @@
     "webpack-cli": "^6.0.1"
   },
   "dependencies": {
-    "@dotenvx/dotenvx": "^1.39.1"
+    "@dotenvx/dotenvx": "^1.39.1",
+    "@hatcherdx/terminal-system": "workspace:*",
+    "@xterm/addon-search": "^0.15.0",
+    "@xterm/addon-unicode11": "^0.8.0",
+    "express-ws": "^5.0.2",
+    "uuid": "^9.0.0"
   }
 }

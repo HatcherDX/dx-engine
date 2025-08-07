@@ -2,6 +2,7 @@ import { app } from 'electron'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import './ipc'
+import { initializeTerminalSystem, destroyTerminalSystem } from './terminalIPC'
 import { restoreOrCreateWindow } from '/@/mainWindow'
 import { setupDevConsoleFilter } from '/@/utils/devConsoleFilter'
 
@@ -50,6 +51,8 @@ app.on('second-instance', restoreOrCreateWindow)
  */
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
+    // Cleanup terminal system before quitting
+    destroyTerminalSystem()
     app.quit()
   }
 })
@@ -59,6 +62,8 @@ app.on('window-all-closed', () => {
  */
 app.on('before-quit', () => {
   console.log('🔄 Quitting application...')
+  // Cleanup terminal system before quitting
+  destroyTerminalSystem()
   app.exit(0)
 })
 
@@ -72,5 +77,10 @@ app.on('activate', restoreOrCreateWindow)
  */
 app
   .whenReady()
-  .then(restoreOrCreateWindow)
+  .then(() => {
+    // Initialize terminal system first
+    initializeTerminalSystem()
+    // Then create window
+    return restoreOrCreateWindow()
+  })
   .catch((error) => console.error('Failed to create window:', error))

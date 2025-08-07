@@ -4,7 +4,7 @@ import {
   type TranslationResult,
 } from '@hatcherdx/puppeteer-google-translate'
 import type {
-  ITranslationService,
+  TranslationServiceInterface,
   FileTranslationContext,
   FileTranslationResult,
   SupportedLanguageCode,
@@ -20,7 +20,7 @@ import { MarkdownProtectionService } from './MarkdownProtectionService.js'
  * High-level translation service that orchestrates markdown protection,
  * Google translation, and content restoration
  */
-export class TranslationService implements ITranslationService {
+export class TranslationService implements TranslationServiceInterface {
   private readonly googleTranslator: GoogleTranslator
   private readonly protectionService: MarkdownProtectionService
 

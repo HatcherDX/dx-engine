@@ -42,18 +42,17 @@ if (typeof window !== 'undefined') {
 
   // Listen for platform simulation events from Electron menu
   if (window.electronAPI?.on) {
-    window.electronAPI.on(
-      'simulate-platform',
-      (newPlatform: 'macos' | 'windows' | 'linux') => {
-        console.log('Platform simulation received:', newPlatform)
-        // Remove old platform class
-        document.documentElement.classList.remove(`platform-${platform.value}`)
-        // Set new platform
-        platform.value = newPlatform
-        // Add new platform class
-        document.documentElement.classList.add(`platform-${platform.value}`)
-      }
-    )
+    window.electronAPI.on('simulate-platform', ((
+      newPlatform: 'macos' | 'windows' | 'linux'
+    ) => {
+      console.log('Platform simulation received:', newPlatform)
+      // Remove old platform class
+      document.documentElement.classList.remove(`platform-${platform.value}`)
+      // Set new platform
+      platform.value = newPlatform
+      // Add new platform class
+      document.documentElement.classList.add(`platform-${platform.value}`)
+    }) as (...args: unknown[]) => void)
   }
 }
 

@@ -24,10 +24,12 @@ export default defineConfig({
     lib: {
       entry: {
         index: join(PACKAGE_ROOT, 'src/index.ts'),
+        ptyHost: join(PACKAGE_ROOT, 'src/ptyHost.ts'),
       },
       formats: ['cjs'],
     },
     rollupOptions: {
+      external: ['electron', 'node-pty', 'express', 'express-ws'],
       output: {
         entryFileNames: '[name].cjs',
         chunkFileNames: '[name].cjs',

@@ -1,14 +1,17 @@
 import * as ChromeLauncher from 'chrome-launcher'
 import puppeteer from 'puppeteer-core'
 import type { Browser } from 'puppeteer-core'
-import type { GoogleTranslatorConfig, IBrowserFactory } from '../types/index.js'
+import type {
+  GoogleTranslatorConfig,
+  BrowserFactoryInterface,
+} from '../types/index.js'
 import { BrowserError, ERROR_CODES } from '../types/index.js'
 
 /**
  * Factory for creating and configuring Puppeteer browser instances
  * Implements dependency injection pattern for better testability
  */
-export class BrowserFactory implements IBrowserFactory {
+export class BrowserFactory implements BrowserFactoryInterface {
   /**
    * Get Chrome executable path using chrome-launcher
    */
@@ -71,7 +74,7 @@ export class BrowserFactory implements IBrowserFactory {
 /**
  * Mock browser factory for testing
  */
-export class MockBrowserFactory implements IBrowserFactory {
+export class MockBrowserFactory implements BrowserFactoryInterface {
   constructor(private mockBrowser: Browser) {}
 
   getChromePath(): string {

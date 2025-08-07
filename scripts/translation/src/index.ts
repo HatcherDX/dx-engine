@@ -27,11 +27,11 @@ export type {
   TranslationStrategyConfig,
   ValidationResult,
   ProgressCallback,
-  ITranslationService,
-  IMarkdownProtectionService,
-  IFileProcessingService,
-  ITranslationStrategy,
-  IConfigurationValidator,
+  TranslationServiceInterface,
+  MarkdownProtectionServiceInterface,
+  FileProcessingServiceInterface,
+  TranslationStrategyInterface,
+  ConfigurationValidatorInterface,
 } from './types/index.js'
 
 // Constants and defaults

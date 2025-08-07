@@ -19,6 +19,7 @@
     "pnpm": "10.6.1"
   },
   "scripts": {
+    "setup": "tsx scripts/setup-node.sh && pnpm install",
     "dev": "tsx scripts/dev-electron.ts",
     "dev:all": "tsx scripts/watch.ts",
     "dev:watch": "tsx scripts/watch.ts --watch",
@@ -60,6 +61,7 @@
     "@vue/test-utils": "^2.4.6",
     "cross-env": "^7.0.3",
     "electron": "35.1.4",
+    "electron-rebuild": "^3.2.9",
     "eslint": "9.24.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-format": "^1.0.1",
@@ -70,7 +72,7 @@
     "prettier": "^3.6.2",
     "rimraf": "6.0.1",
     "simple-git-hooks": "^2.12.1",
-    "tsx": "^4.19.3",
+    "tsx": "^4.20.3",
     "turbo": "^2.5.0",
     "typescript-eslint": "^8.38.0",
     "vite": "^6.2.6",
@@ -96,5 +98,8 @@
     "*.{js,jsx,ts,tsx,vue}": [
       "eslint --fix"
     ]
+  },
+  "dependencies": {
+    "node-pty": "1.1.0-beta34"
   }
 }

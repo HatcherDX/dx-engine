@@ -1,3 +1,54 @@
+<!--
+/**
+ * @fileoverview UnifiedFrame template component for the main application layout.
+ * 
+ * @description
+ * A comprehensive layout template that provides the main application frame structure.
+ * Supports multiple modes (generative, code), platform-specific layouts (macOS, Windows, Linux),
+ * responsive design, and extensible slot architecture for maximum flexibility.
+ * 
+ * @example
+ * ```vue
+ * <template>
+ *   <UnifiedFrame
+ *     :show-mode-navigation="true"
+ *     variant="default"
+ *     current-mode="code"
+ *     @chat-mode-change="handleModeChange"
+ *   >
+ *     <template #sidebar-header>
+ *       <h2>Project Explorer</h2>
+ *     </template>
+ *     <template #sidebar-content>
+ *       <FileTree />
+ *     </template>
+ *     <template #navigation>
+ *       <ModeSelector />
+ *     </template>
+ *     <template #address-bar>
+ *       <AddressBar />
+ *     </template>
+ *     <template #default>
+ *       <CodeEditor />
+ *     </template>
+ *     <template #terminal-panel>
+ *       <TerminalPanel />
+ *     </template>
+ *     <template #chat-panel>
+ *       <ChatInterface />
+ *     </template>
+ *     <template #footer>
+ *       <StatusBar />
+ *     </template>
+ *   </UnifiedFrame>
+ * </template>
+ * ```
+ * 
+ * @author Hatcher DX Team
+ * @since 1.0.0
+ * @public
+ */
+-->
 <template>
   <div class="unified-frame" :class="frameClasses" :style="frameStyles">
     <!-- Sidebar -->
@@ -66,9 +117,33 @@
     </header>
 
     <!-- Main Content Area -->
-    <main class="frame-main" :class="{ 'main-generative': isGenerativeMode }">
-      <div v-if="!isGenerativeMode" class="main-content">
-        <slot />
+    <main
+      class="frame-main"
+      :class="{
+        'main-generative': isGenerativeMode,
+        'main-with-terminal': showTerminalPanel,
+      }"
+    >
+      <div v-if="!isGenerativeMode" class="main-content-area">
+        <div class="main-content">
+          <slot />
+        </div>
+
+        <!-- Terminal Panel - Inside main content area -->
+        <div
+          v-if="showTerminalPanel"
+          class="frame-terminal"
+          :style="{ height: terminalHeight + 'px' }"
+        >
+          <div
+            class="terminal-resize-handle"
+            @mousedown="(event: MouseEvent) => startTerminalResize(event)"
+            @touchstart="(event: TouchEvent) => startTerminalResize(event)"
+          >
+            <div class="resize-handle-line"></div>
+          </div>
+          <slot name="terminal-panel" />
+        </div>
       </div>
     </main>
 
@@ -99,7 +174,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+/**
+ * @fileoverview UnifiedFrame component logic and type definitions.
+ *
+ * @description
+ * This script provides the reactive logic for the UnifiedFrame template component.
+ * Manages platform detection, theme switching, sidebar resizing, terminal panel handling,
+ * and mode-specific layout switching between generative AI and code development modes.
+ */
+
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useTheme } from '../../composables/useTheme'
 import { useWindowControls } from '../../composables/useWindowControls'
 import { useSidebarResize } from '../../composables/useSidebarResize'
@@ -111,13 +195,31 @@ import WindowControls from '../molecules/WindowControls.vue'
 import Sidebar from '../atoms/Sidebar.vue'
 import type { ModeType } from '../molecules/ModeSelector.vue'
 
+/**
+ * Props interface for the UnifiedFrame component.
+ *
+ * @interface Props
+ * @public
+ * @since 1.0.0
+ */
 interface Props {
+  /** Whether to display mode navigation controls in the header */
   showModeNavigation?: boolean
+  /** Layout variant affecting the overall frame appearance and behavior */
   variant?: 'default' | 'compact' | 'fullscreen'
+  /** Current application mode determining layout and feature availability */
   currentMode?: ModeType
 }
 
+/**
+ * Events emitted by the UnifiedFrame component.
+ *
+ * @interface Emits
+ * @public
+ * @since 1.0.0
+ */
 interface Emits {
+  /** Emitted when the chat mode changes, providing the new mode */
   chatModeChange: [mode: ModeType]
 }
 
@@ -136,6 +238,9 @@ const { sidebarWidth, sidebarWidthPx, isResizing, startResize, resizeCursor } =
 
 // Chat sidebar - get layout properties only
 const { isGenerativeMode, setMode } = useChatSidebar()
+
+// Terminal panel visibility
+const showTerminalPanel = computed(() => props.currentMode === 'code')
 
 // Watch for mode changes and emit to parent
 import { watch } from 'vue'
@@ -164,6 +269,11 @@ const frameClasses = computed(() => {
     base.push('mode-generative')
   }
 
+  // Add mode-specific class for terminal layout
+  if (props.currentMode) {
+    base.push(`mode-${props.currentMode}`)
+  }
+
   return base
 })
 
@@ -175,6 +285,85 @@ const frameStyles = computed(() => {
 const handleHeaderDoubleClick = () => {
   handleDoubleClick()
 }
+
+// Terminal resize functionality
+const terminalHeight = ref(250) // Reduced from 400 to 250px for more compact layout
+const isResizingTerminal = ref(false)
+const initialMouseY = ref(0)
+const initialTerminalHeight = ref(0)
+
+const MIN_TERMINAL_HEIGHT = 200 // Reduced minimum back to 200px
+const MAX_TERMINAL_HEIGHT_VH = 60 // Keep at 60% of viewport height
+
+const startTerminalResize = (event: MouseEvent | TouchEvent) => {
+  event.preventDefault()
+
+  isResizingTerminal.value = true
+  initialTerminalHeight.value = terminalHeight.value
+
+  if (event instanceof MouseEvent) {
+    initialMouseY.value = event.clientY
+  } else {
+    initialMouseY.value = event.touches[0].clientY
+  }
+
+  document.body.style.cursor = 'ns-resize'
+  document.body.style.userSelect = 'none'
+
+  document.addEventListener('mousemove', handleResize)
+  document.addEventListener('mouseup', stopResize)
+  document.addEventListener('touchmove', handleResize)
+  document.addEventListener('touchend', stopResize)
+}
+
+const handleResize = (event: MouseEvent | TouchEvent) => {
+  if (!isResizingTerminal.value) return
+
+  let currentMouseY: number
+  if (event instanceof MouseEvent) {
+    currentMouseY = event.clientY
+  } else {
+    currentMouseY = event.touches[0].clientY
+  }
+
+  const deltaY = initialMouseY.value - currentMouseY // Inverted because we want to drag up to increase height
+  const newHeight = initialTerminalHeight.value + deltaY
+
+  // Apply constraints
+  const maxHeight = window.innerHeight * (MAX_TERMINAL_HEIGHT_VH / 100)
+  terminalHeight.value = Math.max(
+    MIN_TERMINAL_HEIGHT,
+    Math.min(newHeight, maxHeight)
+  )
+}
+
+const stopResize = () => {
+  isResizingTerminal.value = false
+  document.body.style.cursor = ''
+  document.body.style.userSelect = ''
+
+  document.removeEventListener('mousemove', handleResize)
+  document.removeEventListener('mouseup', stopResize)
+  document.removeEventListener('touchmove', handleResize)
+  document.removeEventListener('touchend', stopResize)
+}
+
+// Responsive terminal height
+const updateTerminalConstraints = () => {
+  const maxHeight = window.innerHeight * (MAX_TERMINAL_HEIGHT_VH / 100)
+  if (terminalHeight.value > maxHeight) {
+    terminalHeight.value = maxHeight
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('resize', updateTerminalConstraints)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', updateTerminalConstraints)
+  stopResize() // Clean up any ongoing resize
+})
 </script>
 
 <style scoped>
@@ -228,6 +417,13 @@ const handleHeaderDoubleClick = () => {
 /* In generative mode, remove safety zone */
 .mode-generative .frame-main {
   min-width: 0;
+}
+
+.main-content-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .main-content {
@@ -480,5 +676,65 @@ footer .footer-content .footer-right button.bg-transparent:focus-visible {
   box-shadow: none !important;
   background-color: transparent !important;
   background: transparent !important;
+}
+
+/* Terminal Panel */
+.frame-terminal {
+  position: relative;
+  background-color: var(--bg-primary);
+  border-top: 1px solid var(--border-primary);
+  flex-shrink: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Terminal Resize Handle */
+.terminal-resize-handle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  cursor: ns-resize;
+  background: transparent;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.terminal-resize-handle:hover {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.resize-handle-line {
+  width: 40px;
+  height: 2px;
+  background: var(--border-primary);
+  border-radius: 1px;
+  transition: all 0.2s ease;
+}
+
+.terminal-resize-handle:hover .resize-handle-line {
+  background: var(--accent-primary);
+  width: 60px;
+}
+
+/* Code mode with terminal: no changes to grid, terminal is inside main */
+.main-with-terminal .main-content {
+  min-height: 300px;
+}
+
+/* Responsive terminal panel */
+@media (max-height: 600px) {
+  .frame-terminal {
+    min-height: 150px;
+    max-height: 40vh;
+  }
+
+  .main-with-terminal .main-content {
+    min-height: 200px;
+  }
 }
 </style>

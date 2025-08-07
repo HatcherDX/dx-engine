@@ -39,19 +39,78 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * @fileoverview Sidebar component for application navigation and content organization.
+ *
+ * @description
+ * A resizable sidebar component that supports platform-specific styling and behavior.
+ * Provides slots for header, content, and footer sections with built-in resize functionality.
+ *
+ * @example
+ * ```vue
+ * <template>
+ *   <Sidebar
+ *     :width="250"
+ *     :is-resizing="false"
+ *     platform="macos"
+ *     @start-resize="handleResize"
+ *     @header-double-click="toggleCollapse"
+ *   >
+ *     <template #sidebar-header>
+ *       <h2>Navigation</h2>
+ *     </template>
+ *     <template #sidebar-content>
+ *       <nav><!-- Navigation items --></nav>
+ *     </template>
+ *     <template #sidebar-footer>
+ *       <div>Status: Ready</div>
+ *     </template>
+ *   </Sidebar>
+ * </template>
+ * ```
+ *
+ * @author Hatcher DX Team
+ * @since 1.0.0
+ * @public
+ */
+
 defineOptions({
   name: 'BaseSidebar',
 })
 
+/**
+ * Props interface for the Sidebar component.
+ *
+ * @public
+ * @since 1.0.0
+ */
 interface Props {
+  /** Current width of the sidebar in pixels */
   width: number
+  /** Whether the sidebar is currently being resized */
   isResizing: boolean
+  /**
+   * CSS cursor style for the resize handle
+   * @defaultValue "col-resize"
+   */
   resizeCursor?: string
+  /**
+   * Target platform for platform-specific styling
+   * @defaultValue "linux"
+   */
   platform?: 'macos' | 'windows' | 'linux'
 }
 
+/**
+ * Events emitted by the Sidebar component.
+ *
+ * @public
+ * @since 1.0.0
+ */
 interface Emits {
+  /** Emitted when user starts resizing the sidebar */
   startResize: [event: MouseEvent]
+  /** Emitted when user double-clicks the sidebar header */
   headerDoubleClick: []
 }
 
@@ -61,10 +120,42 @@ withDefaults(defineProps<Props>(), {
 })
 const emit = defineEmits<Emits>()
 
+/**
+ * Initiates sidebar resize operation when user clicks the resize handle.
+ *
+ * @param event - The mouse event from the resize handle click
+ *
+ * @remarks
+ * This function captures the mouse event and forwards it to parent components
+ * to handle the actual resize logic. The sidebar itself is stateless.
+ *
+ * @example
+ * ```vue
+ * <Sidebar @start-resize="handleSidebarResize" />
+ * ```
+ *
+ * @public
+ * @since 1.0.0
+ */
 const startResize = (event: MouseEvent) => {
   emit('startResize', event)
 }
 
+/**
+ * Handles double-click events on the sidebar header.
+ *
+ * @remarks
+ * Typically used for toggling sidebar visibility or switching between
+ * collapsed/expanded states. The actual behavior is handled by parent components.
+ *
+ * @example
+ * ```vue
+ * <Sidebar @header-double-click="toggleSidebarCollapse" />
+ * ```
+ *
+ * @public
+ * @since 1.0.0
+ */
 const handleHeaderDoubleClick = () => {
   emit('headerDoubleClick')
 }

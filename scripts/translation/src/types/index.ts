@@ -213,7 +213,7 @@ export interface TranslationStats {
 /**
  * Translation service interface
  */
-export interface ITranslationService {
+export interface TranslationServiceInterface {
   translateFile(context: FileTranslationContext): Promise<FileTranslationResult>
   close(): Promise<void>
 }
@@ -221,7 +221,7 @@ export interface ITranslationService {
 /**
  * Markdown protection service interface
  */
-export interface IMarkdownProtectionService {
+export interface MarkdownProtectionServiceInterface {
   protect(content: string, config: MarkdownProtectionConfig): ProtectedContent
   restore(protectedContent: ProtectedContent, translatedTexts: string[]): string
 }
@@ -229,7 +229,7 @@ export interface IMarkdownProtectionService {
 /**
  * File processing service interface
  */
-export interface IFileProcessingService {
+export interface FileProcessingServiceInterface {
   getSourceFiles(config: FileProcessingConfig): Promise<string[]>
   ensureTargetDirectory(targetPath: string): Promise<void>
   writeTranslatedFile(result: FileTranslationResult): Promise<void>
@@ -238,7 +238,7 @@ export interface IFileProcessingService {
 /**
  * Translation strategy interface
  */
-export interface ITranslationStrategy {
+export interface TranslationStrategyInterface {
   execute(job: TranslationJobConfig): Promise<BatchTranslationResult>
 }
 
@@ -325,7 +325,7 @@ export interface ValidationWarning {
 /**
  * Configuration validation service interface
  */
-export interface IConfigurationValidator {
+export interface ConfigurationValidatorInterface {
   validateJob(config: TranslationJobConfig): ValidationResult
   validateFileStructure(sourceDir: string): Promise<ValidationResult>
   validateLanguageCodes(languages: string[]): ValidationResult
@@ -334,7 +334,7 @@ export interface IConfigurationValidator {
 /**
  * Cache service interface for translation optimization
  */
-export interface ICacheService {
+export interface CacheServiceInterface {
   get(key: string): Promise<string | null>
   set(key: string, value: string, ttl?: number): Promise<void>
   clear(): Promise<void>
@@ -344,7 +344,7 @@ export interface ICacheService {
 /**
  * Logging service interface
  */
-export interface ILogger {
+export interface LoggerInterface {
   debug(message: string, meta?: Record<string, unknown>): void
   info(message: string, meta?: Record<string, unknown>): void
   warn(message: string, meta?: Record<string, unknown>): void

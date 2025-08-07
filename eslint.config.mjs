@@ -82,6 +82,9 @@ export default [
         clearInterval: 'readonly',
         // DOM types
         MouseEvent: 'readonly',
+        TouchEvent: 'readonly',
+        Touch: 'readonly',
+        TouchList: 'readonly',
         KeyboardEvent: 'readonly',
         HTMLElement: 'readonly',
         HTMLInputElement: 'readonly',

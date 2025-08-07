@@ -1,5 +1,5 @@
 import type {
-  IMarkdownProtectionService,
+  MarkdownProtectionServiceInterface,
   MarkdownProtectionConfig,
   ProtectedContent,
   ProtectionPattern,
@@ -15,7 +15,9 @@ import {
  * Uses consistent [#type#] tokens: [#c1#] [#i1#] [#h1#] [#y1#] [#l1#]
  * Eliminates complex parsing and normalization in favor of simple token replacement
  */
-export class MarkdownProtectionService implements IMarkdownProtectionService {
+export class MarkdownProtectionService
+  implements MarkdownProtectionServiceInterface
+{
   private static readonly MAX_CHUNK_SIZE = 4500 // Safe limit for Google Translate
 
   /**

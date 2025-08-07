@@ -257,9 +257,5 @@ defineExpose({
   .address-bar {
     min-width: 150px;
   }
-
-  .address-prefix {
-    gap: 4px;
-  }
 }
 </style>

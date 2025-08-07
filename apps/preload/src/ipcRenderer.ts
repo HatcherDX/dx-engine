@@ -22,7 +22,6 @@ export class IPCRenderer<
     ...payload: Parameters<MessageType[T]>
   ): Promise<Awaited<ReturnType<MessageType[T]>>> => {
     return new Promise((resolve, reject) => {
-      // console.log("send", name, payload);
       ipcRenderer
         .invoke(this.channel, {
           name,

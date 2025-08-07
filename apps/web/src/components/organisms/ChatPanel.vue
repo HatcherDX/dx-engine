@@ -288,15 +288,6 @@ const generateId = () => {
   padding: 12px 16px;
 }
 
-.typing-animation {
-  display: flex;
-  gap: 4px;
-  align-items: center;
-  padding: 8px 12px;
-  background: var(--bg-secondary);
-  border-radius: 12px;
-}
-
 .typing-dot {
   width: 6px;
   height: 6px;
@@ -371,24 +362,6 @@ const generateId = () => {
 .minimalist-input::placeholder {
   color: var(--text-secondary);
   font-weight: 400;
-}
-
-.mic-button {
-  flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: transparent;
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.mic-button:disabled {
-  opacity: 0.3;
 }
 
 /* Scrollbar styling */
