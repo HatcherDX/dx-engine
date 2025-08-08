@@ -6,10 +6,51 @@ const mockIPCMain = {
   send: vi.fn(),
 }
 
+// Mock Electron modules
+const mockBrowserWindow = {
+  getFocusedWindow: vi.fn(),
+  minimize: vi.fn(),
+  maximize: vi.fn(),
+  restore: vi.fn(),
+  close: vi.fn(),
+  isMaximized: vi.fn(),
+}
+
+const mockDialog = {
+  showOpenDialog: vi.fn(),
+}
+
+const mockElectronIpcMain = {
+  handle: vi.fn(),
+}
+
+vi.mock('electron', () => ({
+  BrowserWindow: mockBrowserWindow,
+  dialog: mockDialog,
+  ipcMain: mockElectronIpcMain,
+}))
+
 // Mock the preload module
 vi.mock('@hatcherdx/dx-engine-preload/main', () => ({
   IPCMain: vi.fn(() => mockIPCMain),
 }))
+
+// Mock Node.js modules
+vi.mock('node:path', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:path')>()
+  return {
+    ...actual,
+    join: vi.fn((...paths) => paths.join('/')),
+  }
+})
+
+vi.mock('node:fs/promises', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs/promises')>()
+  return {
+    ...actual,
+    readFile: vi.fn(),
+  }
+})
 
 // Mock setTimeout globally
 const originalSetTimeout = global.setTimeout
@@ -18,6 +59,14 @@ const mockSetTimeout = vi.fn()
 describe('IPC Configuration - Complete Coverage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    // Reset mocks
+    mockBrowserWindow.getFocusedWindow.mockReturnValue(mockBrowserWindow)
+    mockBrowserWindow.isMaximized.mockReturnValue(false)
+    mockDialog.showOpenDialog.mockResolvedValue({
+      canceled: false,
+      filePaths: ['/test/package.json'],
+    })
+
     // Mock setTimeout to execute callback immediately
     global.setTimeout = mockSetTimeout.mockImplementation((callback) => {
       if (typeof callback === 'function') {
@@ -189,5 +238,45 @@ describe('IPC Configuration - Complete Coverage', () => {
     // Verify the module exports the ipcMain instance
     expect(ipcModule.ipcMain).toBeDefined()
     expect(ipcModule.ipcMain).toBe(mockIPCMain)
+  })
+
+  it('should register openProjectDialog handler', async () => {
+    // Clear previous mocks
+    vi.resetModules()
+
+    // Import the module
+    await import('./ipc')
+
+    // Verify the openProjectDialog handler was registered
+    expect(mockElectronIpcMain.handle).toHaveBeenCalledWith(
+      'openProjectDialog',
+      expect.any(Function)
+    )
+  })
+
+  it('should test window control handlers', async () => {
+    // Clear previous mocks
+    vi.resetModules()
+
+    // Import the module
+    await import('./ipc')
+
+    // Verify all window control handlers were registered
+    expect(mockIPCMain.on).toHaveBeenCalledWith(
+      'minimizeWindow',
+      expect.any(Function)
+    )
+    expect(mockIPCMain.on).toHaveBeenCalledWith(
+      'maximizeWindow',
+      expect.any(Function)
+    )
+    expect(mockIPCMain.on).toHaveBeenCalledWith(
+      'closeWindow',
+      expect.any(Function)
+    )
+    expect(mockIPCMain.on).toHaveBeenCalledWith(
+      'isWindowMaximized',
+      expect.any(Function)
+    )
   })
 })

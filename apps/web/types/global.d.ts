@@ -12,6 +12,16 @@ declare global {
       on: (channel: string, callback: (...args: unknown[]) => void) => void
       off: (channel: string, callback: (...args: unknown[]) => void) => void
       setTheme: (theme: string) => void
+      openProjectDialog: () => Promise<{
+        path: string
+        packageJson: string
+        name: string
+        version: string
+        description: string
+        scripts: Record<string, string>
+        dependencies: Record<string, string>
+        devDependencies: Record<string, string>
+      } | null>
       sendTerminalInput: (data: { id: string; data: string }) => void
       sendTerminalResize: (data: {
         id: string

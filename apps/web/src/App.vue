@@ -23,6 +23,7 @@ import OnboardingProjectSelection from './components/organisms/OnboardingProject
 import OnboardingTaskSelection from './components/organisms/OnboardingTaskSelection.vue'
 import OnboardingTaskDetail from './components/organisms/OnboardingTaskDetail.vue'
 import OnboardingTransition from './components/organisms/OnboardingTransition.vue'
+import NotificationContainer from './components/organisms/NotificationContainer.vue'
 import type { ModeType } from './components/molecules/ModeSelector.vue'
 
 // Initialize theme system
@@ -399,6 +400,9 @@ const openGitHub = () => {
       >
     </template>
   </UnifiedFrame>
+
+  <!-- Floating Notifications -->
+  <NotificationContainer />
 </template>
 
 <style scoped>

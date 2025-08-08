@@ -22,9 +22,12 @@
                     variant="outline"
                     size="lg"
                     class="action-button"
+                    :disabled="isOpeningProject"
                     @click="handleOpenProject"
                   >
-                    📂 Open Project...
+                    {{
+                      isOpeningProject ? '⏳ Opening...' : '📂 Open Project...'
+                    }}
                   </BaseButton>
 
                   <!-- Disabled buttons with tooltips -->
@@ -191,19 +194,89 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useOnboarding } from '../../composables/useOnboarding'
 import { useSmartTruncation } from '../../composables/useSmartTruncation'
+import { useNotifications } from '../../composables/useNotifications'
+import type { ProjectInfo } from '../../composables/useOnboarding'
 import BaseButton from '../atoms/BaseButton.vue'
 import BaseIcon from '../atoms/BaseIcon.vue'
 import BaseLogo from '../atoms/BaseLogo.vue'
 
-const { nextStep, previousStep } = useOnboarding()
+const { nextStep, previousStep, selectProject } = useOnboarding()
 const { truncatePath } = useSmartTruncation()
+const { error: showError } = useNotifications()
 
-const handleOpenProject = (): void => {
-  // TODO: Implement project opening logic
-  // For now, just proceed to next step
-  nextStep()
+// Loading state for project opening
+const isOpeningProject = ref(false)
+
+/**
+ * Format error messages to be more user-friendly
+ *
+ * @param error - The error object or message to format
+ * @returns Formatted error message for display
+ */
+const formatErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) {
+    const message = error.message
+
+    // Handle specific IPC errors
+    if (message.includes('Please select a package.json file')) {
+      return 'Please select a valid package.json file for your project'
+    }
+
+    if (message.includes('Invalid package.json')) {
+      return 'The selected file is not a valid package.json file'
+    }
+
+    if (message.includes('No focused window')) {
+      return 'Unable to open file dialog. Please try again'
+    }
+
+    if (message.includes('Failed to read package.json')) {
+      return 'Could not read the package.json file. Please check file permissions'
+    }
+
+    // Return the original message if no specific handling
+    return message
+  }
+
+  return 'An unexpected error occurred while opening the project'
+}
+
+/**
+ * Show error message using floating notifications
+ */
+const showErrorMessage = (message: string): void => {
+  showError(message, { duration: 8000 })
+}
+
+const handleOpenProject = async (): Promise<void> => {
+  if (!window.electronAPI?.openProjectDialog) {
+    // Fallback for web mode - just proceed to next step
+    console.warn('Project dialog not available in web mode')
+    nextStep()
+    return
+  }
+
+  isOpeningProject.value = true
+
+  try {
+    const projectInfo =
+      (await window.electronAPI.openProjectDialog()) as ProjectInfo | null
+
+    if (projectInfo) {
+      // Project selected successfully
+      selectProject(projectInfo)
+      nextStep()
+    }
+    // If projectInfo is null, user canceled the dialog - do nothing
+  } catch (error) {
+    console.error('Failed to open project:', error)
+    showErrorMessage(formatErrorMessage(error))
+  } finally {
+    isOpeningProject.value = false
+  }
 }
 
 const handleProjectSelect = (): void => {
@@ -407,6 +480,7 @@ const handleBack = (): void => {
   font-size: 16px;
   font-weight: 600;
   transition: all var(--transition-fast);
+  cursor: pointer;
 }
 
 .action-button:hover:not(.disabled-action) {

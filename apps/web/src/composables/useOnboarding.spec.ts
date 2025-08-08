@@ -75,13 +75,27 @@ describe('useOnboarding', () => {
   })
 
   it('should progress through onboarding steps', () => {
-    const { currentStep, nextStep, canProceedToNext } = useOnboarding()
+    const { currentStep, nextStep, canProceedToNext, selectProject } =
+      useOnboarding()
 
     expect(currentStep.value).toBe('welcome')
     expect(canProceedToNext.value).toBe(true)
 
     nextStep()
     expect(currentStep.value).toBe('project-selection')
+    expect(canProceedToNext.value).toBe(false) // No project selected yet
+
+    // Select a project to proceed
+    selectProject({
+      path: '/test/project',
+      packageJson: '/test/project/package.json',
+      name: 'test-project',
+      version: '1.0.0',
+      description: 'Test project',
+      scripts: {},
+      dependencies: {},
+      devDependencies: {},
+    })
     expect(canProceedToNext.value).toBe(true)
 
     nextStep()
@@ -90,9 +104,28 @@ describe('useOnboarding', () => {
   })
 
   it('should not proceed to next step if requirements not met', () => {
-    const { currentStep, nextStep, canProceedToNext } = useOnboarding()
+    const { currentStep, nextStep, canProceedToNext, selectProject } =
+      useOnboarding()
 
     nextStep() // Move to project-selection
+
+    // Try to proceed without selecting a project
+    nextStep() // Should not proceed
+    expect(currentStep.value).toBe('project-selection')
+    expect(canProceedToNext.value).toBe(false)
+
+    // Select a project to proceed
+    selectProject({
+      path: '/test/project',
+      packageJson: '/test/project/package.json',
+      name: 'test-project',
+      version: '1.0.0',
+      description: 'Test project',
+      scripts: {},
+      dependencies: {},
+      devDependencies: {},
+    })
+
     nextStep() // Move to task-selection
     expect(currentStep.value).toBe('task-selection')
     expect(canProceedToNext.value).toBe(false)
@@ -102,9 +135,22 @@ describe('useOnboarding', () => {
   })
 
   it('should proceed to task-detail after task selection', () => {
-    const { currentStep, nextStep, selectTask } = useOnboarding()
+    const { currentStep, nextStep, selectTask, selectProject } = useOnboarding()
 
     nextStep() // Move to project-selection
+
+    // Select a project to proceed
+    selectProject({
+      path: '/test/project',
+      packageJson: '/test/project/package.json',
+      name: 'test-project',
+      version: '1.0.0',
+      description: 'Test project',
+      scripts: {},
+      dependencies: {},
+      devDependencies: {},
+    })
+
     nextStep() // Move to task-selection
     selectTask('create-feature')
     nextStep() // Should now proceed to task-detail
@@ -112,10 +158,29 @@ describe('useOnboarding', () => {
   })
 
   it('should complete onboarding from transition step', () => {
-    const { currentStep, nextStep, selectTask, isFirstTime, completedAt } =
-      useOnboarding()
+    const {
+      currentStep,
+      nextStep,
+      selectTask,
+      selectProject,
+      isFirstTime,
+      completedAt,
+    } = useOnboarding()
 
     nextStep() // Move to project-selection
+
+    // Select a project to proceed
+    selectProject({
+      path: '/test/project',
+      packageJson: '/test/project/package.json',
+      name: 'test-project',
+      version: '1.0.0',
+      description: 'Test project',
+      scripts: {},
+      dependencies: {},
+      devDependencies: {},
+    })
+
     nextStep() // Move to task-selection
     selectTask('create-feature')
     nextStep() // Move to task-detail

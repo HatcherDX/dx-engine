@@ -16,6 +16,17 @@ export type OnboardingTask =
   | 'refactor-code'
   | null
 
+export interface ProjectInfo {
+  path: string
+  packageJson: string
+  name: string
+  version: string
+  description: string
+  scripts: Record<string, string>
+  dependencies: Record<string, string>
+  devDependencies: Record<string, string>
+}
+
 export interface OnboardingTaskOption {
   id: OnboardingTask
   title: string
@@ -85,6 +96,7 @@ interface OnboardingState {
   isFirstTime: boolean
   currentStep: OnboardingStep
   selectedTask: OnboardingTask
+  selectedProject: ProjectInfo | null
   completedAt: string | null
   showWelcomeTutorial: boolean
 }
@@ -94,6 +106,7 @@ const state = ref<OnboardingState>({
   isFirstTime: true,
   currentStep: 'welcome',
   selectedTask: null,
+  selectedProject: null,
   completedAt: null,
   showWelcomeTutorial: true,
 })
@@ -110,6 +123,7 @@ const loadInitialState = (): void => {
         // Always start with welcome step unless user disabled the tutorial
         currentStep: showWelcomeTutorial ? 'welcome' : 'completed',
         selectedTask: null, // Always reset task selection on app start
+        selectedProject: null, // Always reset project selection on app start
         completedAt: showWelcomeTutorial ? null : (parsed.completedAt ?? null),
         showWelcomeTutorial,
       }
@@ -146,7 +160,7 @@ export function useOnboarding() {
       case 'welcome':
         return true
       case 'project-selection':
-        return true
+        return state.value.selectedProject !== null
       case 'task-selection':
         return state.value.selectedTask !== null
       case 'task-detail':
@@ -163,6 +177,7 @@ export function useOnboarding() {
     state.value.isFirstTime = true
     state.value.currentStep = 'welcome'
     state.value.selectedTask = null
+    state.value.selectedProject = null
     state.value.completedAt = null
   }
 
@@ -174,7 +189,9 @@ export function useOnboarding() {
         state.value.currentStep = 'project-selection'
         break
       case 'project-selection':
-        state.value.currentStep = 'task-selection'
+        if (state.value.selectedProject) {
+          state.value.currentStep = 'task-selection'
+        }
         break
       case 'task-selection':
         if (state.value.selectedTask) {
@@ -211,6 +228,10 @@ export function useOnboarding() {
     state.value.selectedTask = taskId
   }
 
+  const selectProject = (project: ProjectInfo): void => {
+    state.value.selectedProject = project
+  }
+
   const completeOnboarding = (): void => {
     state.value.currentStep = 'completed'
     state.value.completedAt = new Date().toISOString()
@@ -221,6 +242,7 @@ export function useOnboarding() {
     state.value.isFirstTime = true
     state.value.currentStep = 'welcome'
     state.value.selectedTask = null
+    state.value.selectedProject = null
     state.value.completedAt = null
     state.value.showWelcomeTutorial = true
   }
@@ -266,6 +288,7 @@ export function useOnboarding() {
     // State
     currentStep: computed(() => state.value.currentStep),
     selectedTask: computed(() => state.value.selectedTask),
+    selectedProject: computed(() => state.value.selectedProject),
     isFirstTime: computed(() => state.value.isFirstTime),
     completedAt: computed(() => state.value.completedAt),
     showWelcomeTutorial: computed(() => state.value.showWelcomeTutorial),
@@ -280,6 +303,7 @@ export function useOnboarding() {
     nextStep,
     previousStep,
     selectTask,
+    selectProject,
     completeOnboarding,
     resetOnboarding,
     setShowWelcomeTutorial,
