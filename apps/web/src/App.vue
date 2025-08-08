@@ -393,7 +393,7 @@ const openGitHub = () => {
     <!-- Footer -->
     <template #footer>
       <span
-        >Hatcher DX Engine v0.3.0 •
+        >Hatcher DX Engine v0.3.5 •
         {{ currentMode.charAt(0).toUpperCase() + currentMode.slice(1) }}
         Mode</span
       >

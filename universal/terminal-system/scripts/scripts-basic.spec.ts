@@ -15,7 +15,7 @@ import { readFileSync, existsSync } from 'fs'
 import { join } from 'path'
 
 describe('Scripts Basic Coverage', () => {
-  const scriptsDir = join(__dirname, '..')
+  const scriptsDir = __dirname
 
   describe('electron-console-debug.js', () => {
     const scriptPath = join(scriptsDir, 'electron-console-debug.js')

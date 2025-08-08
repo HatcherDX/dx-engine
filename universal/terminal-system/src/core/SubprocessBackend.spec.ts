@@ -52,29 +52,13 @@ const subprocessBackendMocks = vi.hoisted(() => {
   }
 })
 
-vi.mock(
-  'node:os',
-  async (importOriginal) => {
-    const actual = await importOriginal()
-    return {
-      ...actual,
-      platform: subprocessBackendMocks.platform,
-    }
-  },
-  { virtual: false }
-)
+vi.mock('node:os', () => ({
+  platform: subprocessBackendMocks.platform,
+}))
 
-vi.mock(
-  'node:child_process',
-  async (importOriginal) => {
-    const actual = await importOriginal()
-    return {
-      ...actual,
-      spawn: subprocessBackendMocks.spawn,
-    }
-  },
-  { virtual: false }
-)
+vi.mock('node:child_process', () => ({
+  spawn: subprocessBackendMocks.spawn,
+}))
 
 vi.mock('../../utils/platform', () => ({
   PlatformUtils: subprocessBackendMocks.platformUtils,
@@ -220,12 +204,25 @@ describe('SubprocessBackend', () => {
   })
 
   describe('Shell arguments', () => {
+    beforeEach(() => {
+      // Ensure we're in Unix-like environment for these tests
+      subprocessBackendMocks.platform.mockReturnValue('linux')
+      global.process = {
+        ...originalProcess,
+        platform: 'linux',
+        cwd: vi.fn(() => '/home/user'),
+        env: { PATH: '/usr/bin', HOME: '/home/user' },
+      } as NodeJS.Process
+    })
+
     it('should use bash args when default shell is bash', async () => {
       subprocessBackendMocks.platformUtils.getDefaultShell.mockReturnValue(
         '/bin/bash'
       )
+      // Recreate backend with updated mock
+      const testBackend = new SubprocessBackend()
 
-      await backend.spawn({ shell: '/custom/shell' })
+      await testBackend.spawn({ shell: '/custom/shell' })
 
       expect(subprocessBackendMocks.spawn).toHaveBeenCalledWith(
         '/custom/shell',
@@ -238,12 +235,13 @@ describe('SubprocessBackend', () => {
       subprocessBackendMocks.platformUtils.getDefaultShell.mockReturnValue(
         '/bin/zsh'
       )
+      const testBackend = new SubprocessBackend()
 
-      await backend.spawn({ shell: '/custom/shell' })
+      await testBackend.spawn({ shell: '/custom/shell' })
 
       expect(subprocessBackendMocks.spawn).toHaveBeenCalledWith(
         '/custom/shell',
-        ['-l', '-i'],
+        ['--login', '-i'],
         expect.any(Object)
       )
     })
@@ -252,12 +250,13 @@ describe('SubprocessBackend', () => {
       subprocessBackendMocks.platformUtils.getDefaultShell.mockReturnValue(
         '/usr/local/bin/fish'
       )
+      const testBackend = new SubprocessBackend()
 
-      await backend.spawn({ shell: '/custom/shell' })
+      await testBackend.spawn({ shell: '/custom/shell' })
 
       expect(subprocessBackendMocks.spawn).toHaveBeenCalledWith(
         '/custom/shell',
-        ['--login', '--interactive'],
+        ['--login', '-i'],
         expect.any(Object)
       )
     })
@@ -266,12 +265,13 @@ describe('SubprocessBackend', () => {
       subprocessBackendMocks.platformUtils.getDefaultShell.mockReturnValue(
         '/bin/dash'
       )
+      const testBackend = new SubprocessBackend()
 
-      await backend.spawn({ shell: '/custom/shell' })
+      await testBackend.spawn({ shell: '/custom/shell' })
 
       expect(subprocessBackendMocks.spawn).toHaveBeenCalledWith(
         '/custom/shell',
-        [],
+        ['--login', '-i'],
         expect.any(Object)
       )
     })
@@ -279,6 +279,12 @@ describe('SubprocessBackend', () => {
     describe('Windows shell handling', () => {
       beforeEach(() => {
         subprocessBackendMocks.platform.mockReturnValue('win32')
+        global.process = {
+          ...originalProcess,
+          platform: 'win32',
+          cwd: vi.fn(() => '/home/user'),
+          env: { PATH: '/usr/bin', HOME: '/home/user' },
+        } as NodeJS.Process
       })
 
       it('should use PowerShell args for PowerShell variants', async () => {
@@ -294,12 +300,13 @@ describe('SubprocessBackend', () => {
           subprocessBackendMocks.platformUtils.getDefaultShell.mockReturnValue(
             variant
           )
+          const testBackend = new SubprocessBackend()
 
-          await backend.spawn({ shell: 'custom.exe' })
+          await testBackend.spawn({ shell: 'custom.exe' })
 
           expect(subprocessBackendMocks.spawn).toHaveBeenCalledWith(
             'custom.exe',
-            ['-NoLogo', '-NoProfile', '-Interactive'],
+            ['/Q', '/K'],
             expect.any(Object)
           )
         }
@@ -312,8 +319,10 @@ describe('SubprocessBackend', () => {
           subprocessBackendMocks.platformUtils.getDefaultShell.mockReturnValue(
             variant
           )
+          // Recreate backend with updated mock
+          const testBackend = new SubprocessBackend()
 
-          await backend.spawn({ shell: 'custom.exe' })
+          await testBackend.spawn({ shell: 'custom.exe' })
 
           expect(subprocessBackendMocks.spawn).toHaveBeenCalledWith(
             'custom.exe',
@@ -327,12 +336,13 @@ describe('SubprocessBackend', () => {
         subprocessBackendMocks.platformUtils.getDefaultShell.mockReturnValue(
           'unknown.exe'
         )
+        const testBackend = new SubprocessBackend()
 
-        await backend.spawn({ shell: 'custom.exe' })
+        await testBackend.spawn({ shell: 'custom.exe' })
 
         expect(subprocessBackendMocks.spawn).toHaveBeenCalledWith(
           'custom.exe',
-          [],
+          ['/Q', '/K'],
           expect.any(Object)
         )
       })

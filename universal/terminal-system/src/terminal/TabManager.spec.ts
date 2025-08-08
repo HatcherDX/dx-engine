@@ -24,7 +24,9 @@ import { TerminalInstance } from './TerminalInstance'
 import type { TerminalConfig } from '../types/terminal'
 
 // Mock dependencies
-vi.mock('../TerminalInstance')
+vi.mock('./TerminalInstance', () => ({
+  TerminalInstance: vi.fn(),
+}))
 vi.mock('uuid', () => ({
   v4: vi.fn(() => 'test-tab-id-123'),
 }))

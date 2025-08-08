@@ -6,46 +6,34 @@
  * caching behavior, error handling, and testing utilities.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { BackendDetector, type TerminalCapabilities } from './BackendDetector'
 import { EnhancedTerminalFactory } from './EnhancedTerminalFactory'
-import { BackendDetector } from './BackendDetector'
 import { NodePtyBackend } from './NodePtyBackend'
 import { SubprocessBackend } from './SubprocessBackend'
-import type {
-  BackendSpawnOptions,
-  BackendProcess,
-  TerminalCapabilities,
-  TerminalBackend,
-} from './TerminalBackend'
+import type { BackendProcess, BackendSpawnOptions } from './TerminalBackend'
 
-// Mock types
-interface MockTerminalBackend
-  extends Omit<TerminalBackend, 'spawn' | 'isAvailable'> {
+// Mock types - using Partial to avoid strict typing issues
+interface MockTerminalBackend {
   capabilities: TerminalCapabilities
   isAvailable: ReturnType<typeof vi.fn>
   spawn: ReturnType<typeof vi.fn>
-}
-
-interface MockLogger {
-  info: ReturnType<typeof vi.fn>
-  warn: ReturnType<typeof vi.fn>
-  error: ReturnType<typeof vi.fn>
-  debug: ReturnType<typeof vi.fn>
+  name: string
 }
 
 // Mock dependencies with proper implementations
-vi.mock('../BackendDetector', () => ({
+vi.mock('./BackendDetector', () => ({
   BackendDetector: {
     detectBestBackend: vi.fn(),
     getCapabilitiesDescription: vi.fn(),
   },
 }))
 
-vi.mock('../NodePtyBackend', () => ({
+vi.mock('./NodePtyBackend', () => ({
   NodePtyBackend: vi.fn(),
 }))
 
-vi.mock('../SubprocessBackend', () => ({
+vi.mock('./SubprocessBackend', () => ({
   SubprocessBackend: vi.fn(),
 }))
 
@@ -56,13 +44,6 @@ describe('EnhancedTerminalFactory', () => {
     info: ReturnType<typeof vi.spyOn>
     warn: ReturnType<typeof vi.spyOn>
     debug: ReturnType<typeof vi.spyOn>
-  }
-
-  const mockLogger: MockLogger = {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
   }
 
   const mockNodePtyCapabilities: TerminalCapabilities = {
@@ -123,10 +104,9 @@ describe('EnhancedTerminalFactory', () => {
         isAvailable: vi.fn().mockResolvedValue(true),
         spawn: vi.fn().mockResolvedValue(mockProcess),
         name: 'node-pty',
-        logger: mockLogger,
       }
       vi.mocked(NodePtyBackend).mockImplementation(
-        () => mockBackend as TerminalBackend
+        () => mockBackend as unknown as NodePtyBackend
       )
 
       const options: BackendSpawnOptions = { cols: 120, rows: 30 }
@@ -149,10 +129,9 @@ describe('EnhancedTerminalFactory', () => {
         isAvailable: vi.fn().mockResolvedValue(false),
         spawn: vi.fn(),
         name: 'node-pty',
-        logger: mockLogger,
       }
       vi.mocked(NodePtyBackend).mockImplementation(
-        () => mockNodePtyBackend as TerminalBackend
+        () => mockNodePtyBackend as unknown as NodePtyBackend
       )
 
       // Mock SubprocessBackend as available
@@ -166,10 +145,9 @@ describe('EnhancedTerminalFactory', () => {
         isAvailable: vi.fn().mockResolvedValue(true),
         spawn: vi.fn().mockResolvedValue(mockProcess),
         name: 'subprocess',
-        logger: mockLogger,
       }
       vi.mocked(SubprocessBackend).mockImplementation(
-        () => mockSubprocessBackend as TerminalBackend
+        () => mockSubprocessBackend as unknown as SubprocessBackend
       )
 
       const result = await EnhancedTerminalFactory.createTerminal()
@@ -198,10 +176,9 @@ describe('EnhancedTerminalFactory', () => {
         isAvailable: vi.fn().mockResolvedValue(true),
         spawn: vi.fn().mockResolvedValue(mockProcess),
         name: 'subprocess',
-        logger: mockLogger,
       }
       vi.mocked(SubprocessBackend).mockImplementation(
-        () => mockBackend as TerminalBackend
+        () => mockBackend as unknown as SubprocessBackend
       )
 
       // First call
@@ -225,10 +202,9 @@ describe('EnhancedTerminalFactory', () => {
         isAvailable: vi.fn().mockResolvedValue(true),
         spawn: vi.fn().mockRejectedValue(new Error('Spawn failed')),
         name: 'subprocess',
-        logger: mockLogger,
       }
       vi.mocked(SubprocessBackend).mockImplementation(
-        () => mockBackend as TerminalBackend
+        () => mockBackend as unknown as SubprocessBackend
       )
 
       await expect(EnhancedTerminalFactory.createTerminal()).rejects.toThrow(
@@ -252,10 +228,9 @@ describe('EnhancedTerminalFactory', () => {
         isAvailable: vi.fn().mockResolvedValue(true),
         spawn: vi.fn().mockResolvedValue({ pid: 12345 }),
         name: 'subprocess',
-        logger: mockLogger,
       }
       vi.mocked(SubprocessBackend).mockImplementation(
-        () => mockBackend as TerminalBackend
+        () => mockBackend as unknown as SubprocessBackend
       )
 
       await EnhancedTerminalFactory.createTerminal()
@@ -281,10 +256,9 @@ describe('EnhancedTerminalFactory', () => {
         isAvailable: vi.fn().mockResolvedValue(true),
         spawn: vi.fn().mockResolvedValue({ pid: 12345 }),
         name: 'node-pty',
-        logger: mockLogger,
       }
       vi.mocked(NodePtyBackend).mockImplementation(
-        () => mockBackend as TerminalBackend
+        () => mockBackend as unknown as NodePtyBackend
       )
 
       // Create terminal to populate cache
@@ -304,10 +278,9 @@ describe('EnhancedTerminalFactory', () => {
         isAvailable: vi.fn().mockResolvedValue(true),
         spawn: vi.fn(), // Add missing spawn property
         name: 'subprocess',
-        logger: mockLogger,
       }
       vi.mocked(SubprocessBackend).mockImplementation(
-        () => mockBackend as TerminalBackend
+        () => mockBackend as unknown as SubprocessBackend
       )
 
       const capabilities = await EnhancedTerminalFactory.getCapabilities()
@@ -324,10 +297,9 @@ describe('EnhancedTerminalFactory', () => {
         capabilities: mockNodePtyCapabilities,
         spawn: vi.fn(), // Add missing spawn property
         name: 'node-pty',
-        logger: mockLogger,
       }
       vi.mocked(NodePtyBackend).mockImplementation(
-        () => mockNodePtyBackend as TerminalBackend
+        () => mockNodePtyBackend as unknown as NodePtyBackend
       )
 
       // Mock SubprocessBackend
@@ -336,10 +308,9 @@ describe('EnhancedTerminalFactory', () => {
         capabilities: mockSubprocessCapabilities,
         spawn: vi.fn(), // Add missing spawn property
         name: 'subprocess',
-        logger: mockLogger,
       }
       vi.mocked(SubprocessBackend).mockImplementation(
-        () => mockSubprocessBackend as TerminalBackend
+        () => mockSubprocessBackend as unknown as SubprocessBackend
       )
 
       const results = await EnhancedTerminalFactory.testAllBackends()
@@ -375,10 +346,9 @@ describe('EnhancedTerminalFactory', () => {
         capabilities: mockSubprocessCapabilities,
         spawn: vi.fn(), // Add missing spawn property
         name: 'subprocess',
-        logger: mockLogger,
       }
       vi.mocked(SubprocessBackend).mockImplementation(
-        () => mockSubprocessBackend as TerminalBackend
+        () => mockSubprocessBackend as unknown as SubprocessBackend
       )
 
       const results = await EnhancedTerminalFactory.testAllBackends()
@@ -405,10 +375,9 @@ describe('EnhancedTerminalFactory', () => {
         capabilities: mockNodePtyCapabilities,
         spawn: vi.fn(), // Add missing spawn property
         name: 'node-pty',
-        logger: mockLogger,
       }
       vi.mocked(NodePtyBackend).mockImplementation(
-        () => mockNodePtyBackend as TerminalBackend
+        () => mockNodePtyBackend as unknown as NodePtyBackend
       )
 
       // Mock SubprocessBackend
@@ -417,10 +386,9 @@ describe('EnhancedTerminalFactory', () => {
         capabilities: mockSubprocessCapabilities,
         spawn: vi.fn(), // Add missing spawn property
         name: 'subprocess',
-        logger: mockLogger,
       }
       vi.mocked(SubprocessBackend).mockImplementation(
-        () => mockSubprocessBackend as TerminalBackend
+        () => mockSubprocessBackend as unknown as SubprocessBackend
       )
 
       const results = await EnhancedTerminalFactory.testAllBackends()
@@ -456,10 +424,9 @@ describe('EnhancedTerminalFactory', () => {
         isAvailable: vi.fn().mockResolvedValue(true),
         spawn: vi.fn().mockResolvedValue(mockProcess),
         name: 'subprocess',
-        logger: mockLogger,
       }
       vi.mocked(SubprocessBackend).mockImplementation(
-        () => mockBackend as TerminalBackend
+        () => mockBackend as unknown as SubprocessBackend
       )
 
       const result = await EnhancedTerminalFactory.createTerminal()
@@ -493,10 +460,9 @@ describe('EnhancedTerminalFactory', () => {
         isAvailable: vi.fn().mockResolvedValue(true),
         spawn: vi.fn().mockResolvedValue(mockProcess),
         name: 'subprocess',
-        logger: mockLogger,
       }
       vi.mocked(SubprocessBackend).mockImplementation(
-        () => mockBackend as TerminalBackend
+        () => mockBackend as unknown as SubprocessBackend
       )
 
       const result = await EnhancedTerminalFactory.createTerminal()

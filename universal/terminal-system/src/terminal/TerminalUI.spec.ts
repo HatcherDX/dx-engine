@@ -20,10 +20,10 @@
  * @public
  */
 
-import { beforeEach, describe, expect, it, vi, afterEach } from 'vitest'
-import { TerminalUI } from './TerminalUI'
-import { TabManager } from './TabManager'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { TerminalConfig } from '../types/terminal'
+import { TabManager } from './TabManager'
+import { TerminalUI } from './TerminalUI'
 
 /**
  * Mock interfaces for testing DOM elements and tab management.
@@ -250,7 +250,10 @@ describe('TerminalUI', () => {
     } as MockHTMLElement
 
     // Setup createElement mocks with proper methods
-    vi.mocked(document.createElement).mockImplementation((tagName: string) => {
+    const createElementMock = document.createElement as unknown as ReturnType<
+      typeof vi.fn
+    >
+    createElementMock.mockImplementation((tagName: string) => {
       if (tagName === 'div') {
         return {
           innerHTML: '',

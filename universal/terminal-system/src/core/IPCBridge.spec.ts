@@ -18,23 +18,23 @@
  * @public
  */
 
-import { beforeEach, describe, expect, it, vi, afterEach } from 'vitest'
-import { IPCBridge } from './IPCBridge'
-import { TerminalManager } from './TerminalManager'
 import type {
   IpcMain,
   IpcMainEvent,
   IpcMainInvokeEvent,
   WebContents,
 } from 'electron'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type {
   CreateTerminalMessage,
   TerminalInputMessage,
   TerminalResizeMessage,
 } from '../types/ipc'
+import { IPCBridge } from './IPCBridge'
+import { TerminalManager } from './TerminalManager'
 
 // Mock TerminalManager
-vi.mock('../TerminalManager')
+vi.mock('./TerminalManager')
 
 /**
  * Mock IPC main interface for testing Electron IPC functionality.
@@ -120,7 +120,7 @@ describe('IPCBridge', () => {
 
     // Mock TerminalManager constructor
     vi.mocked(TerminalManager).mockImplementation(
-      () => mockTerminalManager as TerminalManager
+      () => mockTerminalManager as unknown as TerminalManager
     )
 
     // Create IPCBridge instance
@@ -540,12 +540,10 @@ describe('IPCBridge', () => {
      * @public
      */
     it('should forward terminal created events to renderer', () => {
-      const terminalCreatedCall = vi
-        .mocked(mockTerminalManager.on)
-        .mock.calls.find(
-          (call: Parameters<typeof mockTerminalManager.on>) =>
-            call[0] === 'terminalCreated'
-        )
+      const terminalCreatedCall = mockTerminalManager.on.mock.calls.find(
+        (call: Parameters<typeof mockTerminalManager.on>) =>
+          call[0] === 'terminalCreated'
+      )
       expect(terminalCreatedCall).toBeDefined()
 
       const eventHandler = terminalCreatedCall[1]
@@ -580,12 +578,10 @@ describe('IPCBridge', () => {
      * @public
      */
     it('should forward terminal data events to renderer', () => {
-      const terminalDataCall = vi
-        .mocked(mockTerminalManager.on)
-        .mock.calls.find(
-          (call: Parameters<typeof mockTerminalManager.on>) =>
-            call[0] === 'terminalData'
-        )
+      const terminalDataCall = mockTerminalManager.on.mock.calls.find(
+        (call: Parameters<typeof mockTerminalManager.on>) =>
+          call[0] === 'terminalData'
+      )
       expect(terminalDataCall).toBeDefined()
 
       const eventHandler = terminalDataCall[1]
@@ -618,12 +614,10 @@ describe('IPCBridge', () => {
      * @public
      */
     it('should forward terminal exit events to renderer', () => {
-      const terminalExitCall = vi
-        .mocked(mockTerminalManager.on)
-        .mock.calls.find(
-          (call: Parameters<typeof mockTerminalManager.on>) =>
-            call[0] === 'terminalExit'
-        )
+      const terminalExitCall = mockTerminalManager.on.mock.calls.find(
+        (call: Parameters<typeof mockTerminalManager.on>) =>
+          call[0] === 'terminalExit'
+      )
       expect(terminalExitCall).toBeDefined()
 
       const eventHandler = terminalExitCall[1]
@@ -656,12 +650,10 @@ describe('IPCBridge', () => {
      * @public
      */
     it('should forward terminal error events to renderer', () => {
-      const terminalErrorCall = vi
-        .mocked(mockTerminalManager.on)
-        .mock.calls.find(
-          (call: Parameters<typeof mockTerminalManager.on>) =>
-            call[0] === 'terminalError'
-        )
+      const terminalErrorCall = mockTerminalManager.on.mock.calls.find(
+        (call: Parameters<typeof mockTerminalManager.on>) =>
+          call[0] === 'terminalError'
+      )
       expect(terminalErrorCall).toBeDefined()
 
       const eventHandler = terminalErrorCall[1]
@@ -696,12 +688,10 @@ describe('IPCBridge', () => {
     it('should not send events when WebContents is destroyed', () => {
       mockWebContents.isDestroyed = vi.fn(() => true)
 
-      const terminalDataCall = vi
-        .mocked(mockTerminalManager.on)
-        .mock.calls.find(
-          (call: Parameters<typeof mockTerminalManager.on>) =>
-            call[0] === 'terminalData'
-        )
+      const terminalDataCall = mockTerminalManager.on.mock.calls.find(
+        (call: Parameters<typeof mockTerminalManager.on>) =>
+          call[0] === 'terminalData'
+      )
       const eventHandler = terminalDataCall[1]
       const dataEvent = { id: 'terminal-1', data: 'test' }
 
