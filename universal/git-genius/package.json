@@ -1,0 +1,80 @@
+{
+  "name": "@hatcherdx/git-genius",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Advanced Git operations with Timeline mode support and intelligent caching for Hatcher DX Engine",
+  "author": {
+    "name": "Hatcher DX Team",
+    "email": "team@hatche.rs"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hatcherdx/dx-engine.git",
+    "directory": "universal/git-genius"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    },
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/types/index.js",
+      "require": "./dist/types/index.js"
+    }
+  },
+  "files": [
+    "dist/**/*",
+    "src/**/*",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:ui": "vitest --ui",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "clean": "rimraf dist",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "git",
+    "isomorphic-git",
+    "timeline",
+    "diff",
+    "repository",
+    "cache",
+    "terminal",
+    "dx-engine"
+  ],
+  "dependencies": {
+    "isomorphic-git": "^1.27.1",
+    "@hatcherdx/terminal-system": "workspace:*",
+    "uuid": "^10.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.1",
+    "@types/uuid": "^10.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.38.0",
+    "@typescript-eslint/parser": "^8.38.0",
+    "@vitest/coverage-istanbul": "^3.2.4",
+    "eslint": "9.24.0",
+    "rimraf": "6.0.1",
+    "typescript": "^5.7.3",
+    "vitest": "^3.2.4"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=9.0.0"
+  }
+}
