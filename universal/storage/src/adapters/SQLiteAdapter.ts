@@ -10,9 +10,9 @@
  * @public
  */
 
-import Database from 'better-sqlite3'
 import { dirname } from 'path'
 import { existsSync, mkdirSync } from 'fs'
+import type Database from 'better-sqlite3'
 import { BaseStorageAdapter } from '../core/StorageAdapter'
 import type { StorageConfig, StorageMetadata } from '../types/storage'
 import { StorageError, StorageErrorCode } from '../types/storage'
@@ -101,6 +101,19 @@ export class SQLiteAdapter extends BaseStorageAdapter {
    */
   protected async initializeAdapter(): Promise<void> {
     try {
+      // Dynamically import better-sqlite3 with fallback handling
+      let Database: typeof import('better-sqlite3').default
+      try {
+        const sqliteModule = await import('better-sqlite3')
+        Database = sqliteModule.default
+      } catch (error) {
+        throw new StorageError(
+          `Failed to initialize SQLite database: ${error instanceof Error ? error.message : 'better-sqlite3 not available'}`,
+          StorageErrorCode.INITIALIZATION_ERROR,
+          error instanceof Error ? error : undefined
+        )
+      }
+
       // Ensure directory exists
       const dir = dirname(this.dbPath)
       if (!existsSync(dir)) {

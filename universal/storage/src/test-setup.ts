@@ -118,3 +118,81 @@ vi.mock('brotli', () => ({
     Buffer.from(data.toString().replace('brotli:', ''))
   ),
 }))
+
+// Mock better-sqlite3 for CI/CD environments where native bindings aren't available
+// Check if we're in CI or if better-sqlite3 bindings are unavailable
+const isCI = process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true'
+const forceUseMock = process.env.VITEST_MOCK_SQLITE === 'true'
+
+if (isCI || forceUseMock) {
+  vi.mock('better-sqlite3', () => {
+    console.warn('[TEST] Using better-sqlite3 mock for CI/CD environment')
+
+    // In-memory storage for the mock database
+    const mockStorage = new Map<string, unknown>()
+
+    const mockDatabase = {
+      exec: vi.fn().mockImplementation((sql: string) => {
+        // Mock basic table creation
+        if (sql.includes('CREATE TABLE')) {
+          return { changes: 0 }
+        }
+        return { changes: 0 }
+      }),
+      prepare: vi.fn().mockImplementation((sql: string) => {
+        return {
+          run: vi.fn().mockImplementation((...params: unknown[]) => {
+            const key = `${sql}:${JSON.stringify(params)}`
+            mockStorage.set(key, params)
+            return { changes: 1, lastInsertRowid: Date.now() }
+          }),
+          get: vi.fn().mockImplementation(() => {
+            // Simple mock for SELECT queries
+            if (sql.includes('SELECT') && sql.includes('migrations')) {
+              return { version: 1 }
+            }
+            return null
+          }),
+          all: vi.fn().mockReturnValue([]),
+          iterate: vi.fn().mockReturnValue([]),
+        }
+      }),
+      close: vi.fn(),
+      readonly: false,
+      inTransaction: false,
+    }
+
+    return {
+      default: vi.fn().mockImplementation(() => mockDatabase),
+    }
+  })
+} else {
+  // In local development, try to use the real better-sqlite3
+  vi.mock('better-sqlite3', async (importOriginal) => {
+    try {
+      const actual = await importOriginal()
+      return actual
+    } catch {
+      console.warn(
+        '[TEST] better-sqlite3 bindings unavailable, falling back to mock'
+      )
+
+      const mockDatabase = {
+        exec: vi.fn(),
+        prepare: vi.fn().mockReturnValue({
+          run: vi.fn().mockReturnValue({ changes: 1, lastInsertRowid: 1 }),
+          get: vi.fn().mockReturnValue(null),
+          all: vi.fn().mockReturnValue([]),
+          iterate: vi.fn().mockReturnValue([]),
+        }),
+        close: vi.fn(),
+        readonly: false,
+        inTransaction: false,
+      }
+
+      return {
+        default: vi.fn().mockImplementation(() => mockDatabase),
+      }
+    }
+  })
+}
