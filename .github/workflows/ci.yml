@@ -60,8 +60,8 @@ jobs:
       - name: Build packages
         run: pnpm run build
 
-      - name: Run tests with coverage
-        run: pnpm test:coverage
+      - name: Run tests with coverage (CI mode)
+        run: pnpm test:coverage:ci
 
       - name: Verify coverage report exists
         run: |

@@ -106,6 +106,10 @@ afterEach(() => {
   }
 })
 
+// Check if we're in CI or if native bindings should be mocked
+const isCI = process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true'
+const forceUseMock = process.env.VITEST_MOCK_SQLITE === 'true'
+
 // Mock native compression libraries for testing
 vi.mock('lz4', () => ({
   encode: vi.fn((data) => Buffer.from(`lz4:${data.toString()}`)),
@@ -119,10 +123,41 @@ vi.mock('brotli', () => ({
   ),
 }))
 
+// Mock argon2 for CI/CD environments where native bindings aren't available
+if (isCI || forceUseMock) {
+  vi.mock('argon2', () => {
+    console.warn('[TEST] Using argon2 mock for CI/CD environment')
+
+    return {
+      hash: vi.fn().mockImplementation(async (passphrase: string) => {
+        // Create a deterministic 32-byte Buffer for testing (argon2 returns Buffer)
+        const crypto = await import('crypto')
+        return crypto.createHash('sha256').update(passphrase).digest()
+      }),
+      verify: vi
+        .fn()
+        .mockImplementation(
+          async (hash: string | Buffer, passphrase: string) => {
+            const crypto = await import('crypto')
+            const expectedHash = crypto
+              .createHash('sha256')
+              .update(passphrase)
+              .digest()
+            const hashBuffer = Buffer.isBuffer(hash)
+              ? hash
+              : Buffer.from(hash, 'hex')
+            return hashBuffer.equals(expectedHash)
+          }
+        ),
+      argon2id: 2, // Mock the argon2id constant
+      argon2i: 1, // Mock other constants that might be used
+      argon2d: 0,
+    }
+  })
+}
+
 // Mock better-sqlite3 for CI/CD environments where native bindings aren't available
 // Check if we're in CI or if better-sqlite3 bindings are unavailable
-const isCI = process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true'
-const forceUseMock = process.env.VITEST_MOCK_SQLITE === 'true'
 
 if (isCI || forceUseMock) {
   vi.mock('better-sqlite3', () => {
