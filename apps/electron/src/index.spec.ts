@@ -19,11 +19,11 @@ import { join } from 'node:path'
 
 // Mock modules with hoisted functions
 const { mockExistsSync } = vi.hoisted(() => ({
-  mockExistsSync: vi.fn(),
+  mockExistsSync: vi.fn((path) => path.includes('build/icon')),
 }))
 
 const { mockJoin } = vi.hoisted(() => ({
-  mockJoin: vi.fn(),
+  mockJoin: vi.fn((...parts) => parts.join('/')),
 }))
 
 const { mockApp } = vi.hoisted(() => ({
@@ -164,21 +164,17 @@ describe('Electron Main Process Index', () => {
 
     it('should set dock icon on macOS when icon file exists', async () => {
       vi.resetModules()
-
-      // Reset all mocks
       vi.clearAllMocks()
+
+      // Reset mock implementations to default behavior
+      mockExistsSync.mockImplementation((path) => path.includes('build/icon'))
+      mockJoin.mockImplementation((...parts) => parts.join('/'))
 
       // Mock macOS platform BEFORE importing
       Object.defineProperty(process, 'platform', {
         value: 'darwin',
         writable: true,
       })
-
-      // Mock icon file exists - let the real path be found
-      mockExistsSync.mockImplementation((path) => path.includes('build/icon'))
-
-      // Mock path.join to return predictable paths
-      mockJoin.mockImplementation((...parts) => parts.join('/'))
 
       mockApp.requestSingleInstanceLock.mockReturnValue(true)
       mockApp.whenReady.mockResolvedValue(undefined)
@@ -210,21 +206,17 @@ describe('Electron Main Process Index', () => {
 
     it('should handle dock icon setting error', async () => {
       vi.resetModules()
-
-      // Reset all mocks
       vi.clearAllMocks()
+
+      // Reset mock implementations to default behavior
+      mockExistsSync.mockImplementation((path) => path.includes('build/icon'))
+      mockJoin.mockImplementation((...parts) => parts.join('/'))
 
       // Mock macOS platform BEFORE importing
       Object.defineProperty(process, 'platform', {
         value: 'darwin',
         writable: true,
       })
-
-      // Mock icon file exists - let the real path be found
-      mockExistsSync.mockImplementation((path) => path.includes('build/icon'))
-
-      // Mock path.join to return predictable paths
-      mockJoin.mockImplementation((...parts) => parts.join('/'))
 
       // Mock dock.setIcon to throw error
       mockApp.dock?.setIcon.mockImplementation(() => {
@@ -245,21 +237,17 @@ describe('Electron Main Process Index', () => {
 
     it('should handle icon file finding logic', async () => {
       vi.resetModules()
-
-      // Reset all mocks
       vi.clearAllMocks()
+
+      // Reset mock implementations to default behavior
+      mockExistsSync.mockImplementation((path) => path.includes('build/icon'))
+      mockJoin.mockImplementation((...parts) => parts.join('/'))
 
       // Mock macOS platform BEFORE importing
       Object.defineProperty(process, 'platform', {
         value: 'darwin',
         writable: true,
       })
-
-      // Mock icon file exists - let the real path be found
-      mockExistsSync.mockImplementation((path) => path.includes('build/icon'))
-
-      // Mock path.join to return predictable paths
-      mockJoin.mockImplementation((...parts) => parts.join('/'))
 
       mockApp.requestSingleInstanceLock.mockReturnValue(true)
       mockApp.whenReady.mockResolvedValue(undefined)
