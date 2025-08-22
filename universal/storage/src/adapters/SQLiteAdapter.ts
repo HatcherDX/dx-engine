@@ -102,7 +102,7 @@ export class SQLiteAdapter extends BaseStorageAdapter {
   protected async initializeAdapter(): Promise<void> {
     try {
       // Dynamically import better-sqlite3 with fallback handling
-      let Database: typeof import('better-sqlite3').default
+      let Database: unknown
       try {
         const sqliteModule = await import('better-sqlite3')
         Database = sqliteModule.default
@@ -121,7 +121,10 @@ export class SQLiteAdapter extends BaseStorageAdapter {
       }
 
       // Open database with optimized settings
-      this.db = new Database(this.dbPath, {
+      this.db = new (Database as new (
+        path: string,
+        options?: unknown
+      ) => Database.Database)(this.dbPath, {
         verbose:
           process.env.NODE_ENV === 'development' ? console.log : undefined,
       })
