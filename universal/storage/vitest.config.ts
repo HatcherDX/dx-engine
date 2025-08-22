@@ -5,7 +5,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    setupFiles: ['./src/test-setup.ts'],
+    setupFiles: ['./src/test-mocks.ts', './src/test-setup.ts'],
 
     // Coverage configuration
     coverage: {
