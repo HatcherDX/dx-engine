@@ -32,8 +32,8 @@ export default defineConfig({
 
     // Timeout configuration to prevent worker hangs
     testTimeout: 30000,
-    hookTimeout: 10000,
-    teardownTimeout: 10000,
+    hookTimeout: 30000,
+    teardownTimeout: 30000,
 
     // CRITICAL SAFETY: Process isolation to prevent real Git operations
     pool: 'forks',
@@ -41,7 +41,11 @@ export default defineConfig({
       forks: {
         isolate: true,
         singleFork: false,
+        maxForks: 4,
+        minForks: 1,
         execArgv: ['--no-warnings'],
+        // Increase timeouts for worker communication
+        timeout: 60000,
         env: {
           // Explicit test environment variables for safety detection
           NODE_ENV: 'test',

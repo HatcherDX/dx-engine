@@ -240,12 +240,15 @@ describe('Electron Main Process Index', () => {
         writable: true,
       })
 
+      // Mock icon file exists - let the real path be found
+      mockExistsSync.mockImplementation((path) => path.includes('build/icon'))
+
       mockApp.requestSingleInstanceLock.mockReturnValue(true)
       mockApp.whenReady.mockResolvedValue(undefined)
 
       await import('./index')
 
-      // Since icon file exists in real project, verify success message
+      // Since icon file exists in mock, verify success message
       expect(consoleLogSpy).toHaveBeenCalledWith(
         '✅ Dock icon set successfully:',
         expect.stringContaining('build/icon')

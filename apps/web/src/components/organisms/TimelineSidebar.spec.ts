@@ -190,7 +190,7 @@ describe('TimelineSidebar.vue', () => {
     await nextTick() // Wait for Vue to process reactive updates
 
     // Wait for the component to finish loading Git status
-    await new Promise((resolve) => setTimeout(resolve, 300))
+    await new Promise((resolve) => setTimeout(resolve, 50))
 
     // Make sure the component has processed the mocked data
     await wrapper.vm.$nextTick()
@@ -207,7 +207,7 @@ describe('TimelineSidebar.vue', () => {
     await nextTick() // Wait for Vue to process reactive updates
 
     // Wait for the component to finish loading Git status
-    await new Promise((resolve) => setTimeout(resolve, 200))
+    await new Promise((resolve) => setTimeout(resolve, 50))
 
     // Make sure the component has processed the mocked data
     await wrapper.vm.$nextTick()
@@ -343,7 +343,7 @@ describe('TimelineSidebar.vue', () => {
     it('should handle file checkbox click', async () => {
       const wrapper = mount(TimelineSidebar)
       await nextTick()
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 10))
 
       const checkbox = wrapper.find('.file-checkbox')
       if (checkbox.exists()) {
@@ -355,7 +355,7 @@ describe('TimelineSidebar.vue', () => {
     it('should prevent event propagation on checkbox click', async () => {
       const wrapper = mount(TimelineSidebar)
       await nextTick()
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 10))
 
       const checkbox = wrapper.find('.file-checkbox')
       if (checkbox.exists()) {
@@ -370,7 +370,7 @@ describe('TimelineSidebar.vue', () => {
     it('should show file path tooltips', async () => {
       const wrapper = mount(TimelineSidebar)
       await nextTick()
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 10))
 
       const filePath = wrapper.find('.file-path')
       if (filePath.exists()) {
@@ -435,7 +435,7 @@ describe('TimelineSidebar.vue', () => {
       const vm = wrapper.vm as unknown as TimelineSidebarComponent
 
       // Wait for initial loading to complete and clear mock data
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 10))
 
       // Ensure clean state with no staged files
       vm.commitTitle = 'Test title'
@@ -516,7 +516,7 @@ describe('TimelineSidebar.vue', () => {
 
       const wrapper = mount(TimelineSidebar)
       await nextTick()
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 10))
 
       // Should not throw error
       expect(wrapper.exists()).toBe(true)
@@ -537,7 +537,7 @@ describe('TimelineSidebar.vue', () => {
 
       const wrapper = mount(TimelineSidebar)
       await nextTick()
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 10))
 
       // Should not throw error
       expect(wrapper.exists()).toBe(true)
@@ -615,7 +615,7 @@ describe('TimelineSidebar.vue', () => {
       await nextTick()
 
       // Wait for onMounted to complete
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 10))
 
       // ResizeObserver should be created and observe called
       expect(global.ResizeObserver).toHaveBeenCalled()
@@ -638,7 +638,7 @@ describe('TimelineSidebar.vue', () => {
       await nextTick()
 
       // Wait for onMounted to complete
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 10))
 
       // Should fall back to window resize listener
       expect(addEventListenerSpy).toHaveBeenCalledWith(
@@ -690,7 +690,7 @@ describe('TimelineSidebar.vue', () => {
     await nextTick() // Wait for Vue to process reactive updates
 
     // Wait for the component to finish loading Git status
-    await new Promise((resolve) => setTimeout(resolve, 200))
+    await new Promise((resolve) => setTimeout(resolve, 50))
 
     // Make sure the component has processed the mocked data
     await wrapper.vm.$nextTick()
@@ -709,7 +709,7 @@ describe('TimelineSidebar.vue', () => {
     await nextTick() // Wait for Vue to process reactive updates
 
     // Wait for the component to finish loading Git status
-    await new Promise((resolve) => setTimeout(resolve, 200))
+    await new Promise((resolve) => setTimeout(resolve, 50))
 
     // Make sure the component has processed the mocked data
     await wrapper.vm.$nextTick()
@@ -813,7 +813,7 @@ describe('TimelineSidebar.vue', () => {
 
       const wrapper = mount(TimelineSidebar)
       await nextTick()
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 10))
 
       // Should handle gracefully
       expect(wrapper.exists()).toBe(true)
@@ -830,7 +830,7 @@ describe('TimelineSidebar.vue', () => {
 
       const wrapper = mount(TimelineSidebar)
       await nextTick()
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 10))
 
       const vm = wrapper.vm as unknown as TimelineSidebarComponent
       expect(vm.gitFiles).toEqual([])

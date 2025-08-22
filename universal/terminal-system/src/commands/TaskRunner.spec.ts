@@ -115,7 +115,7 @@ describe('TaskRunner', () => {
       const runningTaskId = await taskRunner.runBackground('sleep 10')
 
       // Wait for first two tasks to complete
-      await new Promise((resolve) => setTimeout(resolve, 500))
+      await new Promise((resolve) => setTimeout(resolve, 100))
 
       await taskRunner.clearCompleted()
 
@@ -192,7 +192,7 @@ describe('TaskRunner', () => {
       const task2Id = await taskRunner.runBackground('echo "test2"')
 
       // Wait a bit for tasks to start and complete
-      await new Promise((resolve) => setTimeout(resolve, 500))
+      await new Promise((resolve) => setTimeout(resolve, 100))
 
       // Tasks should complete quickly with echo commands
       const finalCount = await taskRunner.getRunningTasksCount()

@@ -1850,7 +1850,7 @@ describe('PtyManager', () => {
           childProcess.emit('exit', 1, null)
 
           // Wait for restart attempt
-          await new Promise((resolve) => setTimeout(resolve, 1100))
+          await new Promise((resolve) => setTimeout(resolve, 100))
         }
 
         // Final cleanup
