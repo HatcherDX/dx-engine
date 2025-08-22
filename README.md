@@ -16,7 +16,7 @@
   <br /><br />
   <a href="ROADMAP.md"><img src="https://img.shields.io/badge/Project%20Status-Alpha-orange" alt="Project Status: Alpha"></a>
   <a href="LICENSE.md"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
-  <img src="https://img.shields.io/badge/dynamic/json?label=Coverage&query=%24.total.statements.pct&suffix=%25&url=https%3A%2F%2Fraw.githubusercontent.com%2FHatcherDX%2Fdx-engine%2Fcoverage-reports%2Fcoverage-summary.json&colorB=brightgreen&colorA=gray&style=flat" alt="Test Coverage">
+  <img src="https://img.shields.io/badge/dynamic/json?label=Coverage&query=%24.total.statements.pct&suffix=%25&url=https%3A%2F%2Fraw.githubusercontent.com%2FHatcherDX%2Fdx-engine%2Fcoverage-reports%2Fcoverage-summary.json&colorB=brightgreen&colorA=gray&style=flat&cacheSeconds=300" alt="Test Coverage">
   <a href="CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome"></a>
   <br />
   <a href="https://twitter.com/HatcherDX"><img src="https://img.shields.io/twitter/follow/HatcherDX?style=social" alt="Follow on Twitter"></a>
