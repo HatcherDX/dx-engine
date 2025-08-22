@@ -1,7 +1,6 @@
 #!/usr/bin/env tsx
 
 import { readFileSync, writeFileSync } from 'fs'
-import { execSync } from 'child_process'
 import { glob } from 'glob'
 
 // Types for TypeScript
@@ -9,7 +8,7 @@ type BumpType = 'major' | 'minor' | 'patch'
 
 interface PackageJson {
   version: string
-  [key: string]: any
+  [key: string]: unknown
 }
 
 interface VersionComponents {
@@ -23,7 +22,7 @@ interface VersionComponents {
  * @param version - Semantic version string (e.g., "1.2.3")
  * @returns Version components object
  */
-function parseVersion(version: string): VersionComponents {
+export function parseVersion(version: string): VersionComponents {
   const [major, minor, patch] = version.split('.').map(Number)
   return { major, minor, patch }
 }
@@ -34,7 +33,7 @@ function parseVersion(version: string): VersionComponents {
  * @param bumpType - Type of version bump
  * @returns New version string
  */
-function generateNewVersion(
+export function generateNewVersion(
   currentVersion: string,
   bumpType: BumpType
 ): string {
@@ -58,7 +57,10 @@ function generateNewVersion(
  * @param newVersion - New version to set
  * @returns Success status
  */
-function updatePackageVersion(pkgPath: string, newVersion: string): boolean {
+export function updatePackageVersion(
+  pkgPath: string,
+  newVersion: string
+): boolean {
   try {
     const pkgContent: string = readFileSync(pkgPath, 'utf8')
     const pkg: PackageJson = JSON.parse(pkgContent)
@@ -79,7 +81,7 @@ function updatePackageVersion(pkgPath: string, newVersion: string): boolean {
 /**
  * Main version bump function
  */
-function main(): void {
+export function main(): void {
   const args: string[] = process.argv.slice(2)
 
   if (args.length === 0) {
@@ -166,5 +168,7 @@ process.on('unhandledRejection', (reason: unknown) => {
   process.exit(1)
 })
 
-// Run the main function
-main()
+// Run the main function only if executed directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main()
+}

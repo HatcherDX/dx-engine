@@ -18,7 +18,7 @@ vi.mock('./BaseButton.vue', () => ({
         <slot />
       </button>
     `,
-    props: ['variant', 'size', 'class', 'disabled'],
+    props: ['variant', 'size', 'disabled', 'class'],
     emits: ['click'],
   },
 }))
@@ -26,7 +26,7 @@ vi.mock('./BaseButton.vue', () => ({
 vi.mock('./BaseIcon.vue', () => ({
   default: {
     name: 'BaseIcon',
-    template: '<span class="base-icon" />',
+    template: '<span class="base-icon">→</span>',
     props: ['name', 'size'],
   },
 }))

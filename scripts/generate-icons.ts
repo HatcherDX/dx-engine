@@ -33,7 +33,7 @@ const __dirname = path.dirname(__filename)
  * Parse command line arguments and create configuration
  * @returns Icon generation configuration
  */
-function parseConfig(): IconConfig {
+export function parseConfig(): IconConfig {
   const args = process.argv.slice(2)
 
   return {
@@ -48,7 +48,7 @@ function parseConfig(): IconConfig {
  * @param platforms - Platforms to check dependencies for
  * @returns Whether all dependencies are available
  */
-function checkDependencies(platforms: Platform[]): boolean {
+export function checkDependencies(platforms: Platform[]): boolean {
   try {
     if (platforms.includes('macos')) {
       execSync('which sips', { stdio: 'ignore' })
@@ -67,7 +67,7 @@ function checkDependencies(platforms: Platform[]): boolean {
  * @param outputPath - Output directory path
  * @returns Generation result
  */
-function generateMacOSIcons(
+export function generateMacOSIcons(
   sourcePath: string,
   outputPath: string
 ): GenerationResult {
@@ -140,7 +140,7 @@ function generateMacOSIcons(
  * @param hasTools - Whether system tools are available
  * @returns Generation result
  */
-function generateWindowsIcons(
+export function generateWindowsIcons(
   sourcePath: string,
   outputPath: string,
   hasTools: boolean
@@ -189,7 +189,7 @@ function generateWindowsIcons(
 /**
  * Main icon generation function
  */
-function main(): void {
+export function main(): void {
   const config: IconConfig = parseConfig()
 
   console.log('🎨 Generating icons for Electron application...')
@@ -277,5 +277,7 @@ process.on('unhandledRejection', (reason: unknown) => {
   process.exit(1)
 })
 
-// Run the main function
-main()
+// Run the main function only when this script is executed directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main()
+}

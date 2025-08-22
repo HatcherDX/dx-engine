@@ -46,9 +46,14 @@ const iconClasses = computed(() => {
 
   // Custom color override
   if (props.color) {
-    classes.push(`text-${props.color}`)
+    classes.push(props.color)
   }
 
   return classes
+})
+
+// Expose computed properties for testing
+defineExpose({
+  iconClasses,
 })
 </script>

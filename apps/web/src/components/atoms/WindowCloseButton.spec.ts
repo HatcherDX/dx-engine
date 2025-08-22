@@ -38,6 +38,11 @@ describe('WindowCloseButton.vue', () => {
     expect(wrapper.find('button').attributes('disabled')).toBeDefined()
   })
 
+  it('should not be disabled by default', () => {
+    const wrapper = mount(WindowCloseButton, {})
+    expect(wrapper.find('button').attributes('disabled')).toBeUndefined()
+  })
+
   it('should apply danger styling on hover', async () => {
     const wrapper = mount(WindowCloseButton)
     await wrapper.trigger('mouseenter')

@@ -227,42 +227,54 @@ const handleHeaderDoubleClick = () => {
   color: var(--text-tertiary);
 }
 
-/* Resize handle */
+/* Resize handle - replicates terminal-resize-handle behavior */
 .resize-handle {
   position: absolute;
   top: 0;
   right: 0;
-  width: var(--resize-handle-width);
+  width: 6px;
   height: 100%;
-  background-color: transparent;
+  background: transparent;
   cursor: col-resize;
-  z-index: 100;
-  transition: background-color var(--transition-fast);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .resize-handle:hover {
-  background-color: var(--resize-handle-hover);
+  background: rgba(59, 130, 246, 0.1);
 }
 
 .resize-handle.is-resizing {
-  background-color: var(--accent-primary);
+  background: rgba(59, 130, 246, 0.1);
 }
 
-/* Add a subtle visual hint for the resize area */
-.resize-handle::before {
+/* Resize handle line indicator - visually centered in content area */
+.resize-handle::after {
   content: '';
   position: absolute;
-  top: 0;
-  left: -2px;
-  right: -2px;
-  height: 100%;
-  background-color: transparent;
+  top: calc(50% + var(--header-height) / 2);
+  right: 2px;
+  transform: translateY(-50%);
+  width: 2px;
+  height: 40px;
+  background: var(--border-primary);
+  border-radius: 1px;
+  transition: all 0.2s ease;
+  opacity: 1;
 }
 
-.resize-handle:hover::before,
-.resize-handle.is-resizing::before {
-  background-color: var(--resize-handle-color);
-  opacity: 0.3;
+.resize-handle:hover::after {
+  background: var(--accent-primary);
+  width: 2px;
+  height: 60px;
+}
+
+.resize-handle.is-resizing::after {
+  background: var(--accent-primary);
+  width: 2px;
+  height: 60px;
 }
 
 /* Scrollbar styling for sidebar content */

@@ -53,6 +53,7 @@
   <div class="unified-frame" :class="frameClasses" :style="frameStyles">
     <!-- Sidebar -->
     <Sidebar
+      v-if="showSidebar"
       :width="sidebarWidth"
       :is-resizing="isResizing"
       :resize-cursor="resizeCursor"
@@ -124,15 +125,19 @@
         'main-with-terminal': showTerminalPanel,
       }"
     >
-      <div v-if="!isGenerativeMode" class="main-content-area">
-        <div class="main-content">
+      <!-- Main content area - Always rendered, hidden via CSS in generative mode -->
+      <div
+        class="main-content-area"
+        :class="{ 'content-hidden-generative': isGenerativeMode }"
+      >
+        <div class="content-slot">
           <slot />
         </div>
 
-        <!-- Terminal Panel - Inside main content area -->
+        <!-- Terminal Panel - Always rendered, visibility controlled by CSS -->
         <div
-          v-if="showTerminalPanel"
           class="frame-terminal"
+          :class="{ 'terminal-hidden': !showTerminalPanel }"
           :style="{ height: terminalHeight + 'px' }"
         >
           <div
@@ -209,6 +214,8 @@ interface Props {
   variant?: 'default' | 'compact' | 'fullscreen'
   /** Current application mode determining layout and feature availability */
   currentMode?: ModeType
+  /** Whether to show the sidebar (some modes like Timeline handle their own sidebar) */
+  showSidebar?: boolean
 }
 
 /**
@@ -227,6 +234,7 @@ const props = withDefaults(defineProps<Props>(), {
   showModeNavigation: true,
   variant: 'default',
   currentMode: 'generative',
+  showSidebar: true,
 })
 
 const emit = defineEmits<Emits>()
@@ -393,7 +401,15 @@ onUnmounted(() => {
 /* Grid areas */
 .frame-sidebar {
   grid-area: sidebar;
+  position: relative;
+  /* Remove transition to prevent lag during resize */
 }
+
+/* Removed background hover to prevent interference */
+
+/* Sidebar resize handle styles moved to Sidebar.vue component */
+
+/* Chat resize handle styles moved to ChatPanel.vue component */
 
 .frame-header {
   grid-area: header;
@@ -426,9 +442,14 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
-.main-content {
+.content-slot {
   flex: 1;
+  display: flex;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .main-chat-panel {
@@ -439,7 +460,13 @@ onUnmounted(() => {
 .frame-chat {
   grid-area: chat;
   overflow: hidden;
+  position: relative;
+  transition: all 0.2s ease;
 }
+
+/* Removed background hover to prevent interference */
+
+/* Old chat hover styles removed - now using specific .chat-resize-zone */
 
 /* In generative mode, chat takes full main area */
 .chat-generative {
@@ -689,6 +716,18 @@ footer .footer-content .footer-right button.bg-transparent:focus-visible {
   flex-direction: column;
 }
 
+/* Hide terminal panel when not in code mode */
+.frame-terminal.terminal-hidden {
+  display: none !important;
+  pointer-events: none;
+}
+
+/* Hide main content area in generative mode without destroying DOM elements */
+.main-content-area.content-hidden-generative {
+  display: none !important;
+  pointer-events: none;
+}
+
 /* Terminal Resize Handle */
 .terminal-resize-handle {
   position: absolute;
@@ -722,7 +761,7 @@ footer .footer-content .footer-right button.bg-transparent:focus-visible {
 }
 
 /* Code mode with terminal: no changes to grid, terminal is inside main */
-.main-with-terminal .main-content {
+.main-with-terminal .content-slot {
   min-height: 300px;
 }
 
@@ -733,7 +772,7 @@ footer .footer-content .footer-right button.bg-transparent:focus-visible {
     max-height: 40vh;
   }
 
-  .main-with-terminal .main-content {
+  .main-with-terminal .content-slot {
     min-height: 200px;
   }
 }

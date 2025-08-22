@@ -29,7 +29,7 @@ const filesToCopy: FileMapping[] = [
 /**
  * Copy environment files from examples if they don't exist
  */
-function setupEnvironmentFiles(): void {
+export function setupEnvironmentFiles(): void {
   console.log('🔧 Setting up environment files...')
 
   let filesCreated: number = 0
@@ -58,5 +58,10 @@ function setupEnvironmentFiles(): void {
   console.log(`🎉 Environment setup complete! Created ${filesCreated} files.`)
 }
 
-// Run the setup
-setupEnvironmentFiles()
+// Run the setup only when this script is executed directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+  setupEnvironmentFiles()
+}
+
+// Export for testing
+export { filesToCopy, projectRoot }

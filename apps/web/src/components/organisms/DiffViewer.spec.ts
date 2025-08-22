@@ -1,13 +1,13 @@
 import { describe, it, expect, vi } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { mount, flushPromises } from '@vue/test-utils'
 import DiffViewer from './DiffViewer.vue'
 
 // Mock child components
 vi.mock('../atoms/BaseIcon.vue', () => ({
   default: {
     name: 'BaseIcon',
-    template: '<span class="base-icon" />',
-    props: ['name', 'size', 'class'],
+    props: ['name', 'size', 'color'],
+    template: '<span class="base-icon" :data-name="name"></span>',
   },
 }))
 
@@ -15,9 +15,7 @@ vi.mock('../atoms/BaseButton.vue', () => ({
   default: {
     name: 'BaseButton',
     template:
-      '<button :class="[\'base-button\', $props.class]" @click="$emit(\'click\')"><slot /></button>',
-    props: ['variant', 'size', 'class'],
-    emits: ['click'],
+      '<button class="base-button" @click="$emit(\'click\')"><slot /></button>',
   },
 }))
 
@@ -119,16 +117,17 @@ describe('DiffViewer.vue', () => {
     // Initially one file should be expanded
     let fileDiffs = wrapper.findAll('.file-diff')
     const initialCount = fileDiffs.length
+    expect(initialCount).toBe(1)
 
-    // Find and click an expand button
-    const expandButtons = wrapper.findAll('.expand-toggle')
-    if (expandButtons.length > 0) {
-      await expandButtons[0].trigger('click')
+    // Test direct method call to toggle the first file (which is expanded)
+    const firstFile = wrapper.vm.diffFiles[0]
+    wrapper.vm.toggleFileExpansion(firstFile)
+    await flushPromises()
 
-      // Check that expansion state changed
-      fileDiffs = wrapper.findAll('.file-diff')
-      expect(fileDiffs.length).not.toBe(initialCount)
-    }
+    // Check that expansion state changed
+    fileDiffs = wrapper.findAll('.file-diff')
+    expect(fileDiffs.length).not.toBe(initialCount)
+    expect(fileDiffs.length).toBe(0) // First file should now be collapsed
   })
 
   it('should render diff chunks and lines', () => {
@@ -319,18 +318,21 @@ describe('DiffViewer.vue', () => {
   it('should handle file header click for expansion', async () => {
     const wrapper = mount(DiffViewer)
 
-    // Count initial file diffs
-    let fileDiffs = wrapper.findAll('.file-diff')
-    const initialCount = fileDiffs.length
+    // Check initial state directly from component data
+    const initialDiffFiles = wrapper.vm.diffFiles
+    expect(initialDiffFiles[0].expanded).toBe(true) // First file is expanded
+    expect(initialDiffFiles[1].expanded).toBe(false) // Second file is collapsed
+    expect(wrapper.findAll('.file-diff').length).toBe(1)
 
-    // Click on an expand button to toggle expansion
-    const expandButtons = wrapper.findAll('.expand-button')
-    if (expandButtons.length > 0) {
-      await expandButtons[0].trigger('click')
+    // Test direct method call first to verify the function works
+    const secondFile = wrapper.vm.diffFiles[1]
+    wrapper.vm.toggleFileExpansion(secondFile)
+    await flushPromises()
 
-      // Check that expansion changed
-      fileDiffs = wrapper.findAll('.file-diff')
-      expect(fileDiffs.length).not.toBe(initialCount)
-    }
+    // Check the data state has changed after direct method call
+    expect(wrapper.vm.diffFiles[1].expanded).toBe(true)
+
+    // Should now have both files expanded (the original expanded file + newly expanded)
+    expect(wrapper.findAll('.file-diff').length).toBe(2)
   })
 })

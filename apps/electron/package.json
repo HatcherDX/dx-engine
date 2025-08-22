@@ -40,6 +40,7 @@
     "@hatcherdx/dx-engine-preload": "workspace:*",
     "@types/node": "^22.14.1",
     "@types/uuid": "^9.0.0",
+    "@vitest/coverage-v8": "^3.2.4",
     "electron": "35.1.4",
     "electron-builder": "26.0.12",
     "electron-rebuild": "^3.2.9",
@@ -56,7 +57,9 @@
     "@hatcherdx/terminal-system": "workspace:*",
     "@xterm/addon-search": "^0.15.0",
     "@xterm/addon-unicode11": "^0.8.0",
+    "express": "^5.1.0",
     "express-ws": "^5.0.2",
+    "simple-git": "^3.28.0",
     "uuid": "^9.0.0"
   }
 }

@@ -1,0 +1,88 @@
+{
+  "name": "@hatcherdx/shared-rendering",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Shared WebGL rendering engine for terminal and Git UI components",
+  "author": {
+    "name": "Hatcher DX Team",
+    "email": "team@hatche.rs"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hatcherdx/dx-engine.git",
+    "directory": "universal/shared-rendering"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    },
+    "./webgl": {
+      "types": "./dist/webgl/index.d.ts",
+      "import": "./dist/webgl/index.js",
+      "require": "./dist/webgl/index.js"
+    },
+    "./terminal": {
+      "types": "./dist/terminal/index.d.ts",
+      "import": "./dist/terminal/index.js",
+      "require": "./dist/terminal/index.js"
+    },
+    "./git": {
+      "types": "./dist/git/index.d.ts",
+      "import": "./dist/git/index.js",
+      "require": "./dist/git/index.js"
+    }
+  },
+  "files": [
+    "dist/**/*",
+    "src/**/*",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "clean": "rimraf dist",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "webgl",
+    "rendering",
+    "terminal",
+    "git",
+    "performance",
+    "three.js",
+    "shared",
+    "dx-engine"
+  ],
+  "dependencies": {
+    "three": "^0.160.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.1",
+    "@types/three": "^0.160.0",
+    "@typescript-eslint/eslint-plugin": "^8.38.0",
+    "@typescript-eslint/parser": "^8.38.0",
+    "@vitest/coverage-istanbul": "^3.2.4",
+    "eslint": "9.24.0",
+    "jsdom": "^26.1.0",
+    "rimraf": "6.0.1",
+    "typescript": "^5.7.3",
+    "vitest": "^3.2.4"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=9.0.0"
+  }
+}

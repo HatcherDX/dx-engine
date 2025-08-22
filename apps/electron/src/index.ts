@@ -3,8 +3,12 @@ import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import './ipc'
 import { initializeTerminalSystem, destroyTerminalSystem } from './terminalIPC'
-import { restoreOrCreateWindow } from '/@/mainWindow'
-import { setupDevConsoleFilter } from '/@/utils/devConsoleFilter'
+import {
+  initializeSystemTerminalIPC,
+  destroySystemTerminalIPC,
+} from './systemTerminalIPC'
+import { restoreOrCreateWindow } from './mainWindow'
+import { setupDevConsoleFilter } from './utils/devConsoleFilter'
 
 // Setup development console filtering early
 setupDevConsoleFilter({ enabled: true })
@@ -51,7 +55,8 @@ app.on('second-instance', restoreOrCreateWindow)
  */
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
-    // Cleanup terminal system before quitting
+    // Cleanup terminal systems before quitting
+    destroySystemTerminalIPC()
     destroyTerminalSystem()
     app.quit()
   }
@@ -62,7 +67,8 @@ app.on('window-all-closed', () => {
  */
 app.on('before-quit', () => {
   console.log('🔄 Quitting application...')
-  // Cleanup terminal system before quitting
+  // Cleanup terminal systems before quitting
+  destroySystemTerminalIPC()
   destroyTerminalSystem()
   app.exit(0)
 })
@@ -78,8 +84,9 @@ app.on('activate', restoreOrCreateWindow)
 app
   .whenReady()
   .then(() => {
-    // Initialize terminal system first
+    // Initialize terminal systems first
     initializeTerminalSystem()
+    initializeSystemTerminalIPC()
     // Then create window
     return restoreOrCreateWindow()
   })

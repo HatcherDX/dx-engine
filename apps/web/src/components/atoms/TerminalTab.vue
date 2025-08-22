@@ -4,7 +4,11 @@
     @click="$emit('click')"
     @contextmenu.prevent="$emit('contextmenu', $event)"
   >
-    <span class="terminal-tab__name">{{ name }}</span>
+    <!-- Terminal icon - unified for all terminals -->
+    <BaseIcon :name="terminalIcon" size="xs" :class="terminalIconClass" />
+    <span class="terminal-tab__name">
+      {{ name }}
+    </span>
     <button
       v-if="closable"
       class="terminal-tab__close"
@@ -24,6 +28,10 @@ interface Props {
   active?: boolean
   closable?: boolean
   running?: boolean
+  /** Terminal type for system terminals (system, timeline, or undefined for regular terminals) */
+  terminalType?: 'system' | 'timeline' | 'regular'
+  /** Activity state for system terminals (info, warning, error, idle) */
+  activityState?: 'info' | 'warning' | 'error' | 'idle'
 }
 
 interface Emits {
@@ -36,9 +44,42 @@ const props = withDefaults(defineProps<Props>(), {
   active: false,
   closable: true,
   running: true,
+  terminalType: 'regular',
+  activityState: 'idle',
 })
 
 defineEmits<Emits>()
+
+const isSystemTerminal = computed(
+  () => props.terminalType === 'system' || props.terminalType === 'timeline'
+)
+
+const terminalIcon = computed(() => {
+  if (props.terminalType === 'system') {
+    return 'Settings' // System/cog icon for System terminal
+  } else if (props.terminalType === 'timeline') {
+    return 'GitBranch' // Git branch icon for Timeline terminal
+  }
+  return 'Terminal' // Terminal icon for regular terminals
+})
+
+const terminalIconClass = computed(() => [
+  'terminal-tab__icon',
+  {
+    // For system terminals, use activity state colors
+    'terminal-tab__icon--info':
+      isSystemTerminal.value && props.activityState === 'info',
+    'terminal-tab__icon--warning':
+      isSystemTerminal.value && props.activityState === 'warning',
+    'terminal-tab__icon--error':
+      isSystemTerminal.value && props.activityState === 'error',
+    'terminal-tab__icon--idle':
+      isSystemTerminal.value && props.activityState === 'idle',
+    // For regular terminals, use running state colors
+    'terminal-tab__icon--running': !isSystemTerminal.value && props.running,
+    'terminal-tab__icon--stopped': !isSystemTerminal.value && !props.running,
+  },
+])
 
 const tabClass = computed(() => [
   'terminal-tab',
@@ -47,6 +88,7 @@ const tabClass = computed(() => [
     'terminal-tab--inactive': !props.active,
     'terminal-tab--running': props.running,
     'terminal-tab--stopped': !props.running,
+    'terminal-tab--system': isSystemTerminal.value,
   },
 ])
 </script>
@@ -55,12 +97,11 @@ const tabClass = computed(() => [
 .terminal-tab {
   display: flex;
   align-items: center;
-  padding: 0.5rem 0.75rem;
+  padding: 0.375rem 0.75rem;
   font-size: 0.875rem;
   font-weight: 500;
   transition: all var(--transition-fast);
   border-bottom: 2px solid transparent;
-  background-color: var(--bg-tertiary);
   color: var(--text-secondary);
 }
 
@@ -79,7 +120,6 @@ const tabClass = computed(() => [
 }
 
 .terminal-tab--inactive {
-  background-color: var(--bg-tertiary);
   color: var(--text-secondary);
 }
 
@@ -113,23 +153,49 @@ const tabClass = computed(() => [
   opacity: 1;
 }
 
-.terminal-tab--running .terminal-tab__name::before {
-  content: '';
-  display: inline-block;
-  width: 0.5rem;
-  height: 0.5rem;
-  background-color: #22c55e;
-  border-radius: 50%;
-  margin-right: 0.5rem;
+/* Regular terminal icon colors - unified with system terminals */
+.terminal-tab__icon--running {
+  color: #22c55e; /* Green for running - standardized */
 }
 
-.terminal-tab--stopped .terminal-tab__name::before {
-  content: '';
-  display: inline-block;
-  width: 0.5rem;
-  height: 0.5rem;
-  background-color: var(--text-tertiary);
-  border-radius: 50%;
+.terminal-tab__icon--stopped {
+  color: var(--text-tertiary); /* Gray for stopped */
+}
+
+/* System terminal specific styles */
+.terminal-tab--system {
+  background-color: var(--bg-secondary);
+}
+
+.terminal-tab--system.terminal-tab--active {
+  background-color: var(--bg-primary);
+  border-bottom-color: var(--accent-secondary);
+}
+
+.terminal-tab__icon {
   margin-right: 0.5rem;
+  transition: color var(--transition-fast);
+}
+
+/* Activity state colors for system terminal icons */
+.terminal-tab__icon--idle {
+  color: var(--text-tertiary);
+}
+
+.terminal-tab__icon--info {
+  color: #22c55e; /* Green for info - standardized with regular terminals */
+}
+
+.terminal-tab__icon--warning {
+  color: #f59e0b; /* Amber for warning */
+}
+
+.terminal-tab__icon--error {
+  color: #ef4444; /* Red for error */
+}
+
+/* System terminals are not closable by default */
+.terminal-tab--system .terminal-tab__close {
+  display: none;
 }
 </style>

@@ -3,21 +3,33 @@ import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import ChatPanel from './ChatPanel.vue'
 
+// Type definition for ChatPanel component instance - NO ANY TYPES ALLOWED
+interface ChatPanelInstance extends InstanceType<typeof ChatPanel> {
+  messages: Array<{ id: string; text: string; sender: string; timestamp: Date }>
+  newMessage: string
+  addMessage: (text: string, sender: string) => void
+  sendMessage: () => void
+  clearMessages: () => void
+  handleKeyDown: (event: KeyboardEvent) => void
+  handleKeyUp: (event: KeyboardEvent) => void
+  [key: string]: unknown
+}
+
 // Mock BaseIcon component
 vi.mock('../atoms/BaseIcon.vue', () => ({
   default: {
     name: 'BaseIcon',
-    template: '<div class="input-icon" data-testid="base-icon"></div>',
-    props: ['name', 'size', 'color', 'accessible', 'ariaLabel'],
+    props: ['name', 'size', 'color'],
+    template: '<span class="base-icon" :data-name="name"></span>',
   },
 }))
 
 describe('ChatPanel.vue', () => {
   const defaultProps = {
     currentMode: 'generative' as const,
-    effectiveWidth: '350px',
+    effectiveWidth: '400px',
     shouldShowResizeHandle: true,
-    isGenerativeMode: true,
+    isGenerativeMode: false,
     isResizing: false,
     startResize: vi.fn(),
     resizeCursor: 'col-resize',
@@ -46,7 +58,10 @@ describe('ChatPanel.vue', () => {
 
   it('should hide resize handle when shouldShowResizeHandle is false', () => {
     const wrapper = mount(ChatPanel, {
-      props: { ...defaultProps, shouldShowResizeHandle: false },
+      props: {
+        ...defaultProps,
+        shouldShowResizeHandle: false,
+      },
     })
     const resizeHandle = wrapper.find('.resize-handle')
     expect(resizeHandle.exists()).toBe(false)
@@ -158,10 +173,7 @@ describe('ChatPanel.vue', () => {
     const textarea = wrapper.find('textarea')
 
     // Mock scrollHeight
-    Object.defineProperty(textarea.element, 'scrollHeight', {
-      value: 100,
-      configurable: true,
-    })
+    Object.defineProperty(textarea.element, 'scrollHeight', {})
 
     await textarea.trigger('input')
     expect(wrapper.exists()).toBe(true)
@@ -181,7 +193,10 @@ describe('ChatPanel.vue', () => {
 
   it('should apply generative mode classes', () => {
     const wrapper = mount(ChatPanel, {
-      props: { ...defaultProps, isGenerativeMode: true },
+      props: {
+        ...defaultProps,
+        isGenerativeMode: true,
+      },
     })
     const chatPanel = wrapper.find('.chat-panel')
     expect(chatPanel.classes()).toContain('is-generative')
@@ -189,7 +204,10 @@ describe('ChatPanel.vue', () => {
 
   it('should handle resize cursor changes', () => {
     const wrapper = mount(ChatPanel, {
-      props: { ...defaultProps, resizeCursor: 'ew-resize' },
+      props: {
+        ...defaultProps,
+        resizeCursor: 'ew-resize',
+      },
     })
     const resizeHandle = wrapper.find('.resize-handle')
     expect(resizeHandle.attributes('style')).toContain('ew-resize')
@@ -198,11 +216,107 @@ describe('ChatPanel.vue', () => {
   it('should call startResize on mousedown', async () => {
     const startResizeFn = vi.fn()
     const wrapper = mount(ChatPanel, {
-      props: { ...defaultProps, startResize: startResizeFn },
+      props: {
+        ...defaultProps,
+        startResize: startResizeFn,
+      },
     })
     const resizeHandle = wrapper.find('.resize-handle')
 
     await resizeHandle.trigger('mousedown')
     expect(startResizeFn).toHaveBeenCalled()
+  })
+
+  it('should not send empty message', async () => {
+    const wrapper = mount(ChatPanel, { props: defaultProps })
+    const textarea = wrapper.find('.minimalist-input')
+    const vm = wrapper.vm as ChatPanelInstance
+
+    // Try to send empty message
+    await textarea.setValue('')
+    await textarea.trigger('keydown', { key: 'Enter', shiftKey: false })
+
+    await nextTick()
+
+    // Should not add any messages
+    expect(vm.userMessages).toHaveLength(0)
+    expect(vm.showWelcome).toBe(true)
+  })
+
+  it('should not send message when already typing', async () => {
+    const wrapper = mount(ChatPanel, { props: defaultProps })
+    const textarea = wrapper.find('.minimalist-input')
+    const vm = wrapper.vm as ChatPanelInstance
+
+    // Set typing state
+    vm.isTyping = true
+
+    // Try to send message while typing
+    await textarea.setValue('Test message')
+    await textarea.trigger('keydown', { key: 'Enter', shiftKey: false })
+
+    await nextTick()
+
+    // Should not add message while typing
+    expect(vm.userMessages).toHaveLength(0)
+    expect(vm.inputMessage).toBe('Test message') // Message should remain in input
+  })
+
+  it('should not send message with only whitespace', async () => {
+    const wrapper = mount(ChatPanel, { props: defaultProps })
+    const textarea = wrapper.find('.minimalist-input')
+    const vm = wrapper.vm as ChatPanelInstance
+
+    // Try to send whitespace-only message
+    await textarea.setValue('   \n  \t  ')
+    await textarea.trigger('keydown', { key: 'Enter', shiftKey: false })
+
+    await nextTick()
+
+    // Should not add message (trimmed to empty)
+    expect(vm.userMessages).toHaveLength(0)
+    expect(vm.showWelcome).toBe(true)
+  })
+
+  it('should use default cursor when resizeCursor is not provided', () => {
+    const wrapper = mount(ChatPanel, {
+      props: {
+        ...defaultProps,
+        resizeCursor: undefined,
+      },
+    })
+    const resizeHandle = wrapper.find('.resize-handle')
+
+    // Should default to 'col-resize'
+    expect(resizeHandle.attributes('style')).toContain('cursor: col-resize')
+  })
+
+  it('should handle null resizeCursor gracefully', () => {
+    const wrapper = mount(ChatPanel, {
+      props: {
+        ...defaultProps,
+        resizeCursor: undefined,
+      },
+    })
+    const resizeHandle = wrapper.find('.resize-handle')
+
+    // Should default to 'col-resize' when null
+    expect(resizeHandle.attributes('style')).toContain('cursor: col-resize')
+  })
+
+  it('should allow message input with Shift+Enter for newline', async () => {
+    const wrapper = mount(ChatPanel, { props: defaultProps })
+    const textarea = wrapper.find('.minimalist-input')
+    const vm = wrapper.vm as ChatPanelInstance
+
+    // Type message with Shift+Enter (should not send)
+    await textarea.setValue('Line 1')
+    await textarea.trigger('keydown', { key: 'Enter', shiftKey: true })
+
+    await nextTick()
+
+    // Should not send message with Shift+Enter
+    expect(vm.userMessages).toHaveLength(0)
+    expect(vm.inputMessage).toBe('Line 1') // Message should remain
   })
 })

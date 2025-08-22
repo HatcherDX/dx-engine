@@ -39,7 +39,9 @@ describe('BaseLogo', () => {
 
     sizes.forEach((size) => {
       const wrapper = mount(BaseLogo, {
-        props: { size },
+        props: {
+          size,
+        },
       })
 
       switch (size) {
@@ -179,7 +181,9 @@ describe('BaseLogo', () => {
 
     variants.forEach((variant) => {
       const wrapper = mount(BaseLogo, {
-        props: { variant },
+        props: {
+          variant,
+        },
       })
 
       expect(wrapper.exists()).toBe(true)

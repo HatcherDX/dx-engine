@@ -38,6 +38,13 @@ describe('WindowMinimizeButton.vue', () => {
     expect(wrapper.find('button').attributes('disabled')).toBeDefined()
   })
 
+  it('should not have disabled attribute when enabled', () => {
+    const wrapper = mount(WindowMinimizeButton, {
+      props: { disabled: false },
+    })
+    expect(wrapper.find('button').attributes('disabled')).toBeUndefined()
+  })
+
   it('should apply hover effects', async () => {
     const wrapper = mount(WindowMinimizeButton)
     await wrapper.trigger('mouseenter')

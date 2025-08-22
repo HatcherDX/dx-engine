@@ -51,13 +51,30 @@
  * handling terminal initialization, theme management, resize operations,
  * and bidirectional data communication with the Electron backend.
  */
-import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import {
+  ref,
+  onMounted,
+  onUnmounted,
+  onActivated,
+  onDeactivated,
+  watch,
+  nextTick,
+  readonly,
+} from 'vue'
 import { Terminal } from 'xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import { SearchAddon } from '@xterm/addon-search'
 import { Unicode11Addon } from '@xterm/addon-unicode11'
 import { ClipboardAddon } from '@xterm/addon-clipboard'
+import { WebglAddon } from '@xterm/addon-webgl'
+import {
+  WebGLEngine,
+  TerminalRenderer,
+  checkWebGLSupport,
+  type WebGLEngineConfig,
+  type TerminalRendererConfig,
+} from '@hatcherdx/shared-rendering'
 
 /**
  * Props interface for the TerminalView component.
@@ -102,6 +119,19 @@ interface Emits {
 
 const emit = defineEmits<Emits>()
 
+/**
+ * Extended HTMLElement interface to include custom properties.
+ * Used for storing global keydown handler reference for proper cleanup.
+ *
+ * @interface ExtendedHTMLElement
+ * @internal
+ * @since 1.0.0
+ */
+interface ExtendedHTMLElement extends HTMLElement {
+  /** Global keydown handler reference for cleanup */
+  __globalKeyDownHandler?: (event: KeyboardEvent) => void
+}
+
 const terminalContainer = ref<HTMLElement>()
 const focusOverlay = ref<HTMLElement>()
 
@@ -113,14 +143,29 @@ let fitAddon: FitAddon | null = null
 let searchAddon: SearchAddon | null = null
 let unicode11Addon: Unicode11Addon | null = null
 let clipboardAddon: ClipboardAddon | null = null
+let webglAddon: WebglAddon | null = null
+
+// Shared rendering engine for WebGL acceleration
+let webglEngine: WebGLEngine | null = null
+let terminalRenderer: TerminalRenderer | null = null
+
+// WebGL support detection
+const webglSupport = ref<ReturnType<typeof checkWebGLSupport> | null>(null)
+const useWebGLAcceleration = ref(false)
 
 // Terminal connection state
 const isConnected = ref(false)
 const currentTerminalId = ref<string>()
 
+// Component lifecycle state
+const isComponentMounted = ref(true)
+
 // Store IPC cleanup functions
 let ipcCleanupFunctions: (() => void)[] = []
 let focusCleanup: (() => void) | null = null
+
+// Store keydown handler for cleanup
+let handleKeyDown: ((event: KeyboardEvent) => void) | null = null
 
 // Context7 cleanup: Removed unused mutation observers - they were not being used
 
@@ -131,7 +176,9 @@ const initializeTerminal = async () => {
 
   // Clean up any existing terminal and ensure clean container
   if (terminal) {
-    terminal.dispose()
+    if (typeof terminal.dispose === 'function') {
+      terminal.dispose()
+    }
     terminal = null
   }
 
@@ -156,13 +203,24 @@ const initializeTerminal = async () => {
     minimumContrastRatio: 1,
     fastScrollModifier: 'alt',
     fastScrollSensitivity: 20, // Increased from 5 to 20 for faster scrolling
-    // Context7: Viewport optimization
-    scrollOnUserInput: true,
+    // Context7: Intelligent auto-scroll following Windows Terminal patterns
+    scrollOnUserInput: true, // Auto-scroll when user types (snapOnInput)
     altClickMovesCursor: true,
+    // Additional Windows Terminal inspired optimizations
+    macOptionIsMeta: true, // Better macOS integration
+    rightClickSelectsWord: false, // Prevent accidental selections
   })
 
   // Context7 cleanup: Removed unused global focus state management
   // Terminal focus is now handled locally through event listeners
+
+  // Context7 Enhancement: Check WebGL support for performance boost
+  webglSupport.value = checkWebGLSupport()
+  useWebGLAcceleration.value = webglSupport.value.webgl1
+
+  if (useWebGLAcceleration.value) {
+    console.log('[Terminal] WebGL acceleration available:', webglSupport.value)
+  }
 
   // Add professional addons for VSCode-level experience with error handling
   fitAddon = new FitAddon()
@@ -170,19 +228,140 @@ const initializeTerminal = async () => {
   unicode11Addon = new Unicode11Addon()
   clipboardAddon = new ClipboardAddon()
 
+  // Context7 Enhancement: Initialize WebGL addon for ultra-fast rendering
+  if (useWebGLAcceleration.value) {
+    try {
+      webglAddon = new WebglAddon()
+      // Set up context loss handling as recommended by Context7
+      webglAddon.onContextLoss(() => {
+        console.warn('[Terminal] WebGL context lost, disposing addon')
+        if (webglAddon) {
+          webglAddon.dispose()
+          webglAddon = null
+        }
+        // Also dispose shared-rendering resources on context loss
+        if (terminalRenderer) {
+          terminalRenderer.dispose()
+          terminalRenderer = null
+        }
+        if (webglEngine) {
+          webglEngine.dispose()
+          webglEngine = null
+        }
+        useWebGLAcceleration.value = false
+      })
+    } catch (error) {
+      console.warn('[Terminal] WebGL addon initialization failed:', error)
+      webglAddon = null
+      useWebGLAcceleration.value = false
+    }
+  }
+
+  // Context7 Enhancement: Initialize shared-rendering WebGL engine for DRY compliance
+  if (useWebGLAcceleration.value && webglSupport.value) {
+    try {
+      // Create shared WebGL engine with performance optimizations
+      webglEngine = new WebGLEngine()
+
+      // Create a canvas for the shared rendering engine
+      const sharedCanvas = document.createElement('canvas')
+      sharedCanvas.style.position = 'absolute'
+      sharedCanvas.style.top = '0'
+      sharedCanvas.style.left = '0'
+      sharedCanvas.style.pointerEvents = 'none'
+      sharedCanvas.style.zIndex = '-1' // Behind XTerm.js canvas
+
+      await webglEngine.initialize({
+        canvas: sharedCanvas,
+        antialias: true,
+        alpha: false,
+        performance: {
+          enabled: true,
+          collectInterval: 1000,
+          maxSamples: 60,
+          enableMemoryMonitoring: true,
+          enableFrameTimeTracking: true,
+        },
+        debug: false,
+        autoGC: true,
+        gcInterval: 30000,
+      } as WebGLEngineConfig)
+
+      // Initialize terminal renderer for text acceleration
+      terminalRenderer = new TerminalRenderer(webglEngine)
+
+      await terminalRenderer.initialize({
+        rows: 24,
+        cols: 80,
+        fontSize: props.fontSize,
+        fontFamily: props.fontFamily,
+        backgroundColor:
+          props.theme === 'light'
+            ? { r: 0.97, g: 0.97, b: 0.98, a: 1 }
+            : { r: 0.09, g: 0.11, b: 0.13, a: 1 },
+        textColor:
+          props.theme === 'light'
+            ? { r: 0, g: 0, b: 0, a: 1 }
+            : { r: 0.83, g: 0.83, b: 0.83, a: 1 },
+        useWebGL: true,
+        antialias: true,
+      } as TerminalRendererConfig)
+
+      // Add shared canvas to container (behind XTerm.js)
+      if (terminalContainer.value) {
+        terminalContainer.value.appendChild(sharedCanvas)
+      }
+
+      console.log(
+        '[Terminal] Shared-rendering WebGL engine initialized for DRY compliance'
+      )
+
+      // Start performance monitoring for the shared engine
+      startPerformanceMonitoring()
+    } catch (sharedRenderingError) {
+      console.warn(
+        '[Terminal] Shared-rendering initialization failed:',
+        sharedRenderingError
+      )
+      // Fallback to XTerm.js WebGL addon only
+      if (terminalRenderer) {
+        terminalRenderer.dispose()
+        terminalRenderer = null
+      }
+      if (webglEngine) {
+        webglEngine.dispose()
+        webglEngine = null
+      }
+    }
+  }
+
   try {
-    terminal.loadAddon(fitAddon)
-    terminal.loadAddon(new WebLinksAddon())
-    terminal.loadAddon(searchAddon)
-    terminal.loadAddon(unicode11Addon)
-    terminal.loadAddon(clipboardAddon)
+    if (terminal && typeof terminal.loadAddon === 'function') {
+      terminal.loadAddon(fitAddon)
+      terminal.loadAddon(new WebLinksAddon())
+      terminal.loadAddon(searchAddon)
+      terminal.loadAddon(unicode11Addon)
+      terminal.loadAddon(clipboardAddon)
+
+      // Context7 Enhancement: Load WebGL addon AFTER terminal is opened (best practice)
+      if (webglAddon && useWebGLAcceleration.value) {
+        terminal.loadAddon(webglAddon)
+        console.log('[Terminal] WebGL acceleration enabled')
+      }
+    }
   } catch (error) {
     console.error('[Terminal] Failed to load addons:', error)
     // Continue without addons if loading fails
   }
 
   // Activate Unicode11 support for emojis and CJK
-  terminal.unicode.activeVersion = '11'
+  try {
+    if (terminal.unicode) {
+      terminal.unicode.activeVersion = '11'
+    }
+  } catch (error) {
+    console.warn('[Terminal] Unicode11 not available:', error)
+  }
 
   // Ensure container has proper styling before opening terminal
   terminalContainer.value.style.position = 'relative'
@@ -198,7 +377,12 @@ const initializeTerminal = async () => {
   // CRITICAL FIX: Apply viewport overflow fix based on Context7 documentation
   await nextTick()
   setTimeout(() => {
-    if (terminalContainer.value && terminal && terminal.element) {
+    if (
+      terminalContainer.value &&
+      terminal &&
+      terminal.element &&
+      typeof terminal.element.querySelector === 'function'
+    ) {
       // Fix the critical viewport overflow issue
       const xtermViewport = terminal.element.querySelector(
         '.xterm-viewport'
@@ -222,7 +406,9 @@ const initializeTerminal = async () => {
 
       // Ensure screen canvas positioning
       const xtermScreen =
-        terminal && terminal.element
+        terminal &&
+        terminal.element &&
+        typeof terminal.element.querySelector === 'function'
           ? (terminal.element.querySelector('.xterm-screen') as HTMLElement)
           : null
       if (xtermScreen) {
@@ -244,7 +430,9 @@ const initializeTerminal = async () => {
       ]
       layers.forEach((layerSelector) => {
         const layer =
-          terminal && terminal.element
+          terminal &&
+          terminal.element &&
+          typeof terminal.element.querySelector === 'function'
             ? (terminal.element.querySelector(layerSelector) as HTMLElement)
             : null
         if (layer) {
@@ -256,60 +444,207 @@ const initializeTerminal = async () => {
     }
   }, 100)
 
-  // Setup real terminal event handlers
-  terminal.onData((data) => {
-    // Send data to PTY process via IPC
-    if (currentTerminalId.value && window.electronAPI) {
-      if (window.electronAPI.sendTerminalInput) {
-        window.electronAPI.sendTerminalInput({
-          id: currentTerminalId.value,
-          data,
-        })
-      } else {
-        window.electronAPI.send('terminal-input', {
-          id: currentTerminalId.value,
-          data,
-        })
-      }
-    } else {
-      console.warn(
-        '[Terminal] Cannot send data - terminalId or electronAPI missing'
-      )
+  // ENHANCED SNAP-ON-INPUT: Comprehensive user input detection with smooth scrolling
+  const isAtBottom = () => {
+    if (!terminal) return true
+
+    const viewport =
+      terminal.element && typeof terminal.element.querySelector === 'function'
+        ? (terminal.element.querySelector('.xterm-viewport') as HTMLElement)
+        : null
+    if (!viewport) return true
+
+    // Check if we're at the virtual bottom (allowing for small scroll differences)
+    const isAtVirtualBottom =
+      viewport.scrollTop + viewport.clientHeight >= viewport.scrollHeight - 10
+    return isAtVirtualBottom
+  }
+
+  const instantScrollToBottom = () => {
+    if (!terminal) return
+
+    const viewport =
+      terminal.element && typeof terminal.element.querySelector === 'function'
+        ? (terminal.element.querySelector('.xterm-viewport') as HTMLElement)
+        : null
+    if (!viewport) return
+
+    // Instant scroll to bottom for immediate snap-on-input response
+    viewport.scrollTop = viewport.scrollHeight
+  }
+
+  const snapOnInputHandler = () => {
+    // Only scroll if we're not already at the bottom
+    if (!isAtBottom()) {
+      instantScrollToBottom()
     }
-  })
+  }
+
+  // CRITICAL: Capture keydown events BEFORE they reach XTerm pipeline
+  // This ensures we catch ALL user keyboard interactions
+  handleKeyDown = (event: KeyboardEvent) => {
+    // Skip modifier-only keys and navigation keys that shouldn't trigger scroll
+    const skipKeys = [
+      'Control',
+      'Alt',
+      'Shift',
+      'Meta',
+      'CapsLock',
+      'ScrollLock',
+      'NumLock',
+      'F1',
+      'F2',
+      'F3',
+      'F4',
+      'F5',
+      'F6',
+      'F7',
+      'F8',
+      'F9',
+      'F10',
+      'F11',
+      'F12',
+    ]
+
+    if (skipKeys.includes(event.key)) {
+      return // Don't scroll on modifier or function keys
+    }
+
+    // For any other key (including navigation keys like arrows, home, end),
+    // implement snap-on-input behavior
+    snapOnInputHandler()
+  }
+
+  // Setup real terminal event handlers
+  if (terminal && typeof terminal.onData === 'function') {
+    terminal.onData((data) => {
+      // SNAP-ON-INPUT: Always scroll to bottom when user types (Windows Terminal pattern)
+      snapOnInputHandler()
+
+      // Send data to PTY process via IPC
+      if (currentTerminalId.value && window.electronAPI) {
+        if (window.electronAPI.sendTerminalInput) {
+          window.electronAPI.sendTerminalInput({
+            id: currentTerminalId.value,
+            data,
+          })
+        } else {
+          window.electronAPI.send('terminal-input', {
+            id: currentTerminalId.value,
+            data,
+          })
+        }
+      } else {
+        console.warn(
+          '[Terminal] Cannot send data - terminalId or electronAPI missing'
+        )
+      }
+    })
+  }
+
+  // ADDITIONAL: Capture key events that might not trigger onData
+  try {
+    if (terminal && typeof terminal.onKey === 'function') {
+      terminal.onKey((event) => {
+        // Only snap on input if it's a real key (not just modifier keys)
+        const skipKeys = [
+          'Control',
+          'Alt',
+          'Shift',
+          'Meta',
+          'CapsLock',
+          'ScrollLock',
+          'NumLock',
+          'F1',
+          'F2',
+          'F3',
+          'F4',
+          'F5',
+          'F6',
+          'F7',
+          'F8',
+          'F9',
+          'F10',
+          'F11',
+          'F12',
+        ]
+
+        if (!skipKeys.includes(event.key)) {
+          snapOnInputHandler()
+        }
+      })
+    }
+  } catch (error) {
+    console.warn('[Terminal] onKey handler not available:', error)
+  }
 
   // Force enable the terminal immediately
-  if (terminal) {
+  if (terminal && terminal.options) {
     terminal.options.disableStdin = false
     terminal.options.cursorBlink = true
   }
 
-  // Context7: Basic terminal element setup (focus handled by FocusManager)
-  const terminalElement = terminal.element
-  if (terminalElement) {
+  // Context7: Basic terminal element setup with comprehensive keydown capture
+  const terminalElement = terminal && terminal.element ? terminal.element : null
+  if (
+    terminalElement &&
+    typeof terminalElement.addEventListener === 'function' &&
+    terminalElement.style // Ensure style property exists
+  ) {
     terminalElement.style.outline = 'none'
     terminalElement.tabIndex = 0
-  }
 
-  terminal.onResize(({ cols, rows }) => {
-    // Send resize to PTY process
-    if (currentTerminalId.value && window.electronAPI) {
-      if (window.electronAPI.sendTerminalResize) {
-        window.electronAPI.sendTerminalResize({
-          id: currentTerminalId.value,
-          cols,
-          rows,
-        })
-      } else {
-        window.electronAPI.send('terminal-resize', {
-          id: currentTerminalId.value,
-          cols,
-          rows,
-        })
+    // CRITICAL: Add keydown listener to multiple levels to ensure capture
+    // Level 1: Terminal element with capture phase
+    terminalElement.addEventListener('keydown', handleKeyDown, true)
+
+    // Level 2: Also add to the container element
+    if (
+      terminalContainer.value &&
+      typeof terminalContainer.value.addEventListener === 'function'
+    ) {
+      terminalContainer.value.addEventListener('keydown', handleKeyDown, true)
+    }
+
+    // Level 3: Also add to document for global capture when terminal is focused
+    const globalKeyDownHandler = (event: KeyboardEvent) => {
+      // Only trigger if the terminal is focused/active
+      if (
+        terminalElement.contains(document.activeElement) ||
+        terminalElement === document.activeElement ||
+        terminalContainer.value?.contains(document.activeElement)
+      ) {
+        handleKeyDown?.(event)
       }
     }
-    emit('resize', { cols, rows })
-  })
+    document.addEventListener('keydown', globalKeyDownHandler, true)
+
+    // Store the global handler for cleanup
+    ;(terminalElement as ExtendedHTMLElement).__globalKeyDownHandler =
+      globalKeyDownHandler
+  }
+
+  if (terminal && typeof terminal.onResize === 'function') {
+    terminal.onResize(({ cols, rows }) => {
+      // Send resize to PTY process
+      if (currentTerminalId.value && window.electronAPI) {
+        if (window.electronAPI.sendTerminalResize) {
+          window.electronAPI.sendTerminalResize({
+            id: currentTerminalId.value,
+            cols,
+            rows,
+          })
+        } else {
+          window.electronAPI.send('terminal-resize', {
+            id: currentTerminalId.value,
+            cols,
+            rows,
+          })
+        }
+      }
+      emit('resize', { cols, rows })
+    })
+  }
 
   // Context7: Enhanced height management and cursor tracking
   // Fix the height mismatch between terminal-panel__content and terminal-view
@@ -338,7 +673,7 @@ const initializeTerminal = async () => {
 
         // Ensure cursor is visible after resize
         setTimeout(() => {
-          if (terminal) {
+          if (terminal && typeof terminal.scrollToBottom === 'function') {
             terminal.scrollToBottom()
             // Cursor visibility is now managed by FocusManager
           }
@@ -362,36 +697,55 @@ const initializeTerminal = async () => {
         fitAddon.fit()
 
         // Force immediate scroll to bottom to ensure cursor visibility
-        terminal.scrollToBottom()
+        if (terminal && typeof terminal.scrollToBottom === 'function') {
+          terminal.scrollToBottom()
+        }
 
         // Ensure terminal has reasonable dimensions
-        if (terminal.cols < 10 || terminal.rows < 5) {
-          terminal.resize(80, 24)
-          terminal.scrollToBottom() // Ensure cursor visible after resize
+        if (terminal && (terminal.cols < 10 || terminal.rows < 5)) {
+          if (terminal && typeof terminal.resize === 'function') {
+            terminal.resize(80, 24)
+          }
+          if (terminal && typeof terminal.scrollToBottom === 'function') {
+            terminal.scrollToBottom() // Ensure cursor visible after resize
+          }
         }
       } catch (error) {
         console.error('[Terminal] Initial fit failed:', error)
         // Fallback to default size
-        terminal.resize(80, 24)
-        terminal.scrollToBottom()
+        if (terminal && typeof terminal.resize === 'function') {
+          terminal.resize(80, 24)
+        }
+        if (terminal && typeof terminal.scrollToBottom === 'function') {
+          terminal.scrollToBottom()
+        }
       }
     } else {
       console.warn(
         '[Terminal] Container not sized yet, using default dimensions'
       )
-      terminal.resize(80, 24)
-      terminal.scrollToBottom()
+      if (terminal && typeof terminal.resize === 'function') {
+        terminal.resize(80, 24)
+      }
+      if (terminal && typeof terminal.scrollToBottom === 'function') {
+        terminal.scrollToBottom()
+      }
     }
   }
 
   // Context7 simplified: Basic terminal focus
-  terminal.focus()
+  if (terminal && typeof terminal.focus === 'function') {
+    terminal.focus()
+  }
 
   // Setup manual resize control (NO ResizeObserver)
   setupResizeObserver()
 
   // Add window resize listener as safer alternative to ResizeObserver
   setupWindowResizeHandler()
+
+  // Setup intelligent auto-scroll following Windows Terminal patterns
+  setupIntelligentAutoScroll()
 
   // Setup scroll keyboard shortcuts for better navigation
   setupScrollKeyboardShortcuts()
@@ -423,6 +777,9 @@ const initializeTerminal = async () => {
       }
     }
   }
+
+  // Update resource status after initialization
+  updateResourceStatus()
 
   // Terminal ready (will be activated when real data arrives from backend)
 }
@@ -484,7 +841,12 @@ const setupWindowResizeHandler = () => {
 
     // Much longer debounce for window resize - only handle actual window changes
     windowResizeTimeout = setTimeout(() => {
-      if (fitAddon && terminal && terminalContainer.value) {
+      if (
+        isComponentMounted.value &&
+        fitAddon &&
+        terminal &&
+        terminalContainer.value
+      ) {
         try {
           // EMERGENCY: Check dimensions before window resize
           const currentCols = terminal.cols
@@ -501,7 +863,7 @@ const setupWindowResizeHandler = () => {
 
           // Context7: Ensure cursor remains visible after window resize
           setTimeout(() => {
-            if (terminal) {
+            if (terminal && typeof terminal.scrollToBottom === 'function') {
               terminal.scrollToBottom()
             }
           }, 50)
@@ -516,7 +878,9 @@ const setupWindowResizeHandler = () => {
   }
 
   // Listen to actual window resize events only
-  window.addEventListener('resize', windowResizeHandler)
+  if (typeof window !== 'undefined') {
+    window.addEventListener('resize', windowResizeHandler)
+  }
 }
 
 // FIXED SOLUTION: XTerm.js backpressure management based on Context7 terminal.write() callback pattern
@@ -580,11 +944,17 @@ class TerminalBackpressureManager {
         this.writeDataInChunksSync(terminal, data, onComplete)
       } else {
         // Small data - write directly with callback (Context7 pattern)
-        terminal.write(data, () => {
+        if (terminal && typeof terminal.write === 'function') {
+          terminal.write(data, () => {
+            this.isWriting = false
+            this.processQueueNext(terminal)
+            onComplete()
+          })
+        } else {
           this.isWriting = false
           this.processQueueNext(terminal)
           onComplete()
-        })
+        }
       }
     } catch (error) {
       console.error('[Terminal] Write error in startWriting:', error)
@@ -620,15 +990,24 @@ class TerminalBackpressureManager {
       chunkIndex++
 
       // CRITICAL: Use XTerm.js callback for synchronization (Context7 pattern)
-      terminal.write(currentChunk, () => {
-        // XTerm.js has processed this chunk, safe to continue
+      if (terminal && typeof terminal.write === 'function') {
+        terminal.write(currentChunk, () => {
+          // XTerm.js has processed this chunk, safe to continue
+          if (this.WRITE_DELAY > 0) {
+            setTimeout(writeNextChunk, this.WRITE_DELAY)
+          } else {
+            // Let the next iteration happen on next tick for better performance
+            setTimeout(writeNextChunk, 0)
+          }
+        })
+      } else {
+        // If terminal.write is not available, continue without writing
         if (this.WRITE_DELAY > 0) {
           setTimeout(writeNextChunk, this.WRITE_DELAY)
         } else {
-          // Let the next iteration happen on next tick for better performance
           setTimeout(writeNextChunk, 0)
         }
-      })
+      }
     }
 
     writeNextChunk()
@@ -707,7 +1086,7 @@ const handleTerminalData = async (termData: { id: string; data: string }) => {
     }
 
     // Validate terminal state before processing
-    if (!terminal.element || !terminal.element.isConnected) {
+    if (!terminal || !terminal.element || !terminal.element.isConnected) {
       console.warn('[Terminal] Terminal element not connected, skipping data')
       return
     }
@@ -725,10 +1104,17 @@ const handleTerminalData = async (termData: { id: string; data: string }) => {
 
     // Force a resize when first data arrives to ensure proper terminal sizing
     setTimeout(() => {
-      if (terminal && fitAddon && terminalContainer.value) {
+      if (
+        isComponentMounted.value &&
+        terminal &&
+        fitAddon &&
+        terminalContainer.value
+      ) {
         resize()
         // Context7: Fix initial scroll interaction issue
-        terminal.scrollToBottom()
+        if (typeof terminal.scrollToBottom === 'function') {
+          terminal.scrollToBottom()
+        }
       }
     }, 100)
   }
@@ -741,6 +1127,26 @@ const handleTerminalData = async (termData: { id: string; data: string }) => {
 
     // Use enhanced backpressure manager with Context7 callback pattern
     await backpressureManager.writeWithBackpressure(terminal, termData.data)
+
+    // Intelligent auto-scroll for terminal output (Windows Terminal snapOnOutput pattern)
+    // Only scroll if user is at virtual bottom
+    const viewport =
+      terminal.element && typeof terminal.element.querySelector === 'function'
+        ? terminal.element.querySelector('.xterm-viewport')
+        : null
+    if (viewport) {
+      const isAtBottom =
+        viewport.scrollTop + viewport.clientHeight >= viewport.scrollHeight - 10
+
+      // Only auto-scroll if user is at bottom (preserves manual scroll position)
+      if (isAtBottom && typeof window !== 'undefined') {
+        window.requestAnimationFrame(() => {
+          if (terminal && typeof terminal.scrollToBottom === 'function') {
+            terminal.scrollToBottom()
+          }
+        })
+      }
+    }
   } catch (error) {
     console.error('[Terminal] Backpressure write failed:', {
       error,
@@ -763,8 +1169,8 @@ const handleTerminalData = async (termData: { id: string; data: string }) => {
 }
 
 const setupTerminalIPCListeners = () => {
-  if (!window.electronAPI) {
-    console.error('[Terminal] No electronAPI available for IPC listeners')
+  if (typeof window === 'undefined' || !window.electronAPI) {
+    console.warn('[Terminal] No electronAPI available for IPC listeners')
     return
   }
 
@@ -781,7 +1187,11 @@ const setupTerminalIPCListeners = () => {
   const handleTerminalExitWrapper = (data: unknown) => {
     const exitData = data as { id: string; exitCode: number }
     if (exitData.id === currentTerminalId.value && terminal) {
-      terminal.write(`\r\n[Process exited with code ${exitData.exitCode}]\r\n`)
+      if (typeof terminal.write === 'function') {
+        terminal.write(
+          `\r\n[Process exited with code ${exitData.exitCode}]\r\n`
+        )
+      }
       isConnected.value = false
     }
   }
@@ -789,7 +1199,7 @@ const setupTerminalIPCListeners = () => {
   // Terminal error handler
   const handleTerminalErrorWrapper = (data: unknown) => {
     const errorData = data as { error: string }
-    if (terminal) {
+    if (terminal && typeof terminal.write === 'function') {
       terminal.write(`\r\n[Terminal Error: ${errorData.error}]\r\n`)
     }
     console.error('[Terminal] Error:', errorData.error)
@@ -827,19 +1237,19 @@ const connectToTerminal = async (terminalId: string) => {
 }
 
 const writeData = (data: string) => {
-  if (terminal) {
+  if (terminal && typeof terminal.write === 'function') {
     terminal.write(data)
   }
 }
 
 const clear = () => {
-  if (terminal) {
+  if (terminal && typeof terminal.clear === 'function') {
     terminal.clear()
   }
 }
 
 const focus = () => {
-  if (terminal) {
+  if (terminal && typeof terminal.focus === 'function') {
     terminal.focus()
   }
 }
@@ -871,121 +1281,367 @@ const isReasonableTerminalSize = (cols: number, rows: number): boolean => {
 }
 
 const resize = () => {
-  if (fitAddon && terminal && terminalContainer.value) {
-    // Check current terminal dimensions BEFORE resize
-    const currentCols = terminal.cols
-    const currentRows = terminal.rows
+  if (
+    !isComponentMounted.value ||
+    !fitAddon ||
+    !terminal ||
+    !terminalContainer.value
+  ) {
+    return
+  }
 
-    // Emergency protection: don't resize if current size is already astronomical
-    if (!isReasonableTerminalSize(currentCols, currentRows)) {
-      console.error(
-        `[Terminal] EMERGENCY: Blocking resize - current size ${currentCols}x${currentRows} is astronomical`
-      )
+  // Check current terminal dimensions BEFORE resize
+  const currentCols = terminal.cols
+  const currentRows = terminal.rows
+
+  // Emergency protection: don't resize if current size is already astronomical
+  if (!isReasonableTerminalSize(currentCols, currentRows)) {
+    console.error(
+      `[Terminal] EMERGENCY: Blocking resize - current size ${currentCols}x${currentRows} is astronomical`
+    )
+    return
+  }
+
+  // Clear any pending manual resize
+  if (manualResizeTimeout) {
+    clearTimeout(manualResizeTimeout)
+  }
+
+  // Debounce manual resize calls
+  manualResizeTimeout = setTimeout(() => {
+    // CRITICAL: Extra safety check to prevent resize on destroyed component
+    if (
+      !isComponentMounted.value ||
+      !fitAddon ||
+      !terminal ||
+      !terminalContainer.value ||
+      !terminal.element
+    ) {
       return
     }
 
-    // Clear any pending manual resize
-    if (manualResizeTimeout) {
-      clearTimeout(manualResizeTimeout)
-    }
+    try {
+      // Double-check before actual resize
+      if (
+        !terminal ||
+        typeof terminal.cols !== 'number' ||
+        typeof terminal.rows !== 'number'
+      )
+        return
+      const preResizeCols = terminal.cols
+      const preResizeRows = terminal.rows
 
-    // Debounce manual resize calls
-    manualResizeTimeout = setTimeout(() => {
-      if (fitAddon && terminal && terminalContainer.value) {
+      if (!isReasonableTerminalSize(preResizeCols, preResizeRows)) {
+        console.error(
+          `[Terminal] EMERGENCY: Aborting resize - pre-resize size ${preResizeCols}x${preResizeRows} is astronomical`
+        )
+        return
+      }
+
+      // Validate container is properly sized before resizing
+      const containerRect = terminalContainer.value.getBoundingClientRect()
+
+      if (containerRect.width === 0 || containerRect.height === 0) {
+        console.warn('[Terminal] Container not visible, skipping resize')
+        return
+      }
+
+      fitAddon.fit()
+
+      // Context7 Enhancement: Resize shared terminal renderer to match XTerm.js
+      if (
+        terminalRenderer &&
+        webglEngine &&
+        terminal &&
+        terminal.rows &&
+        terminal.cols
+      ) {
         try {
-          // Double-check before actual resize
-          const preResizeCols = terminal.cols
-          const preResizeRows = terminal.rows
-
-          if (!isReasonableTerminalSize(preResizeCols, preResizeRows)) {
-            console.error(
-              `[Terminal] EMERGENCY: Aborting resize - pre-resize size ${preResizeCols}x${preResizeRows} is astronomical`
-            )
-            return
+          if (typeof terminalRenderer.resize === 'function') {
+            terminalRenderer.resize(terminal.rows, terminal.cols)
           }
-
-          // Validate container is properly sized before resizing
-          const containerRect = terminalContainer.value.getBoundingClientRect()
-
-          if (containerRect.width === 0 || containerRect.height === 0) {
-            console.warn('[Terminal] Container not visible, skipping resize')
-            return
+          // Resize WebGL engine canvas to match container
+          if (typeof webglEngine.resize === 'function') {
+            webglEngine.resize(containerRect.width, containerRect.height)
           }
-
-          fitAddon.fit()
-
-          // Context7: Ensure cursor remains visible after resize
-          setTimeout(() => {
-            if (terminal) {
-              terminal.scrollToBottom()
-            }
-          }, 50)
-
-          // CRITICAL FIX: Reapply viewport overflow fix after resize
-          setTimeout(() => {
-            if (terminal && terminal.element) {
-              // Reapply viewport fix
-              const xtermViewport = terminal.element.querySelector(
-                '.xterm-viewport'
-              ) as HTMLElement
-              if (xtermViewport) {
-                xtermViewport.style.position = 'absolute'
-                xtermViewport.style.top = '0'
-                xtermViewport.style.left = '0'
-                xtermViewport.style.right = '0'
-                xtermViewport.style.bottom = '0'
-                xtermViewport.style.width = 'auto'
-                xtermViewport.style.height = 'auto'
-                xtermViewport.style.overflow = 'auto'
-
-                // Reapply theme background color
-                const backgroundColor =
-                  props.theme === 'light' ? '#f6f8fa' : '#161b22'
-                xtermViewport.style.backgroundColor = backgroundColor
-              }
-
-              // Reapply screen positioning
-              const xtermScreen =
-                terminal && terminal.element
-                  ? (terminal.element.querySelector(
-                      '.xterm-screen'
-                    ) as HTMLElement)
-                  : null
-              if (xtermScreen) {
-                xtermScreen.style.position = 'relative'
-                xtermScreen.style.left = '0'
-                xtermScreen.style.top = '0'
-                xtermScreen.style.transform = 'none'
-                xtermScreen.style.width = '100%'
-                xtermScreen.style.height = 'auto'
-                xtermScreen.style.minHeight = '100%'
-              }
-            }
-          }, 50)
-
-          // Check post-resize dimensions
-          const postResizeCols = terminal.cols
-          const postResizeRows = terminal.rows
-
-          // If the terminal is still too small after fit, force reasonable dimensions
-          if (postResizeCols < 10 || postResizeRows < 5) {
-            console.warn(
-              '[Terminal] Post-resize dimensions too small, forcing minimum size'
-            )
-            terminal.resize(80, 24)
-          }
-        } catch (error) {
-          console.warn('[Terminal] Manual resize error:', error)
+          console.log(
+            `[Terminal] Shared renderer resized to ${terminal.cols}x${terminal.rows}`
+          )
+        } catch (sharedResizeError) {
+          console.warn(
+            '[Terminal] Shared renderer resize failed:',
+            sharedResizeError
+          )
         }
       }
-      manualResizeTimeout = null
-    }, 50) // Shorter debounce for manual calls
-  }
+
+      // Context7: Ensure cursor remains visible after resize
+      setTimeout(() => {
+        if (terminal && typeof terminal.scrollToBottom === 'function') {
+          terminal.scrollToBottom()
+        }
+      }, 50)
+
+      // CRITICAL FIX: Reapply viewport overflow fix after resize
+      setTimeout(() => {
+        if (
+          terminal &&
+          terminal.element &&
+          typeof terminal.element.querySelector === 'function'
+        ) {
+          // Reapply viewport fix
+          const xtermViewport = terminal.element.querySelector(
+            '.xterm-viewport'
+          ) as HTMLElement
+          if (xtermViewport) {
+            xtermViewport.style.position = 'absolute'
+            xtermViewport.style.top = '0'
+            xtermViewport.style.left = '0'
+            xtermViewport.style.right = '0'
+            xtermViewport.style.bottom = '0'
+            xtermViewport.style.width = 'auto'
+            xtermViewport.style.height = 'auto'
+            xtermViewport.style.overflow = 'auto'
+
+            // Reapply theme background color
+            const backgroundColor =
+              props.theme === 'light' ? '#f6f8fa' : '#161b22'
+            xtermViewport.style.backgroundColor = backgroundColor
+          }
+
+          // Reapply screen positioning
+          const xtermScreen =
+            terminal &&
+            terminal.element &&
+            typeof terminal.element.querySelector === 'function'
+              ? (terminal.element.querySelector('.xterm-screen') as HTMLElement)
+              : null
+          if (xtermScreen) {
+            xtermScreen.style.position = 'relative'
+            xtermScreen.style.left = '0'
+            xtermScreen.style.top = '0'
+            xtermScreen.style.transform = 'none'
+            xtermScreen.style.width = '100%'
+            xtermScreen.style.height = 'auto'
+            xtermScreen.style.minHeight = '100%'
+          }
+        }
+      }, 50)
+
+      // Check post-resize dimensions
+      if (terminal) {
+        const postResizeCols = terminal.cols
+        const postResizeRows = terminal.rows
+
+        // If the terminal is still too small after fit, force reasonable dimensions
+        if (postResizeCols < 10 || postResizeRows < 5) {
+          console.warn(
+            '[Terminal] Post-resize dimensions too small, forcing minimum size'
+          )
+          if (terminal && typeof terminal.resize === 'function') {
+            terminal.resize(80, 24)
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('[Terminal] Manual resize error:', error)
+    }
+
+    manualResizeTimeout = null
+  }, 50) // Shorter debounce for manual calls
 }
 
 // Context7 cleanup: Removed unused search functions
 // The search addon is loaded but advanced search features not exposed
 // This keeps the addon available for internal use while simplifying the API
+
+// Context7 Enhancement: Unified resource management status
+const resourceStatus = ref({
+  terminal: false,
+  webglAddon: false,
+  sharedEngine: false,
+  sharedRenderer: false,
+  performanceMonitoring: false,
+  totalResources: 0,
+  lastResourceCheck: Date.now(),
+})
+
+// Context7 Enhancement: Performance monitoring integration
+const performanceMetrics = ref({
+  fps: 0,
+  frameTime: 0,
+  drawCalls: 0,
+  vertices: 0,
+  triangles: 0,
+  memoryUsage: 0,
+  isWebGLActive: false,
+  timestamp: Date.now(),
+})
+
+// Performance monitoring function that integrates with shared-rendering
+const updatePerformanceMetrics = () => {
+  if (webglEngine) {
+    try {
+      const metrics = webglEngine.performanceMetrics
+      performanceMetrics.value = {
+        fps: metrics.fps,
+        frameTime: metrics.frameTime,
+        drawCalls: metrics.drawCalls,
+        vertices: metrics.vertices,
+        triangles: metrics.triangles,
+        memoryUsage: backpressureManager.getMemoryUsageMB(),
+        isWebGLActive: !webglEngine.isDisposed && useWebGLAcceleration.value,
+        timestamp: Date.now(),
+      }
+
+      // Log performance warnings based on Context7 recommendations
+      if (metrics.fps < 30 && useWebGLAcceleration.value) {
+        console.warn(
+          '[Terminal] Performance warning: Low FPS detected',
+          metrics.fps
+        )
+      }
+
+      if (!backpressureManager.isMemoryHealthy()) {
+        console.warn('[Terminal] Performance warning: Memory usage high', {
+          queueSize: backpressureManager.getQueueSize(),
+          memoryMB: backpressureManager.getMemoryUsageMB(),
+        })
+      }
+    } catch (error) {
+      console.warn('[Terminal] Performance monitoring error:', error)
+    }
+  } else {
+    // Fallback metrics when WebGL is not available
+    performanceMetrics.value.isWebGLActive = false
+    performanceMetrics.value.memoryUsage =
+      backpressureManager.getMemoryUsageMB()
+    performanceMetrics.value.timestamp = Date.now()
+  }
+}
+
+// Start performance monitoring interval
+let performanceMonitoringInterval: ReturnType<typeof setInterval> | null = null
+
+const startPerformanceMonitoring = () => {
+  if (performanceMonitoringInterval) return
+
+  performanceMonitoringInterval = setInterval(updatePerformanceMetrics, 1000)
+  resourceStatus.value.performanceMonitoring = true
+  updateResourceStatus()
+  console.log('[Terminal] Performance monitoring started')
+}
+
+const stopPerformanceMonitoring = () => {
+  if (performanceMonitoringInterval) {
+    clearInterval(performanceMonitoringInterval)
+    performanceMonitoringInterval = null
+    resourceStatus.value.performanceMonitoring = false
+    console.log('[Terminal] Performance monitoring stopped')
+  }
+}
+
+// Context7 Enhancement: Unified resource management functions
+const updateResourceStatus = () => {
+  resourceStatus.value = {
+    terminal: !!terminal && !terminal.element?.isConnected === false,
+    webglAddon: !!webglAddon && useWebGLAcceleration.value,
+    sharedEngine: !!webglEngine && !webglEngine.isDisposed,
+    sharedRenderer: !!terminalRenderer && !terminalRenderer.isDisposed,
+    performanceMonitoring: !!performanceMonitoringInterval,
+    totalResources: [
+      terminal,
+      webglAddon,
+      webglEngine,
+      terminalRenderer,
+      performanceMonitoringInterval,
+    ].filter(Boolean).length,
+    lastResourceCheck: Date.now(),
+  }
+}
+
+// Unified disposal function following shared-rendering patterns
+const disposeAllResources = () => {
+  const disposalOrder = [
+    'performanceMonitoring',
+    'webglAddon',
+    'sharedRenderer',
+    'sharedEngine',
+    'terminal',
+  ]
+
+  console.log('[Terminal] Starting unified resource disposal...')
+
+  disposalOrder.forEach((resourceType) => {
+    try {
+      switch (resourceType) {
+        case 'performanceMonitoring':
+          stopPerformanceMonitoring()
+          break
+        case 'webglAddon':
+          if (webglAddon) {
+            webglAddon.dispose?.()
+            webglAddon = null
+          }
+          break
+        case 'sharedRenderer':
+          if (terminalRenderer) {
+            terminalRenderer.dispose()
+            terminalRenderer = null
+          }
+          break
+        case 'sharedEngine':
+          if (webglEngine) {
+            webglEngine.dispose()
+            webglEngine = null
+          }
+          break
+        case 'terminal':
+          if (terminal) {
+            terminal.dispose?.()
+            terminal = null
+          }
+          break
+      }
+      console.log(`[Terminal] Disposed ${resourceType}`)
+    } catch (error) {
+      console.error(`[Terminal] Error disposing ${resourceType}:`, error)
+    }
+  })
+
+  updateResourceStatus()
+  console.log('[Terminal] Unified resource disposal completed')
+}
+
+// Resource health check function
+const checkResourceHealth = () => {
+  updateResourceStatus()
+
+  const unhealthyResources = []
+
+  if (terminal && terminal.element && !terminal.element.isConnected) {
+    unhealthyResources.push('terminal (disconnected)')
+  }
+
+  if (webglEngine && webglEngine.isDisposed && useWebGLAcceleration.value) {
+    unhealthyResources.push('webglEngine (disposed but should be active)')
+  }
+
+  if (
+    terminalRenderer &&
+    terminalRenderer.isDisposed &&
+    useWebGLAcceleration.value
+  ) {
+    unhealthyResources.push('terminalRenderer (disposed but should be active)')
+  }
+
+  if (unhealthyResources.length > 0) {
+    console.warn('[Terminal] Resource health check failed:', unhealthyResources)
+    return false
+  }
+
+  return true
+}
 
 // Enhanced clipboard operations with ClipboardAddon (Context7 best practices)
 const copySelection = async (): Promise<string> => {
@@ -1110,13 +1766,14 @@ watch(
 watch(
   () => props.theme,
   () => {
-    if (terminal) {
+    if (terminal && terminal.options) {
       terminal.options.theme = getTerminalTheme()
 
       // Update viewport background color when theme changes
-      const xtermViewport = terminal.element?.querySelector(
-        '.xterm-viewport'
-      ) as HTMLElement
+      const xtermViewport =
+        terminal.element && typeof terminal.element.querySelector === 'function'
+          ? (terminal.element.querySelector('.xterm-viewport') as HTMLElement)
+          : null
       if (xtermViewport) {
         const backgroundColor = props.theme === 'light' ? '#f6f8fa' : '#161b22'
         xtermViewport.style.backgroundColor = backgroundColor
@@ -1148,7 +1805,11 @@ const activateTerminal = () => {
 
   // Focus the actual terminal and apply CSS classes for cursor visibility
   nextTick(() => {
-    if (terminal && terminal.element) {
+    if (
+      terminal &&
+      terminal.element &&
+      typeof terminal.element.querySelector === 'function'
+    ) {
       const textarea = terminal.element.querySelector(
         '.xterm-helper-textarea'
       ) as HTMLTextAreaElement
@@ -1159,6 +1820,12 @@ const activateTerminal = () => {
         terminal.element.classList.add('terminal-focused')
         // Enable cursor blink
         terminal.options.cursorBlink = true
+
+        // Snap-on-input: Always scroll to bottom when user activates terminal
+        // This follows Windows Terminal snapOnInput pattern
+        if (typeof terminal.scrollToBottom === 'function') {
+          terminal.scrollToBottom()
+        }
       }
     }
   })
@@ -1271,16 +1938,94 @@ onMounted(() => {
 
   // Additional focus enforcement after component is fully mounted
   setTimeout(() => {
-    if (terminal && terminalContainer.value) {
+    if (
+      terminal &&
+      terminalContainer.value &&
+      typeof terminal.focus === 'function'
+    ) {
       terminal.focus()
 
       // Also try to focus the DOM element
       const terminalElement = terminal.element
-      if (terminalElement) {
+      if (terminalElement && typeof terminalElement.focus === 'function') {
         terminalElement.focus()
       }
     }
   }, 200)
+})
+
+/**
+ * Handle terminal activation when component is reactivated by KeepAlive.
+ * Ensures terminal is properly sized and focused after reactivation.
+ *
+ * @since 1.0.0
+ */
+onActivated(() => {
+  console.log('[TerminalView] Component activated via KeepAlive')
+
+  // Re-focus and resize terminal when component is reactivated
+  nextTick(() => {
+    if (terminal && terminalContainer.value && fitAddon) {
+      try {
+        // Ensure terminal is properly sized after reactivation
+        const containerRect = terminalContainer.value.getBoundingClientRect()
+
+        if (containerRect.width > 0 && containerRect.height > 0) {
+          // Re-fit the terminal to the container
+          fitAddon.fit()
+
+          // Reapply any viewport fixes that might be needed
+          const xtermViewport =
+            terminal.element &&
+            typeof terminal.element.querySelector === 'function'
+              ? (terminal.element.querySelector(
+                  '.xterm-viewport'
+                ) as HTMLElement)
+              : null
+          if (xtermViewport) {
+            // Ensure scroll position is maintained
+            if (typeof terminal.scrollToBottom === 'function') {
+              terminal.scrollToBottom()
+            }
+          }
+
+          // Ensure terminal focus
+          if (typeof terminal.focus === 'function') {
+            terminal.focus()
+          }
+
+          console.log('[TerminalView] Terminal reactivated and focused')
+        }
+      } catch (error) {
+        console.error('[TerminalView] Error during activation:', error)
+      }
+    }
+  })
+})
+
+/**
+ * Handle terminal deactivation when component is cached by KeepAlive.
+ * Performs cleanup of active states when component is hidden.
+ *
+ * @since 1.0.0
+ */
+onDeactivated(() => {
+  console.log('[TerminalView] Component deactivated by KeepAlive')
+
+  // Optional: Clean up active states when deactivated
+  if (terminal) {
+    try {
+      // Blur the terminal to prevent focus conflicts
+      terminal.blur()
+
+      // Mark terminal as not having focus
+      terminalHasFocus.value = false
+
+      console.log('[TerminalView] Terminal deactivated and blurred')
+    } catch (error) {
+      console.error('[TerminalView] Error during deactivation:', error)
+    }
+  }
 })
 
 // Cleanup function for IPC listeners
@@ -1294,6 +2039,12 @@ const cleanupIPCListeners = () => {
 
 onUnmounted(() => {
   try {
+    // CRITICAL: Mark component as unmounted to prevent async operations
+    isComponentMounted.value = false
+
+    // Context7 Enhancement: Use unified resource disposal pattern
+    console.log('[Terminal] Component unmounting, starting cleanup...')
+
     // Clean up focus management
     if (focusCleanup) {
       focusCleanup()
@@ -1311,7 +2062,7 @@ onUnmounted(() => {
     }
 
     // Clean up window resize handler
-    if (windowResizeHandler) {
+    if (windowResizeHandler && typeof window !== 'undefined') {
       window.removeEventListener('resize', windowResizeHandler)
       windowResizeHandler = null
     }
@@ -1327,7 +2078,10 @@ onUnmounted(() => {
       windowResizeTimeout = null
     }
 
-    // Clean up addons first (Context7 best practice)
+    // Context7 Enhancement: Use unified disposal instead of manual cleanup
+    disposeAllResources()
+
+    // Clean up remaining addons not covered by unified disposal
     try {
       if (clipboardAddon) {
         clipboardAddon.dispose?.()
@@ -1346,13 +2100,46 @@ onUnmounted(() => {
         unicode11Addon = null
       }
     } catch (addonError) {
-      console.warn('[Terminal] Error disposing addons:', addonError)
+      console.warn('[Terminal] Error disposing remaining addons:', addonError)
+    }
+
+    // Clean up keydown event listeners
+    const terminalElement = terminal?.element
+    if (
+      terminalElement &&
+      handleKeyDown &&
+      typeof terminalElement.removeEventListener === 'function'
+    ) {
+      // Remove from terminal element
+      terminalElement.removeEventListener('keydown', handleKeyDown, true)
+
+      // Remove from container
+      if (
+        terminalContainer.value &&
+        typeof terminalContainer.value.removeEventListener === 'function'
+      ) {
+        terminalContainer.value.removeEventListener(
+          'keydown',
+          handleKeyDown,
+          true
+        )
+      }
+
+      // Remove global handler
+      const globalHandler = (terminalElement as ExtendedHTMLElement)
+        .__globalKeyDownHandler
+      if (globalHandler) {
+        document.removeEventListener('keydown', globalHandler, true)
+        delete (terminalElement as ExtendedHTMLElement).__globalKeyDownHandler
+      }
     }
 
     // Clean up terminal (Context7 recommended order)
     if (terminal) {
       try {
-        terminal.dispose()
+        if (typeof terminal.dispose === 'function') {
+          terminal.dispose()
+        }
         terminal = null
       } catch (terminalError) {
         console.error('[Terminal] Error disposing terminal:', terminalError)
@@ -1368,14 +2155,61 @@ onUnmounted(() => {
 
 // Add scroll management functions
 const scrollToBottom = () => {
-  if (terminal) {
+  if (terminal && typeof terminal.scrollToBottom === 'function') {
     terminal.scrollToBottom()
   }
 }
 
 const scrollToTop = () => {
-  if (terminal) {
+  if (terminal && typeof terminal.scrollToLine === 'function') {
     terminal.scrollToLine(0)
+  }
+}
+
+// Setup intelligent auto-scroll based on Windows Terminal patterns
+const setupIntelligentAutoScroll = () => {
+  if (!terminal) return
+
+  // Scroll behavior setup (no local state needed with simplified approach)
+
+  // Listen for terminal output (data coming back from PTY)
+  // This is handled by the backpressure manager in handleTerminalData()
+  // Auto-scroll logic is applied there when new content is written to terminal
+
+  // Scroll behavior is now handled directly in handleTerminalData() for output
+  // and in the main onData() handler for user input (snap-on-input)
+
+  // Snap-on-input is now handled comprehensively in initializeTerminal() via:
+  // 1. terminal.onData() - for data sent to PTY
+  // 2. terminal.attachCustomKeyEventHandler() - for all keyboard events
+  // 3. Mouse and focus events are handled here for completeness
+
+  const terminalElement = terminal.element
+  if (
+    terminalElement &&
+    typeof terminalElement.addEventListener === 'function'
+  ) {
+    // Mouse click should also trigger snap-on-input
+    terminalElement.addEventListener('mousedown', () => {
+      if (typeof window !== 'undefined') {
+        window.requestAnimationFrame(() => {
+          if (terminal && typeof terminal.scrollToBottom === 'function') {
+            terminal.scrollToBottom()
+          }
+        })
+      }
+    })
+
+    // Focus events should also trigger snap-on-input
+    terminalElement.addEventListener('focus', () => {
+      if (typeof window !== 'undefined') {
+        window.requestAnimationFrame(() => {
+          if (terminal && typeof terminal.scrollToBottom === 'function') {
+            terminal.scrollToBottom()
+          }
+        })
+      }
+    })
   }
 }
 
@@ -1383,37 +2217,48 @@ const scrollToTop = () => {
 const setupScrollKeyboardShortcuts = () => {
   if (!terminal) return
 
-  terminal.attachCustomKeyEventHandler((event) => {
-    // Ctrl/Cmd + Home: Scroll to top
-    if ((event.ctrlKey || event.metaKey) && event.key === 'Home') {
-      scrollToTop()
-      return false
-    }
-
-    // Ctrl/Cmd + End: Scroll to bottom
-    if ((event.ctrlKey || event.metaKey) && event.key === 'End') {
-      scrollToBottom()
-      return false
-    }
-
-    // Page Up: Scroll up
-    if (event.key === 'PageUp') {
-      if (terminal) {
-        terminal.scrollLines(-terminal.rows + 1)
+  // Check if attachCustomKeyEventHandler method exists
+  if (typeof terminal.attachCustomKeyEventHandler === 'function') {
+    terminal.attachCustomKeyEventHandler((event) => {
+      // Ctrl/Cmd + Home: Scroll to top
+      if ((event.ctrlKey || event.metaKey) && event.key === 'Home') {
+        scrollToTop()
+        return false
       }
-      return false
-    }
 
-    // Page Down: Scroll down
-    if (event.key === 'PageDown') {
-      if (terminal) {
-        terminal.scrollLines(terminal.rows - 1)
+      // Ctrl/Cmd + End: Scroll to bottom
+      if ((event.ctrlKey || event.metaKey) && event.key === 'End') {
+        scrollToBottom()
+        return false
       }
-      return false
-    }
 
-    return true
-  })
+      // Page Up: Scroll up
+      if (event.key === 'PageUp') {
+        if (
+          terminal &&
+          typeof terminal.scrollLines === 'function' &&
+          terminal.rows
+        ) {
+          terminal.scrollLines(-terminal.rows + 1)
+        }
+        return false
+      }
+
+      // Page Down: Scroll down
+      if (event.key === 'PageDown') {
+        if (
+          terminal &&
+          typeof terminal.scrollLines === 'function' &&
+          terminal.rows
+        ) {
+          terminal.scrollLines(terminal.rows - 1)
+        }
+        return false
+      }
+
+      return true
+    })
+  }
 }
 
 // Expose essential methods for parent components - Context7 simplified API
@@ -1427,6 +2272,35 @@ defineExpose({
   paste,
   scrollToBottom,
   scrollToTop,
+  // Focus management state for testing and external access
+  get terminalHasFocus() {
+    return terminalHasFocus.value
+  },
+  set terminalHasFocus(value: boolean) {
+    terminalHasFocus.value = value
+  },
+  // Context7 Enhancement: Expose performance monitoring and WebGL status
+  performanceMetrics: readonly(performanceMetrics),
+  updatePerformanceMetrics,
+  // WebGL acceleration status
+  get isWebGLActive() {
+    return useWebGLAcceleration.value && !webglEngine?.isDisposed
+  },
+  get webglSupport() {
+    return webglSupport.value
+  },
+  // Shared-rendering engine access for advanced use cases
+  get sharedWebGLEngine() {
+    return webglEngine
+  },
+  get sharedTerminalRenderer() {
+    return terminalRenderer
+  },
+  // Context7 Enhancement: Unified resource management
+  resourceStatus: readonly(resourceStatus),
+  updateResourceStatus,
+  checkResourceHealth,
+  disposeAllResources,
 })
 </script>
 
@@ -1458,6 +2332,7 @@ defineExpose({
 /* Clean XTerm.js styles - minimal interference */
 :deep(.xterm) {
   font-family: 'JetBrains Mono', 'Monaco', 'Consolas', monospace;
+  padding: 8px; /* Standardized with system terminals */
 }
 
 /* Selection styling */

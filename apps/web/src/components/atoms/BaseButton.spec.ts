@@ -48,7 +48,9 @@ describe('BaseButton', () => {
 
     variants.forEach((variant) => {
       const wrapper = mount(BaseButton, {
-        props: { variant },
+        props: {
+          variant,
+        },
       })
 
       expect(wrapper.exists()).toBe(true)
@@ -80,7 +82,9 @@ describe('BaseButton', () => {
 
     sizes.forEach((size) => {
       const wrapper = mount(BaseButton, {
-        props: { size },
+        props: {
+          size,
+        },
       })
 
       expect(wrapper.exists()).toBe(true)

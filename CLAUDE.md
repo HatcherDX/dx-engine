@@ -49,6 +49,25 @@ dx-engine/
 
 Este es un **monorepo pnpm workspace**. Usar npm rompe la gestión de dependencias y workspaces.
 
+### 🚨 REGLA CRÍTICA: APLICACIÓN SOLO ELECTRON - NUNCA BROWSER
+
+**ESTE ES UN IDE DESKTOP - NUNCA CORRERÁ EN BROWSER**
+
+- ❌ **PROHIBIDO**: Lógica de fallback para browser
+- ❌ **PROHIBIDO**: Detección de environment browser vs electron
+- ❌ **PROHIBIDO**: Mock data para browser mode
+- ❌ **PROHIBIDO**: `import.meta.env.DEV` checks para browser
+- ✅ **OBLIGATORIO**: Usar SOLO `window.electronAPI` para operaciones Git
+- ✅ **OBLIGATORIO**: Asumir que Electron APIs siempre están disponibles
+- ✅ **OBLIGATORIO**: Si falla Electron API, mostrar error - NO fallback
+
+**APLICACIONES QUE CORREN EN BROWSER:**
+
+- `apps/docs/` - Solo documentación
+- Todo lo demás es Electron desktop app
+
+**ESTA REGLA ELIMINA COMPLEJIDAD INNECESARIA Y BUGS DE FALLBACK.**
+
 ### 🚨 REGLA CRÍTICA: VALIDACIÓN OBLIGATORIA POST-CAMBIOS
 
 **DESPUÉS DE CADA CAMBIO DE CÓDIGO, EJECUTAR VALIDACIONES OBLIGATORIAS**
@@ -72,6 +91,23 @@ pnpm lint
 - ✅ **OBLIGATORIO**: Si falla lint, arreglar todos los errores antes de continuar
 
 **Esta validación es OBLIGATORIA para mantener la calidad del código y evitar problemas en CI/CD.**
+
+### 🚨 REGLA CRÍTICA: MODIFICACIONES MANUALES - NO SCRIPTS BATCH
+
+**NUNCA CREAR SCRIPTS PARA OPERACIONES BATCH O LIMPIEZA MASIVA**
+
+- ❌ **PROHIBIDO**: Crear scripts para remover código/logs masivamente
+- ❌ **PROHIBIDO**: Usar sed, awk o similares para modificaciones batch
+- ❌ **PROHIBIDO**: Crear loops automatizados para modificar múltiples archivos
+- ❌ **PROHIBIDO**: Scripts de "limpieza" o "refactoring" automático
+- ✅ **OBLIGATORIO**: Hacer TODAS las modificaciones manualmente, archivo por archivo
+- ✅ **OBLIGATORIO**: Revisar cada cambio individualmente antes de aplicarlo
+- ✅ **OBLIGATORIO**: Usar las herramientas Edit/MultiEdit para cambios precisos
+
+**RAZÓN**: Las operaciones batch pueden causar daños masivos no intencionados.
+Cada modificación debe ser consciente, revisada y precisa.
+
+**Esta regla garantiza que cada cambio sea intencional y controlado.**
 
 ### Comandos Principales
 

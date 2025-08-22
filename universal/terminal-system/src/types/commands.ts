@@ -16,9 +16,12 @@ export interface CommandResult {
 }
 
 export interface CommandProgress {
-  stage: string
-  progress: number
+  stage?: string
+  progress?: number
+  percentage?: number
   message: string
+  current?: number
+  total?: number
 }
 
 // Git-specific command types

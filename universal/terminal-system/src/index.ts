@@ -14,8 +14,14 @@ export { TerminalBackend } from './core/TerminalBackend.js'
 // Terminal UI exports - VSCode-style multi-tab terminal
 export { TabManager, TerminalInstance, TerminalUI } from './terminal/index.js'
 
+// WebGL rendering exports
+export { WebGLTerminalAdapter } from './rendering/WebGLTerminalAdapter.js'
+
 // Command API - Central API for DX Engine
 export { CommandRunner, GitRunner, TaskRunner } from './commands/index.js'
+
+// System logging and read-only terminals
+export * from './system/index.js'
 
 // Type exports
 export type * from './types/index.js'

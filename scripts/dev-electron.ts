@@ -1,91 +1,119 @@
 #!/usr/bin/env tsx
 /**
- * Development script to run web server and Electron together
+ * @fileoverview Development script to run web server and Electron together
+ *
+ * @description
+ * Orchestrates the startup of both web development server and Electron app:
+ * - Starts web server first and waits for it to be ready
+ * - Launches Electron once web server is available
+ * - Filters out harmless DevTools console errors
+ * - Handles graceful shutdown of both processes
+ * - Ensures proper cleanup on exit
+ *
+ * @author Hatcher DX Team
+ * @since 1.0.0
+ * @public
  */
 
-import { spawn } from 'child_process'
+import { spawn, ChildProcess } from 'child_process'
 import { join } from 'path'
 
-console.log('🚀 Starting Hatcher DX Engine (Electron + Web)...')
+// Types
+export interface DevElectronConfig {
+  webServerDelay?: number
+  platform?: NodeJS.Platform
+  stdio?: 'pipe' | 'inherit' | 'ignore'
+  cwd?: string
+}
 
-const isWin = process.platform === 'win32'
+export interface DevElectronState {
+  webServerReady: boolean
+  webServer: ChildProcess | null
+  electronApp: ChildProcess | null
+}
 
-// Start web development server
-console.log('📱 Starting web server...')
-const webServer = spawn(
-  'pnpm',
-  ['--filter', '@hatcherdx/dx-engine-web', 'dev'],
-  {
-    stdio: 'pipe',
-    cwd: process.cwd(),
-    shell: isWin,
-  }
-)
+// State management
+export const state: DevElectronState = {
+  webServerReady: false,
+  webServer: null,
+  electronApp: null,
+}
 
-let webServerReady = false
+/**
+ * Checks if output should be filtered based on known harmless errors
+ *
+ * @param output - The output string to check
+ * @returns True if output should be shown, false if it should be filtered
+ *
+ * @example
+ * ```typescript
+ * const output = "Request Autofill.enable failed"
+ * console.log(shouldShowOutput(output)) // false
+ * ```
+ */
+export function shouldShowOutput(output: string): boolean {
+  const filtersToIgnore = [
+    'Request Autofill.enable failed',
+    'Request Autofill.setAddresses failed',
+    "Unexpected token 'H'",
+    'HTTP/1.1 4',
+    'is not valid JSON',
+    'chrome-devtools-frontend.appspot.com',
+  ]
 
-webServer.stdout?.on('data', (data) => {
-  const output = data.toString()
-  console.log(`[Web] ${output}`)
+  return !filtersToIgnore.some((filter) => output.includes(filter))
+}
 
-  // Check if web server is ready
-  if (output.includes('Local:') && output.includes('localhost')) {
-    webServerReady = true
-    console.log('✅ Web server is ready!')
-
-    // Start Electron after web server is ready
-    setTimeout(startElectron, 2000) // Wait 2 seconds to ensure server is fully ready
-  }
-})
-
-webServer.stderr?.on('data', (data) => {
-  console.error(`[Web Error] ${data}`)
-})
-
-function startElectron() {
-  if (!webServerReady) {
+/**
+ * Starts the Electron application
+ *
+ * @param config - Configuration options
+ * @returns The spawned Electron process
+ *
+ * @throws {Error} When Electron fails to start
+ *
+ * @example
+ * ```typescript
+ * const electronProcess = startElectron({
+ *   platform: 'darwin',
+ *   stdio: 'pipe'
+ * })
+ * ```
+ */
+export function startElectron(
+  config: DevElectronConfig = {}
+): ChildProcess | null {
+  if (!state.webServerReady) {
     console.log('⏳ Waiting for web server to be ready...')
-    return
+    return null
   }
 
   console.log('⚡ Starting Electron...')
+  const isWin = (config.platform || process.platform) === 'win32'
+
   const electronApp = spawn(
     'pnpm',
     ['--filter', '@hatcherdx/dx-engine-electron', 'dev'],
     {
-      stdio: 'pipe',
-      cwd: process.cwd(),
+      stdio: config.stdio || 'pipe',
+      cwd: config.cwd || process.cwd(),
       shell: isWin,
     }
   )
 
+  state.electronApp = electronApp
+
   // Filter Electron output to remove harmless DevTools errors
   electronApp.stdout?.on('data', (data) => {
     const output = data.toString()
-    // Only show output that doesn't contain harmless DevTools errors
-    if (
-      !output.includes('Request Autofill.enable failed') &&
-      !output.includes('Request Autofill.setAddresses failed') &&
-      !output.includes("Unexpected token 'H'") &&
-      !output.includes('HTTP/1.1 4') &&
-      !output.includes('is not valid JSON') &&
-      !output.includes('chrome-devtools-frontend.appspot.com')
-    ) {
+    if (shouldShowOutput(output)) {
       process.stdout.write(output)
     }
   })
 
   electronApp.stderr?.on('data', (data) => {
     const output = data.toString()
-    // Filter stderr as well
-    if (
-      !output.includes('Request Autofill.enable failed') &&
-      !output.includes('Request Autofill.setAddresses failed') &&
-      !output.includes("Unexpected token 'H'") &&
-      !output.includes('HTTP/1.1 4') &&
-      !output.includes('is not valid JSON') &&
-      !output.includes('chrome-devtools-frontend.appspot.com')
-    ) {
+    if (shouldShowOutput(output)) {
       process.stderr.write(output)
     }
   })
@@ -97,28 +125,118 @@ function startElectron() {
   electronApp.on('exit', (code) => {
     console.log(`🏁 Electron exited with code ${code}`)
     // Kill web server when Electron exits
-    webServer.kill('SIGTERM')
+    if (state.webServer) {
+      state.webServer.kill('SIGTERM')
+    }
     process.exit(code || 0)
   })
+
+  return electronApp
 }
 
-// Handle graceful shutdown
-process.on('SIGINT', () => {
-  console.log('\n⏹️  Shutting down development environment...')
-  webServer.kill('SIGTERM')
-  process.exit(0)
-})
+/**
+ * Starts the web development server
+ *
+ * @param config - Configuration options
+ * @returns The spawned web server process
+ *
+ * @example
+ * ```typescript
+ * const webServer = startWebServer({
+ *   platform: 'darwin',
+ *   stdio: 'pipe'
+ * })
+ * ```
+ */
+export function startWebServer(config: DevElectronConfig = {}): ChildProcess {
+  console.log('📱 Starting web server...')
+  const isWin = (config.platform || process.platform) === 'win32'
 
-process.on('SIGTERM', () => {
-  console.log('\n⏹️  Shutting down development environment...')
-  webServer.kill('SIGTERM')
-  process.exit(0)
-})
+  const webServer = spawn(
+    'pnpm',
+    ['--filter', '@hatcherdx/dx-engine-web', 'dev'],
+    {
+      stdio: config.stdio || 'pipe',
+      cwd: config.cwd || process.cwd(),
+      shell: isWin,
+    }
+  )
 
-// Handle web server exit
-webServer.on('exit', (code) => {
-  if (code !== 0) {
-    console.error(`❌ Web server exited with code ${code}`)
-    process.exit(code || 1)
+  state.webServer = webServer
+
+  webServer.stdout?.on('data', (data) => {
+    const output = data.toString()
+    console.log(`[Web] ${output}`)
+
+    // Check if web server is ready
+    if (output.includes('Local:') && output.includes('localhost')) {
+      state.webServerReady = true
+      console.log('✅ Web server is ready!')
+
+      // Start Electron after web server is ready
+      const delay = config.webServerDelay ?? 2000
+      setTimeout(() => startElectron(config), delay)
+    }
+  })
+
+  webServer.stderr?.on('data', (data) => {
+    console.error(`[Web Error] ${data}`)
+  })
+
+  // Handle web server exit
+  webServer.on('exit', (code) => {
+    if (code !== 0) {
+      console.error(`❌ Web server exited with code ${code}`)
+      process.exit(code || 1)
+    }
+  })
+
+  return webServer
+}
+
+/**
+ * Handles graceful shutdown of both processes
+ *
+ * @param signal - The signal received
+ *
+ * @example
+ * ```typescript
+ * handleShutdown('SIGINT')
+ * ```
+ */
+export function handleShutdown(signal: string): void {
+  console.log(`\n⏹️  Shutting down development environment (${signal})...`)
+  if (state.webServer) {
+    state.webServer.kill('SIGTERM')
   }
-})
+  if (state.electronApp) {
+    state.electronApp.kill('SIGTERM')
+  }
+  process.exit(0)
+}
+
+/**
+ * Main function to orchestrate the development environment
+ *
+ * @param config - Configuration options
+ *
+ * @example
+ * ```typescript
+ * main({ webServerDelay: 3000 })
+ * ```
+ */
+export function main(config: DevElectronConfig = {}): void {
+  console.log('🚀 Starting Hatcher DX Engine (Electron + Web)...')
+
+  // Start web development server
+  startWebServer(config)
+
+  // Handle graceful shutdown
+  process.on('SIGINT', () => handleShutdown('SIGINT'))
+  process.on('SIGTERM', () => handleShutdown('SIGTERM'))
+}
+
+// Run the main function only if executed directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main()
+}

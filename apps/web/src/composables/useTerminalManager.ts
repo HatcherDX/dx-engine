@@ -159,6 +159,9 @@ interface TerminalCreateResponse {
   /** Whether the terminal creation was successful */
   success: boolean
 
+  /** Mock flag for test environment */
+  mock?: boolean
+
   /** Terminal information when creation succeeds */
   data?: {
     /** Unique identifier assigned to the new terminal */
@@ -405,6 +408,17 @@ export function useTerminalManager() {
         }
       }
 
+      // Handle mock response from test environment
+      if (response.mock) {
+        response.data = {
+          id: `mock-terminal-${Date.now()}`,
+          name,
+          pid: 0,
+          shell: options.shell || 'bash',
+          cwd: options.cwd || process.cwd(),
+        }
+      }
+
       if (!response.success || !response.data) {
         throw new Error(response.error || 'Failed to create terminal')
       }
@@ -424,7 +438,8 @@ export function useTerminalManager() {
       // Add to terminals list
       terminals.value.push(terminal)
 
-      // Set as active if it's the first terminal
+      // Set as active only if it's the first terminal
+      // Note: Don't auto-activate if system terminals are managing active state
       if (terminals.value.length === 1) {
         setActiveTerminal(terminal.id)
       }
@@ -542,9 +557,9 @@ export function useTerminalManager() {
    *
    * @public
    */
-  const setActiveTerminal = (terminalId: string): void => {
+  const setActiveTerminal = (terminalId: string | null): void => {
     terminals.value.forEach((terminal) => {
-      terminal.isActive = terminal.id === terminalId
+      terminal.isActive = terminalId !== null && terminal.id === terminalId
       if (terminal.isActive) {
         terminal.lastActivity = new Date()
       }

@@ -22,6 +22,56 @@ declare global {
         dependencies: Record<string, string>
         devDependencies: Record<string, string>
       } | null>
+      statFile: (filePath: string) => Promise<{
+        isFile: boolean
+        isDirectory: boolean
+        size: number
+        modified: Date
+      }>
+      readDirectory: (dirPath: string) => Promise<string[]>
+      pathExists: (path: string) => Promise<boolean>
+      isDirectory: (path: string) => Promise<boolean>
+      readFile: (filePath: string) => Promise<string>
+      scanDirectory: (
+        dirPath: string,
+        options?: { ignoredDirs?: string[]; configFiles?: string[] }
+      ) => Promise<
+        Array<{
+          path: string
+          name: string
+          extension: string
+          type: 'file' | 'directory'
+          size?: number
+          lastModified?: Date
+          isConfig?: boolean
+        }>
+      >
+      getGitStatus: (projectPath: string) => Promise<{
+        files: Array<{
+          path: string
+          indexStatus: string
+          worktreeStatus: string
+          isStaged: boolean
+          simplifiedStatus:
+            | 'added'
+            | 'modified'
+            | 'deleted'
+            | 'renamed'
+            | 'untracked'
+        }>
+        totalFiles: number
+        isRepository: boolean
+      }>
+      getGitDiff: (
+        projectPath: string,
+        filePath: string,
+        options?: { staged?: boolean; commit?: string }
+      ) => Promise<string>
+      getFileContent: (
+        projectPath: string,
+        filePath: string,
+        options?: { commit?: string; fromWorkingTree?: boolean }
+      ) => Promise<string>
       sendTerminalInput: (data: { id: string; data: string }) => void
       sendTerminalResize: (data: {
         id: string
@@ -34,6 +84,8 @@ declare global {
 
   // Ensure DOM types are available
   interface MouseEvent extends UIEvent {}
+  interface WheelEvent extends MouseEvent {}
+  interface Event {}
   interface TouchEvent extends UIEvent {
     touches: TouchList
   }
@@ -54,6 +106,13 @@ declare global {
   }
   interface KeyboardEvent extends UIEvent {}
   interface HTMLElement extends Element {}
+  interface HTMLCanvasElement extends HTMLElement {
+    clientWidth: number
+    clientHeight: number
+    getContext(contextId: '2d'): CanvasRenderingContext2D | null
+    getContext(contextId: 'webgl'): WebGLRenderingContext | null
+    getContext(contextId: 'webgl2'): WebGL2RenderingContext | null
+  }
   interface HTMLInputElement extends HTMLElement {}
   interface HTMLTextAreaElement extends HTMLElement {}
   interface Navigator {

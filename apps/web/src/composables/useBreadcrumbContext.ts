@@ -1,5 +1,6 @@
-import { reactive, watch } from 'vue'
+import { reactive, watch, computed } from 'vue'
 import type { ModeType } from '../components/molecules/ModeSelector.vue'
+import { useProjectContext } from './useProjectContext'
 
 interface BreadcrumbContext {
   generative: {
@@ -21,6 +22,24 @@ interface BreadcrumbContext {
 const STORAGE_KEY = 'hatcher-breadcrumb-context'
 
 export function useBreadcrumbContext() {
+  // Get project context for real data
+  const { openedProject, isProjectLoaded } = useProjectContext()
+
+  // Computed project display name from package.json
+  const projectDisplayName = computed(() => {
+    if (!isProjectLoaded.value || !openedProject.value) {
+      return 'no-project'
+    }
+
+    const packageJson = openedProject.value.packageJson
+    if (packageJson && packageJson.name) {
+      return String(packageJson.name)
+    }
+
+    // Fallback to directory name
+    return openedProject.value.name || 'unknown-project'
+  })
+
   // Default context data
   const defaultContext: BreadcrumbContext = {
     generative: {
@@ -95,7 +114,9 @@ export function useBreadcrumbContext() {
     switch (mode) {
       case 'generative':
         return {
-          projectPath: context.generative.projectPath,
+          projectPath: isProjectLoaded.value
+            ? openedProject.value?.rootPath
+            : context.generative.projectPath,
         }
       case 'visual':
         return {
@@ -103,12 +124,12 @@ export function useBreadcrumbContext() {
         }
       case 'code':
         return {
-          projectName: context.code.projectName,
+          projectName: projectDisplayName.value,
           filePath: context.code.filePath,
         }
       case 'timeline':
         return {
-          projectName: context.timeline.projectName,
+          projectName: projectDisplayName.value,
           currentPeriod: context.timeline.currentPeriod,
         }
       default:
@@ -138,11 +159,11 @@ export function useBreadcrumbContext() {
     if (mode === 'code') {
       const files = demoFiles.code
       const randomFile = files[Math.floor(Math.random() * files.length)]
-      updateCodeContext(context.code.projectName, randomFile)
+      updateCodeContext(projectDisplayName.value, randomFile)
     } else if (mode === 'timeline') {
       const periods = demoFiles.timeline
       const randomPeriod = periods[Math.floor(Math.random() * periods.length)]
-      updateTimelineContext(context.timeline.projectName, randomPeriod)
+      updateTimelineContext(projectDisplayName.value, randomPeriod)
     } else if (mode === 'generative') {
       const demoPaths = [
         '/home/usuario/mi-proyecto/',
@@ -172,5 +193,6 @@ export function useBreadcrumbContext() {
     updateCodeContext,
     updateTimelineContext,
     simulateFileChange,
+    projectDisplayName,
   }
 }

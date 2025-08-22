@@ -304,6 +304,12 @@ const discardChanges = () => {
   console.log('Discarding changes...')
   // Note: Discard changes logic will be implemented with VCS integration
 }
+
+// Expose properties for testing
+defineExpose({
+  diffFiles,
+  toggleFileExpansion,
+})
 </script>
 
 <style scoped>

@@ -55,7 +55,7 @@ interface PtyHostOutgoingMessage {
 }
 
 // Create a proxy class to represent remote terminals for monitoring
-class RemoteTerminalProxy {
+export class RemoteTerminalProxy {
   constructor(
     public id: string,
     public pid: number,
@@ -101,7 +101,7 @@ export class PtyManager extends EventEmitter {
       this.isInitialized = true
 
       console.log(
-        `[PTY Manager] PTY Host started with PID: ${this.ptyHost.pid}`
+        `[PTY Manager] PTY Host started with PID: ${this.ptyHost?.pid || 'unknown'}`
       )
       this.emit('ready')
     } catch (error) {

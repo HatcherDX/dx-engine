@@ -1,5 +1,5 @@
 import { Menu, MenuItemConstructorOptions } from 'electron'
-import { isDev } from '/@/utils/'
+import { isDev } from './utils'
 import { ipcMain } from './ipc'
 
 /**

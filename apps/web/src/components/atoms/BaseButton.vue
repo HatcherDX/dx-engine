@@ -9,7 +9,7 @@ import { computed } from 'vue'
 
 interface Props {
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'outline'
-  size?: 'sm' | 'md' | 'lg'
+  size?: 'xs' | 'sm' | 'md' | 'lg'
   disabled?: boolean
   fullWidth?: boolean
 }
@@ -45,6 +45,7 @@ const buttonClasses = computed(() => {
 
   // Size variants
   const sizes = {
+    xs: ['px-2', 'py-1', 'text-xs', 'rounded'],
     sm: ['px-3', 'py-1.5', 'text-sm', 'rounded-md'],
     md: ['px-4', 'py-2', 'text-sm', 'rounded-md'],
     lg: ['px-6', 'py-3', 'text-base', 'rounded-lg'],

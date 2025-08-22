@@ -1,6 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { ref } from 'vue'
 import { useBreadcrumbContext } from './useBreadcrumbContext'
 import type { MockStorage } from '../../../../types/test-mocks'
+
+// Mock the useProjectContext composable
+vi.mock('./useProjectContext', () => ({
+  useProjectContext: () => ({
+    currentProject: ref(null),
+    projectPath: ref(''),
+    isProjectLoaded: ref(false),
+    loadProject: vi.fn(),
+    clearProject: vi.fn(),
+  }),
+}))
 
 describe('useBreadcrumbContext', () => {
   let mockLocalStorage: MockStorage
@@ -9,11 +21,11 @@ describe('useBreadcrumbContext', () => {
     // Mock localStorage
     mockLocalStorage = {
       length: 0,
-      clear: vi.fn(),
-      key: vi.fn(),
-      getItem: vi.fn(),
+      getItem: vi.fn().mockReturnValue(null),
       setItem: vi.fn(),
       removeItem: vi.fn(),
+      clear: vi.fn(),
+      key: vi.fn(),
     }
 
     Object.defineProperty(global, 'localStorage', {
@@ -35,6 +47,7 @@ describe('useBreadcrumbContext', () => {
 
     const breadcrumb = useBreadcrumbContext()
 
+    // The context stores the default values
     expect(breadcrumb.context.generative.projectPath).toBe(
       '/home/usuario/mi-proyecto/'
     )
@@ -47,13 +60,29 @@ describe('useBreadcrumbContext', () => {
     )
     expect(breadcrumb.context.timeline.projectName).toBe('mi-proyecto')
     expect(breadcrumb.context.timeline.currentPeriod).toBe('Last 24 hours')
+
+    // But projectDisplayName computed property returns 'no-project' when no project is loaded
+    expect(breadcrumb.projectDisplayName.value).toBe('no-project')
   })
 
   it('should load context from localStorage', () => {
     const storedContext = {
-      generative: { projectPath: '/custom/path/' },
-      visual: { currentUrl: 'https://custom.com' },
+      generative: {
+        projectPath: '/custom/path/',
+      },
+      visual: {
+        currentUrl: 'https://custom.com',
+      },
+      code: {
+        projectName: 'stored-project',
+        filePath: 'src/components/stored/File.vue',
+      },
+      timeline: {
+        projectName: 'stored-project',
+        currentPeriod: 'Last week',
+      },
     }
+
     vi.mocked(mockLocalStorage.getItem).mockReturnValue(
       JSON.stringify(storedContext)
     )
@@ -62,8 +91,8 @@ describe('useBreadcrumbContext', () => {
 
     expect(breadcrumb.context.generative.projectPath).toBe('/custom/path/')
     expect(breadcrumb.context.visual.currentUrl).toBe('https://custom.com')
-    // Should merge with defaults
-    expect(breadcrumb.context.code.projectName).toBe('mi-proyecto')
+    expect(breadcrumb.context.code.projectName).toBe('stored-project')
+    expect(breadcrumb.context.timeline.currentPeriod).toBe('Last week')
   })
 
   it('should handle localStorage load errors gracefully', () => {
@@ -162,8 +191,14 @@ describe('useBreadcrumbContext', () => {
 
     breadcrumb.updateCodeContext('new-project', 'src/NewComponent.vue')
 
+    // The context is updated
     expect(breadcrumb.context.code.projectName).toBe('new-project')
     expect(breadcrumb.context.code.filePath).toBe('src/NewComponent.vue')
+
+    // But getContextForMode still uses projectDisplayName
+    const context = breadcrumb.getContextForMode('code')
+    expect(context.projectName).toBe('no-project')
+    expect(context.filePath).toBe('src/NewComponent.vue')
   })
 
   it('should update timeline context', () => {
@@ -171,8 +206,14 @@ describe('useBreadcrumbContext', () => {
 
     breadcrumb.updateTimelineContext('timeline-project', 'Last year')
 
+    // The context is updated
     expect(breadcrumb.context.timeline.projectName).toBe('timeline-project')
     expect(breadcrumb.context.timeline.currentPeriod).toBe('Last year')
+
+    // But getContextForMode still uses projectDisplayName
+    const context = breadcrumb.getContextForMode('timeline')
+    expect(context.projectName).toBe('no-project')
+    expect(context.currentPeriod).toBe('Last year')
   })
 
   it('should get context for generative mode', () => {
@@ -200,8 +241,9 @@ describe('useBreadcrumbContext', () => {
 
     const context = breadcrumb.getContextForMode('code')
 
+    // When no project is loaded, projectDisplayName is 'no-project'
     expect(context).toEqual({
-      projectName: 'mi-proyecto',
+      projectName: 'no-project',
       filePath: 'src/components/atoms/Button.vue',
     })
   })
@@ -211,8 +253,9 @@ describe('useBreadcrumbContext', () => {
 
     const context = breadcrumb.getContextForMode('timeline')
 
+    // When no project is loaded, projectDisplayName is 'no-project'
     expect(context).toEqual({
-      projectName: 'mi-proyecto',
+      projectName: 'no-project',
       currentPeriod: 'Last 24 hours',
     })
   })

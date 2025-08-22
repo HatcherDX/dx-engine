@@ -23,17 +23,11 @@
         </div>
       </div>
     </div>
-
-    <!-- Logo Section -->
-    <div class="logo-section">
-      <BaseLogo size="lg" variant="inline" class="sidebar-content-logo" />
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import BaseLogo from '../atoms/BaseLogo.vue'
 
 interface BackgroundTask {
   id: string
@@ -184,14 +178,6 @@ const getStatusClass = (status: BackgroundTask['status']) => {
   font-size: 11px;
   font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
   color: var(--text-tertiary);
-}
-
-/* Logo Section */
-.logo-section {
-  padding: 16px;
-  border-top: 1px solid var(--border-sidebar);
-  display: flex;
-  justify-content: center;
 }
 
 /* Animations */

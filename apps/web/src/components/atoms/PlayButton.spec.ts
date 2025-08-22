@@ -7,9 +7,9 @@ import BaseIcon from './BaseIcon.vue'
 vi.mock('./BaseIcon.vue', () => ({
   default: {
     name: 'BaseIcon',
-    props: ['name', 'size'],
     template:
       '<div data-testid="base-icon" :data-name="name" :data-size="size"></div>',
+    props: ['name', 'size'],
   },
 }))
 

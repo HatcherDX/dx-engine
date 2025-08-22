@@ -5,20 +5,20 @@ import WindowControls from './WindowControls.vue'
 // Mock composables
 vi.mock('../../composables/useWindowControls', () => ({
   useWindowControls: () => ({
+    isMaximized: { value: false },
     minimizeWindow: vi.fn(),
     maximizeWindow: vi.fn(),
     closeWindow: vi.fn(),
     handleDoubleClick: vi.fn(),
-    isMaximized: false,
     isElectron: true,
   }),
 }))
 
 vi.mock('../../composables/useTheme', () => ({
   useTheme: () => ({
-    themeMode: { value: 'auto' },
+    themeMode: { value: 'light' },
     isDark: { value: false },
-    platform: { value: 'windows' }, // Use windows to show controls
+    platform: { value: 'windows' },
     setTheme: vi.fn(),
     toggleTheme: vi.fn(),
     syncThemeWithElectron: vi.fn(),

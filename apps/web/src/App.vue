@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useTheme } from './composables/useTheme'
 import { useBreadcrumbContext } from './composables/useBreadcrumbContext'
 import { useChatSidebar } from './composables/useChatSidebar'
 import { useOnboarding } from './composables/useOnboarding'
 import { useTerminalModeDetector } from './composables/useTerminalModeDetector'
+import { useProjectContext } from './composables/useProjectContext'
 import UnifiedFrame from './components/templates/UnifiedFrame.vue'
 import ModeSelector from './components/molecules/ModeSelector.vue'
 import AddressBar from './components/molecules/AddressBar.vue'
@@ -16,6 +17,7 @@ import GenerativeSidebar from './components/organisms/GenerativeSidebar.vue'
 import VisualSidebar from './components/organisms/VisualSidebar.vue'
 import CodeSidebar from './components/organisms/CodeSidebar.vue'
 import TimelineSidebar from './components/organisms/TimelineSidebar.vue'
+import GitTimelineView from './views/GitTimelineView.vue'
 import ChatPanel from './components/organisms/ChatPanel.vue'
 import TerminalPanel from './components/organisms/TerminalPanel.vue'
 import OnboardingWelcome from './components/organisms/OnboardingWelcome.vue'
@@ -47,11 +49,34 @@ const {
 } = useChatSidebar()
 
 // Initialize onboarding
-const { isOnboardingActive, currentStep } = useOnboarding()
+const { isOnboardingActive, currentStep, selectedProject } = useOnboarding()
+
+// Initialize project context
+const { loadProject } = useProjectContext()
 
 // Application state
 const currentMode = ref<ModeType>('generative')
 const addressValue = ref('')
+
+// Watch for project selection completion in onboarding
+watch(
+  selectedProject,
+  async (newProject) => {
+    if (newProject && newProject.path) {
+      try {
+        console.log(
+          '[App] Loading project from onboarding selection:',
+          newProject.path
+        )
+        await loadProject(newProject.path)
+        console.log('[App] Project loaded successfully:', newProject.name)
+      } catch (error) {
+        console.error('[App] Failed to load project from onboarding:', error)
+      }
+    }
+  },
+  { immediate: true }
+)
 
 // Initialize application
 onMounted(async () => {
@@ -214,7 +239,13 @@ const openGitHub = () => {
     </template>
 
     <!-- Main content area -->
-    <div class="main-content">
+    <div
+      class="main-content"
+      :class="{
+        'content-centered': currentMode !== 'timeline',
+        'content-timeline': currentMode === 'timeline',
+      }"
+    >
       <!-- Generative Mode Content -->
       <div v-show="currentMode === 'generative'" class="mode-content-container">
         <div class="mode-content">
@@ -331,51 +362,14 @@ const openGitHub = () => {
       </div>
 
       <!-- Timeline Mode Content -->
-      <div v-show="currentMode === 'timeline'" class="mode-content-container">
-        <div class="mode-content">
-          <h1 class="mode-title">Timeline Mode</h1>
-          <p class="mode-subtitle">
-            Intelligent Commits & Assisted Reviews (Coming Soon)
-          </p>
-
-          <div class="mode-description">
-            <p>
-              We are turning version control from a routine chore into a
-              strategic act of communication. In <strong>Timeline Mode</strong>,
-              Hatcher's AI will help you craft your project's history with
-              impeccable clarity.
-            </p>
-
-            <p>
-              You will be able to generate perfect commit messages based on your
-              changes, ask the AI to explain a complex diff, and even request
-              suggestions to improve code quality before it's pushed. The
-              objective is to ensure every commit enriches the codebase and
-              tells a clear story for your entire team.
-            </p>
-          </div>
-
-          <div class="mode-cta">
-            <p class="cta-text">
-              Help us design the perfect version control workflow here.
-            </p>
-            <BaseButton
-              variant="outline"
-              size="sm"
-              class="github-button"
-              @click="openGitHub"
-            >
-              <BaseIcon name="GitBranch" size="xs" />
-              Join the discussion
-            </BaseButton>
-          </div>
-        </div>
-      </div>
+      <GitTimelineView v-show="currentMode === 'timeline'" />
     </div>
 
-    <!-- Terminal Panel - Only in Code mode -->
+    <!-- Terminal Panel - Persistent across mode changes with KeepAlive -->
     <template #terminal-panel>
-      <TerminalPanel />
+      <KeepAlive>
+        <TerminalPanel v-if="currentMode === 'code'" />
+      </KeepAlive>
     </template>
 
     <!-- Chat Panel - Persistent across all modes -->
@@ -409,9 +403,21 @@ const openGitHub = () => {
 .main-content {
   flex: 1;
   display: flex;
+}
+
+/* Centered content for generative, code, and visual modes */
+.main-content.content-centered {
   align-items: center;
   justify-content: center;
   padding: 24px;
+}
+
+/* Timeline mode uses full space without padding */
+.main-content.content-timeline {
+  padding: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .welcome-container {

@@ -8,6 +8,12 @@ This document provides a set of guidelines to make the contribution process easi
 
 By participating in this project, you agree to abide by our **[Code of Conduct](CODE_OF_CONDUCT.md)**. We are committed to fostering an open and welcoming environment.
 
+## Where to Contribute?
+
+Hatcher has a bold vision, and we welcome contributions of all sizes. The best way to get started is to check our **[Go-to-Market Roadmap](ROADMAP.md)**.
+
+The roadmap outlines our current strategic priorities, especially the features under the "Current Priority" milestone. This is where you can make the biggest impact on our journey to our first public release. Of course, bug fixes and documentation improvements are always welcome!
+
 ## How Can I Contribute?
 
 ### Reporting Bugs and Requesting Features

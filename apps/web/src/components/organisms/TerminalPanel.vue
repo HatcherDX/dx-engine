@@ -26,17 +26,28 @@
   <div class="terminal-panel">
     <TerminalTabBar
       :terminals="terminals"
+      :system-terminals="systemTerminals"
       :active-terminal-id="activeTerminalId"
       @tab-click="setActiveTerminal"
       @tab-close="closeTerminal"
       @tab-context-menu="showTerminalContextMenu"
       @new-terminal="createTerminal"
-      @split-terminal="splitTerminal"
     />
     <div class="terminal-panel__content">
+      <!-- System Terminal Views - Always rendered for initialization -->
+      <SystemTerminalView
+        v-show="
+          activeSystemTerminal === 'system' ||
+          activeSystemTerminal === 'timeline'
+        "
+        :active-terminal="activeSystemTerminal"
+        @set-active-terminal="setActiveSystemTerminal"
+      />
+
+      <!-- Regular Terminal Views -->
       <TerminalView
         v-for="terminal in terminals"
-        v-show="terminal.id === activeTerminalId"
+        v-show="terminal.id === activeTerminalId && !activeSystemTerminal"
         :key="terminal.id"
         :ref="
           (el: Element | ComponentPublicInstance | null) =>
@@ -51,40 +62,6 @@
         @resize="(size) => resizeTerminal(terminal.id, size)"
         @ready="onTerminalReady(terminal.id)"
       />
-      <div v-if="terminals.length === 0" class="terminal-panel__empty">
-        <div class="terminal-panel__empty-content">
-          <BaseIcon
-            name="Terminal"
-            size="xl"
-            style="color: var(--text-tertiary)"
-          />
-          <h3
-            style="
-              font-size: 1.125rem;
-              font-weight: 500;
-              color: var(--text-secondary);
-              margin: 1rem 0 0.5rem 0;
-            "
-          >
-            No Terminal Open
-          </h3>
-          <p
-            style="
-              font-size: 0.875rem;
-              color: var(--text-tertiary);
-              margin-bottom: 1rem;
-            "
-          >
-            Create a new terminal to get started
-          </p>
-          <BaseButton @click="() => createTerminal()">
-            <span style="display: flex; align-items: center">
-              <BaseIcon name="Plus" size="sm" />
-              <span style="margin-left: 0.5rem">New Terminal</span>
-            </span>
-          </BaseButton>
-        </div>
-      </div>
     </div>
   </div>
 </template>
@@ -102,15 +79,17 @@
 import {
   ref,
   computed,
+  watch,
   onMounted,
   onUnmounted,
   type ComponentPublicInstance,
 } from 'vue'
+import type { ReadOnlyTerminalLine } from '@hatcherdx/terminal-system'
 import TerminalTabBar from '../molecules/TerminalTabBar.vue'
 import TerminalView from './TerminalView.vue'
-import BaseIcon from '../atoms/BaseIcon.vue'
-import BaseButton from '../atoms/BaseButton.vue'
+import SystemTerminalView from './SystemTerminalView.vue'
 import { useTerminalManager } from '../../composables/useTerminalManager'
+import { useSystemTerminals } from '../../composables/useSystemTerminals'
 import { useTheme } from '../../composables/useTheme'
 
 /**
@@ -129,6 +108,12 @@ interface Terminal {
   isRunning: boolean
   /** Whether this terminal is currently the active/focused one */
   isActive: boolean
+  /** Terminal type for system terminals */
+  terminalType?: 'system' | 'timeline' | 'regular'
+  /** Activity state for system terminals */
+  activityState?: 'info' | 'warning' | 'error' | 'idle'
+  /** Whether terminal can be closed */
+  closable?: boolean
 }
 
 const { themeMode } = useTheme()
@@ -140,18 +125,94 @@ const {
   setActiveTerminal: switchTerminal,
 } = useTerminalManager()
 
+// System terminals integration
+const {
+  systemTerminal,
+  timelineTerminal,
+  activeTerminal: activeSystemTerminal,
+  setActiveTerminal: setActiveSystemTerminal,
+} = useSystemTerminals()
+
 const terminalRefs = ref<Map<string, InstanceType<typeof TerminalView>>>(
   new Map()
 )
 
+// Regular terminals
 const terminals = computed((): Terminal[] =>
   terminalStates.value.map((terminal) => ({
     id: terminal.id,
     name: terminal.name,
     isRunning: terminal.isRunning,
     isActive: terminal.isActive,
+    terminalType: 'regular',
+    closable: true,
   }))
 )
+
+// System terminals
+const systemTerminals = computed((): Terminal[] => {
+  const result: Terminal[] = []
+
+  if (systemTerminal.isReady) {
+    result.push({
+      id: 'system',
+      name: 'System',
+      isRunning: true,
+      isActive: activeSystemTerminal.value === 'system',
+      terminalType: 'system',
+      activityState: getSystemTerminalActivityState('system'),
+      closable: false,
+    })
+  }
+
+  if (timelineTerminal.isReady) {
+    result.push({
+      id: 'timeline',
+      name: 'Timeline',
+      isRunning: true,
+      isActive: activeSystemTerminal.value === 'timeline',
+      terminalType: 'timeline',
+      activityState: getSystemTerminalActivityState('timeline'),
+      closable: false,
+    })
+  }
+
+  return result
+})
+
+// Determine activity state based on recent terminal activity
+const getSystemTerminalActivityState = (
+  terminalType: 'system' | 'timeline'
+): 'info' | 'warning' | 'error' | 'idle' => {
+  const terminal = terminalType === 'system' ? systemTerminal : timelineTerminal
+
+  if (!terminal.lines.length) return 'idle'
+
+  // Get most recent line to determine activity state
+  const recentLines = terminal.lines.slice(-5) // Check last 5 lines
+
+  if (
+    recentLines.some(
+      (line: ReadOnlyTerminalLine) =>
+        line.type === 'ERROR' || line.type === 'FATAL'
+    )
+  ) {
+    return 'error'
+  } else if (
+    recentLines.some((line: ReadOnlyTerminalLine) => line.type === 'WARN')
+  ) {
+    return 'warning'
+  } else if (
+    recentLines.some(
+      (line: ReadOnlyTerminalLine) =>
+        line.type === 'CMD' || line.type === 'GIT' || line.type === 'INFO'
+    )
+  ) {
+    return 'info'
+  }
+
+  return 'idle'
+}
 
 const setTerminalRef = (
   id: string,
@@ -180,14 +241,26 @@ const closeTerminal = async (id: string) => {
 }
 
 const setActiveTerminal = (id: string) => {
-  switchTerminal(id)
-  // Focus the terminal when activated
-  setTimeout(() => {
-    const terminalRef = terminalRefs.value.get(id)
-    if (terminalRef) {
-      terminalRef.focus()
-    }
-  }, 100)
+  // Check if it's a system terminal
+  if (id === 'system' || id === 'timeline') {
+    // First, deactivate all regular terminals
+    switchTerminal(null)
+    // Then activate the system terminal
+    setActiveSystemTerminal(id as 'system' | 'timeline')
+  } else {
+    // It's a regular terminal
+    // First, deactivate all system terminals
+    setActiveSystemTerminal(null)
+    // Then activate the regular terminal
+    switchTerminal(id)
+    // Focus the terminal when activated
+    setTimeout(() => {
+      const terminalRef = terminalRefs.value.get(id)
+      if (terminalRef) {
+        terminalRef.focus()
+      }
+    }, 100)
+  }
 }
 
 const sendTerminalInput = (id: string, data: string) => {
@@ -225,24 +298,45 @@ const onTerminalReady = (id: string) => {
   void id
 }
 
-const splitTerminal = async () => {
-  if (!activeTerminalId.value) return
-
-  // Create new terminal with same CWD as active terminal
-  await createTerminal({
-    name: `Terminal ${terminals.value.length + 1}`,
-  })
-}
-
 const showTerminalContextMenu = () => {
   // Context menu implementation placeholder
 }
 
+// Watch for system terminal activation to deactivate regular terminals
+watch(
+  () => activeSystemTerminal.value,
+  (activeSystem) => {
+    // If a system terminal becomes active, deactivate all regular terminals
+    if (activeSystem && activeTerminalId.value) {
+      switchTerminal(null)
+    }
+  }
+)
+
+// Watch for regular terminal activation to deactivate system terminals
+watch(
+  () => activeTerminalId.value,
+  (activeRegular) => {
+    // If a regular terminal becomes active, deactivate all system terminals
+    if (activeRegular && activeSystemTerminal.value) {
+      setActiveSystemTerminal(null)
+    }
+  }
+)
+
 // Lifecycle
 onMounted(() => {
-  // Create initial terminal if none exist
+  // System terminals should be initialized automatically
+  // They will become available once initialized
+
+  // Create initial terminal if none exist (regular terminals)
   if (terminals.value.length === 0) {
-    createTerminal()
+    createTerminal().then((terminal) => {
+      // If a system terminal is already active, deactivate the new regular terminal
+      if (activeSystemTerminal.value && terminal) {
+        switchTerminal(null)
+      }
+    })
   }
 })
 
@@ -253,6 +347,13 @@ onUnmounted(() => {
 
 // Note: IPC listeners are handled by individual TerminalView components
 // This avoids duplication and allows each terminal to handle its own data
+
+// Expose functions for testing
+defineExpose({
+  getSystemTerminalActivityState,
+  terminals,
+  systemTerminals,
+})
 </script>
 
 <style scoped>
@@ -269,16 +370,5 @@ onUnmounted(() => {
   overflow: hidden;
   height: calc(100% - 6px); /* Subtract resize handle height */
   min-height: 0; /* Allow flex item to shrink */
-}
-
-.terminal-panel__empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-}
-
-.terminal-panel__empty-content {
-  text-align: center;
 }
 </style>

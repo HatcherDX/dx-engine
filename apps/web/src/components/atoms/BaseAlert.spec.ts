@@ -26,7 +26,10 @@ describe('BaseAlert', () => {
   it('renders alert with default props', () => {
     const wrapper = mount(BaseAlert, {
       props: {
-        description: 'Test alert message',
+        modelValue: true,
+      },
+      slots: {
+        default: 'Test alert message',
       },
     })
 
@@ -40,8 +43,11 @@ describe('BaseAlert', () => {
   it('renders alert with title and description', () => {
     const wrapper = mount(BaseAlert, {
       props: {
+        modelValue: true,
         title: 'Alert Title',
-        description: 'Alert description text',
+      },
+      slots: {
+        default: 'Alert description text',
       },
     })
 
@@ -67,8 +73,11 @@ describe('BaseAlert', () => {
     variants.forEach((variant) => {
       const wrapper = mount(BaseAlert, {
         props: {
+          modelValue: true,
           variant,
-          description: 'Test message',
+        },
+        slots: {
+          default: 'Test message',
         },
       })
 
@@ -82,8 +91,11 @@ describe('BaseAlert', () => {
   it('can be dismissed when dismissible is true', async () => {
     const wrapper = mount(BaseAlert, {
       props: {
-        description: 'Dismissible alert',
+        modelValue: true,
         dismissible: true,
+      },
+      slots: {
+        default: 'Test message',
       },
     })
 
@@ -102,8 +114,11 @@ describe('BaseAlert', () => {
   it('hides close button when dismissible is false', () => {
     const wrapper = mount(BaseAlert, {
       props: {
-        description: 'Non-dismissible alert',
+        modelValue: true,
         dismissible: false,
+      },
+      slots: {
+        default: 'Test message',
       },
     })
 
@@ -116,9 +131,11 @@ describe('BaseAlert', () => {
   it('sets up auto-close timer when autoClose prop is provided', () => {
     const wrapper = mount(BaseAlert, {
       props: {
-        description: 'Auto-close alert',
-        autoClose: 1000,
         modelValue: true,
+        autoClose: 1000,
+      },
+      slots: {
+        default: 'Test message',
       },
     })
 
@@ -133,8 +150,11 @@ describe('BaseAlert', () => {
   it('shows icon when showIcon is true', () => {
     const wrapper = mount(BaseAlert, {
       props: {
-        description: 'Alert with icon',
+        modelValue: true,
         showIcon: true,
+      },
+      slots: {
+        default: 'Test message',
       },
     })
 
@@ -147,8 +167,11 @@ describe('BaseAlert', () => {
   it('hides icon when showIcon is false', () => {
     const wrapper = mount(BaseAlert, {
       props: {
-        description: 'Alert without icon',
+        modelValue: true,
         showIcon: false,
+      },
+      slots: {
+        default: 'Test message',
       },
     })
 
@@ -160,6 +183,9 @@ describe('BaseAlert', () => {
    */
   it('renders slot content', () => {
     const wrapper = mount(BaseAlert, {
+      props: {
+        modelValue: true,
+      },
       slots: {
         default: '<strong>Custom alert content</strong>',
       },
@@ -174,8 +200,11 @@ describe('BaseAlert', () => {
   it('has proper accessibility attributes', () => {
     const wrapper = mount(BaseAlert, {
       props: {
-        description: 'Accessible alert',
+        modelValue: true,
         variant: 'error',
+      },
+      slots: {
+        default: 'Test message',
       },
     })
 
@@ -190,8 +219,10 @@ describe('BaseAlert', () => {
   it('controls visibility with modelValue', async () => {
     const wrapper = mount(BaseAlert, {
       props: {
-        description: 'Controlled alert',
         modelValue: false,
+      },
+      slots: {
+        default: 'Test message',
       },
     })
 

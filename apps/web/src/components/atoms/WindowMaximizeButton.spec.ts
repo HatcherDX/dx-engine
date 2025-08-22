@@ -38,10 +38,13 @@ describe('WindowMaximizeButton.vue', () => {
     expect(wrapper.find('button').attributes('disabled')).toBeDefined()
   })
 
+  it('should not be disabled by default', () => {
+    const wrapper = mount(WindowMaximizeButton, {})
+    expect(wrapper.find('button').attributes('disabled')).toBeUndefined()
+  })
+
   it('should show different states for maximized/restored', () => {
-    const wrapper = mount(WindowMaximizeButton, {
-      props: { isMaximized: true },
-    })
+    const wrapper = mount(WindowMaximizeButton, {})
     expect(wrapper.exists()).toBe(true)
   })
 

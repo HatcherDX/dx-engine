@@ -17,18 +17,19 @@ vi.mock('../../composables/useOnboarding', () => ({
 vi.mock('../atoms/BaseLogo.vue', () => ({
   default: {
     name: 'BaseLogo',
-    template: '<div class="base-logo welcome-logo" />',
-    props: ['size', 'variant', 'class'],
+    props: ['size', 'variant'],
+    template:
+      '<div data-testid="base-logo" class="welcome-logo" :data-size="size" :data-variant="variant"><slot /></div>',
   },
 }))
 
 vi.mock('../atoms/CtaButton.vue', () => ({
   default: {
     name: 'CtaButton',
+    props: ['variant', 'size', 'disabled'],
+    emits: ['click'],
     template:
       '<button class="cta-button" @click="$emit(\'click\')"><slot /></button>',
-    props: ['variant', 'size', 'class'],
-    emits: ['click'],
   },
 }))
 

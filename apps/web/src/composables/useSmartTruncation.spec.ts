@@ -9,7 +9,7 @@ describe('useSmartTruncation', () => {
   beforeEach(() => {
     // Mock canvas and context
     mockContext = {
-      tagName: 'CONTEXT',
+      tagName: 'CANVAS',
       style: {},
       appendChild: vi.fn(),
       insertBefore: vi.fn(),
@@ -23,7 +23,9 @@ describe('useSmartTruncation', () => {
       },
       children: [],
       parentNode: null,
-      measureText: vi.fn().mockReturnValue({ width: 10 }), // Default small width
+      measureText: vi.fn().mockReturnValue({ width: 100 }),
+      fillText: vi.fn(),
+      clearRect: vi.fn(),
       font: '',
     }
 
@@ -46,16 +48,24 @@ describe('useSmartTruncation', () => {
     }
 
     global.document = {
-      createElement: vi.fn().mockReturnValue(mockCanvas),
+      querySelector: vi.fn(),
+      createElement: vi.fn().mockImplementation((tagName: string) => {
+        if (tagName === 'canvas') {
+          return mockCanvas
+        }
+        return {}
+      }),
     } as unknown as Document
 
     global.window = {
-      getComputedStyle: vi.fn().mockReturnValue({
+      getComputedStyle: vi.fn(() => ({
+        fontSize: '14px',
+        fontFamily: 'monospace',
         paddingLeft: '8px',
         paddingRight: '8px',
         borderLeftWidth: '1px',
         borderRightWidth: '1px',
-      }),
+      })),
     } as unknown as Window & typeof globalThis
   })
 
@@ -108,7 +118,7 @@ describe('useSmartTruncation', () => {
     // Mock measureText to simulate text width based on character count
     // Make the filename too wide to fit
     mockContext.measureText!.mockImplementation((text: string) => ({
-      width: text.length * 8, // Higher multiplier to ensure truncation
+      width: text.length * 8, // 8px per character
     }))
 
     const result = truncation.truncatePath(filename, 100)
@@ -122,9 +132,14 @@ describe('useSmartTruncation', () => {
     const truncation = useSmartTruncation()
     const fullPath = 'src/components/atoms/Hello.vue'
 
-    mockContext
-      .measureText!.mockReturnValueOnce({ width: 200 }) // Full path width (too wide)
-      .mockReturnValueOnce({ width: 80 }) // 'src/.../Hello.vue' width (fits)
+    // Mock measureText to handle specific text patterns
+    mockContext.measureText!.mockImplementation((text: string) => {
+      if (text === fullPath) return { width: 200 } // Full path too wide
+      if (text === 'src/.../Hello.vue') return { width: 80 } // First strategy fits
+      if (text === 'Hello.vue') return { width: 60 } // Filename width
+      if (text === '...') return { width: 20 } // Ellipsis width
+      return { width: 50 } // Default
+    })
 
     const result = truncation.truncatePath(fullPath, 100)
 
@@ -226,9 +241,14 @@ describe('useSmartTruncation', () => {
     const truncation = useSmartTruncation()
     const fullPath = 'src/Hello.vue'
 
-    mockContext
-      .measureText!.mockReturnValueOnce({ width: 200 }) // Full path width (too wide)
-      .mockReturnValueOnce({ width: 80 }) // '.../Hello.vue' width (fits)
+    // Mock measureText to handle specific text patterns
+    mockContext.measureText!.mockImplementation((text: string) => {
+      if (text === fullPath) return { width: 200 } // Full path too wide
+      if (text === '.../Hello.vue') return { width: 80 } // Second strategy fits
+      if (text === 'Hello.vue') return { width: 60 } // Filename width
+      if (text === '...') return { width: 20 } // Ellipsis width
+      return { width: 50 } // Default
+    })
 
     const result = truncation.truncatePath(fullPath, 100)
 

@@ -6,8 +6,8 @@ import CodeBlockComponent from './CodeBlockComponent.vue'
 vi.mock('../atoms/BaseIcon.vue', () => ({
   default: {
     name: 'BaseIcon',
-    template: '<span class="base-icon" />',
-    props: ['name', 'size', 'class'],
+    props: ['name', 'size', 'color'],
+    template: '<span class="base-icon" :data-name="name"></span>',
   },
 }))
 
@@ -16,8 +16,6 @@ vi.mock('../atoms/BaseButton.vue', () => ({
     name: 'BaseButton',
     template:
       '<button class="base-button" @click="$emit(\'click\')"><slot /></button>',
-    props: ['variant', 'size', 'class', 'aria-label'],
-    emits: ['click'],
   },
 }))
 
@@ -29,7 +27,7 @@ describe('CodeBlockComponent.vue - Coverage Tests', () => {
   it('should mount and render basic structure', () => {
     const wrapper = mount(CodeBlockComponent, {
       props: {
-        content: 'console.log("test")',
+        content: 'const test = "hello"',
         language: 'javascript',
       },
     })
@@ -40,8 +38,7 @@ describe('CodeBlockComponent.vue - Coverage Tests', () => {
   it('should render with filename', () => {
     const wrapper = mount(CodeBlockComponent, {
       props: {
-        content: 'test content',
-        language: 'javascript',
+        content: 'const test = "hello"',
         filename: 'test.js',
       },
     })
@@ -51,7 +48,7 @@ describe('CodeBlockComponent.vue - Coverage Tests', () => {
   it('should use default language', () => {
     const wrapper = mount(CodeBlockComponent, {
       props: {
-        content: 'test content',
+        content: 'const test = "hello"',
       },
     })
 
@@ -63,7 +60,7 @@ describe('CodeBlockComponent.vue - Coverage Tests', () => {
   it('should display correct language icon for vue', () => {
     const wrapper = mount(CodeBlockComponent, {
       props: {
-        content: 'test',
+        content: '<template><div>{{ message }}</div></template>',
         language: 'vue',
       },
     })
@@ -76,7 +73,7 @@ describe('CodeBlockComponent.vue - Coverage Tests', () => {
   it('should display correct language name for Vue', () => {
     const wrapper = mount(CodeBlockComponent, {
       props: {
-        content: 'test',
+        content: '<template><div>{{ message }}</div></template>',
         language: 'vue',
       },
     })
@@ -88,7 +85,7 @@ describe('CodeBlockComponent.vue - Coverage Tests', () => {
   it('should highlight Vue/HTML content', () => {
     const wrapper = mount(CodeBlockComponent, {
       props: {
-        content: '<template><div class="test">Hello</div></template>',
+        content: '<template><div>Vue content</div></template>',
         language: 'vue',
       },
     })
@@ -102,7 +99,7 @@ describe('CodeBlockComponent.vue - Coverage Tests', () => {
   it('should highlight HTML content', () => {
     const wrapper = mount(CodeBlockComponent, {
       props: {
-        content: '<div class="test">Hello</div>',
+        content: '<div>HTML content</div>',
         language: 'html',
       },
     })
@@ -116,7 +113,7 @@ describe('CodeBlockComponent.vue - Coverage Tests', () => {
   it('should highlight JavaScript content', () => {
     const wrapper = mount(CodeBlockComponent, {
       props: {
-        content: 'const test = "hello"; // comment\n/* block comment */',
+        content: 'const js = "JavaScript"',
         language: 'javascript',
       },
     })
@@ -130,7 +127,7 @@ describe('CodeBlockComponent.vue - Coverage Tests', () => {
   it('should highlight TypeScript content', () => {
     const wrapper = mount(CodeBlockComponent, {
       props: {
-        content: 'function test(): string { return "hello"; }',
+        content: 'const ts: string = "TypeScript"',
         language: 'typescript',
       },
     })
@@ -144,7 +141,7 @@ describe('CodeBlockComponent.vue - Coverage Tests', () => {
   it('should highlight CSS content', () => {
     const wrapper = mount(CodeBlockComponent, {
       props: {
-        content: '.test { color: "red"; }',
+        content: '.container { color: red; }',
         language: 'css',
       },
     })
@@ -158,7 +155,7 @@ describe('CodeBlockComponent.vue - Coverage Tests', () => {
   it('should not highlight unknown languages', () => {
     const wrapper = mount(CodeBlockComponent, {
       props: {
-        content: 'some content',
+        content: 'unknown code',
         language: 'unknown',
       },
     })
@@ -180,7 +177,6 @@ describe('CodeBlockComponent.vue - Coverage Tests', () => {
     const wrapper = mount(CodeBlockComponent, {
       props: {
         content: 'const test = "hello"',
-        language: 'javascript',
       },
     })
 
@@ -196,8 +192,7 @@ describe('CodeBlockComponent.vue - Coverage Tests', () => {
   it('should handle copy code method', async () => {
     const wrapper = mount(CodeBlockComponent, {
       props: {
-        content: 'test content',
-        language: 'javascript',
+        content: 'const test = "hello"',
       },
     })
 
@@ -213,8 +208,7 @@ describe('CodeBlockComponent.vue - Coverage Tests', () => {
   it('should render copy button', () => {
     const wrapper = mount(CodeBlockComponent, {
       props: {
-        content: 'test',
-        language: 'javascript',
+        content: 'const test = "hello"',
       },
     })
 

@@ -1,307 +1,531 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+/**
+ * @fileoverview Comprehensive tests for version-bump.ts
+ *
+ * @description
+ * Tests for version bump script functionality:
+ * - Semantic version parsing and generation
+ * - Package.json file updates
+ * - Command-line argument processing
+ * - Error handling and recovery
+ * - Multi-package monorepo support
+ *
+ * @author Hatcher DX Team
+ * @since 1.0.0
+ */
 
-// Mock fs promises
-const mockReadFile = vi.fn()
-const mockWriteFile = vi.fn()
-vi.mock('fs/promises', () => ({
-  readFile: mockReadFile,
-  writeFile: mockWriteFile,
+import { describe, it, expect, vi, beforeEach, afterEach, Mock } from 'vitest'
+import { glob } from 'glob'
+
+// Mock modules with hoisted functions
+const {
+  readFileSync,
+  writeFileSync,
+  existsSync,
+  rmSync,
+  mkdirSync,
+  readdirSync,
+} = vi.hoisted(() => ({
+  readFileSync: vi.fn(),
+  writeFileSync: vi.fn(),
+  existsSync: vi.fn(),
+  rmSync: vi.fn(),
+  mkdirSync: vi.fn(),
+  readdirSync: vi.fn(),
 }))
 
-// Mock console methods
-const mockConsoleLog = vi.spyOn(console, 'log').mockImplementation(() => {})
-const mockConsoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+vi.mock('fs', () => ({
+  default: {
+    readFileSync,
+    writeFileSync,
+    existsSync,
+    rmSync,
+    mkdirSync,
+    readdirSync,
+  },
+  readFileSync,
+  writeFileSync,
+  existsSync,
+  rmSync,
+  mkdirSync,
+  readdirSync,
+}))
+const { glob: mockGlob, sync: mockGlobSync } = vi.hoisted(() => ({
+  glob: vi.fn(),
+  sync: vi.fn(),
+}))
 
-describe('Version Bump Script Functions', () => {
+vi.mock('glob', () => ({
+  default: {
+    sync: mockGlobSync,
+  },
+  glob: {
+    sync: mockGlobSync,
+  },
+  sync: mockGlobSync,
+}))
+
+// Import functions from version-bump.ts
+import {
+  parseVersion,
+  generateNewVersion,
+  updatePackageVersion,
+  main,
+} from './version-bump'
+
+describe('Version Bump Script', () => {
+  let consoleLogSpy: Mock
+  let consoleErrorSpy: Mock
+  let consoleWarnSpy: Mock
+  let processExitSpy: Mock
+  let processArgvBackup: string[]
+
   beforeEach(() => {
-    vi.clearAllMocks()
+    // Mock console methods
+    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    // Mock process.exit
+    processExitSpy = vi
+      .spyOn(process, 'exit')
+      .mockImplementation((code?: number) => {
+        throw new Error(`Process exit with code ${code}`)
+      })
+
+    // Backup process.argv
+    processArgvBackup = [...process.argv]
+
+    // Default mock implementations
+    readFileSync.mockReturnValue(
+      JSON.stringify({ name: 'test-package', version: '1.0.0' })
+    )
+    writeFileSync.mockImplementation(() => {})
+    mockGlobSync.mockReturnValue([])
   })
 
   afterEach(() => {
-    mockConsoleLog.mockRestore()
-    mockConsoleError.mockRestore()
+    process.argv = processArgvBackup
+    vi.restoreAllMocks()
   })
 
-  it('should test SemVer increment logic patterns', () => {
-    // Test semantic version increment patterns
-    const incrementVersion = (
-      version: string,
-      type: 'patch' | 'minor' | 'major'
-    ) => {
-      const [major, minor, patch] = version.split('.').map(Number)
+  describe('parseVersion Function', () => {
+    it('should parse a valid semantic version', () => {
+      const result = parseVersion('1.2.3')
+      expect(result).toEqual({ major: 1, minor: 2, patch: 3 })
+    })
 
-      switch (type) {
-        case 'major':
-          return `${major + 1}.0.0`
-        case 'minor':
-          return `${major}.${minor + 1}.0`
-        case 'patch':
-          return `${major}.${minor}.${patch + 1}`
-        default:
-          throw new Error('Invalid version type')
-      }
-    }
+    it('should parse version with large numbers', () => {
+      const result = parseVersion('10.20.30')
+      expect(result).toEqual({ major: 10, minor: 20, patch: 30 })
+    })
 
-    expect(incrementVersion('1.0.0', 'patch')).toBe('1.0.1')
-    expect(incrementVersion('1.0.0', 'minor')).toBe('1.1.0')
-    expect(incrementVersion('1.0.0', 'major')).toBe('2.0.0')
-    expect(incrementVersion('1.5.3', 'patch')).toBe('1.5.4')
-    expect(incrementVersion('1.5.3', 'minor')).toBe('1.6.0')
-    expect(incrementVersion('1.5.3', 'major')).toBe('2.0.0')
+    it('should parse version with zeros', () => {
+      const result = parseVersion('0.0.0')
+      expect(result).toEqual({ major: 0, minor: 0, patch: 0 })
+    })
+
+    it('should handle version with leading zeros', () => {
+      const result = parseVersion('01.02.03')
+      expect(result).toEqual({ major: 1, minor: 2, patch: 3 })
+    })
   })
 
-  it('should test version validation patterns', () => {
-    const isValidSemVer = (version: string): boolean => {
-      const semVerRegex = /^\d+\.\d+\.\d+$/
-      return semVerRegex.test(version)
-    }
+  describe('generateNewVersion Function', () => {
+    it('should bump patch version', () => {
+      expect(generateNewVersion('1.2.3', 'patch')).toBe('1.2.4')
+      expect(generateNewVersion('0.0.0', 'patch')).toBe('0.0.1')
+      expect(generateNewVersion('1.0.9', 'patch')).toBe('1.0.10')
+    })
 
-    expect(isValidSemVer('1.0.0')).toBe(true)
-    expect(isValidSemVer('1.5.3')).toBe(true)
-    expect(isValidSemVer('10.20.30')).toBe(true)
-    expect(isValidSemVer('1.0')).toBe(false)
-    expect(isValidSemVer('1.0.0.0')).toBe(false)
-    expect(isValidSemVer('v1.0.0')).toBe(false)
-    expect(isValidSemVer('1.0.0-beta')).toBe(false)
-  })
+    it('should bump minor version and reset patch', () => {
+      expect(generateNewVersion('1.2.3', 'minor')).toBe('1.3.0')
+      expect(generateNewVersion('0.0.0', 'minor')).toBe('0.1.0')
+      expect(generateNewVersion('1.9.5', 'minor')).toBe('1.10.0')
+    })
 
-  it('should test package.json structure validation', () => {
-    const validatePackageJson = (packageData: any): boolean => {
-      return (
-        typeof packageData === 'object' &&
-        packageData !== null &&
-        typeof packageData.version === 'string' &&
-        typeof packageData.name === 'string'
+    it('should bump major version and reset minor and patch', () => {
+      expect(generateNewVersion('1.2.3', 'major')).toBe('2.0.0')
+      expect(generateNewVersion('0.0.0', 'major')).toBe('1.0.0')
+      expect(generateNewVersion('9.5.3', 'major')).toBe('10.0.0')
+    })
+
+    it('should throw error for invalid bump type', () => {
+      expect(() => generateNewVersion('1.2.3', 'invalid' as any)).toThrow(
+        'Invalid bump type: invalid'
       )
-    }
-
-    const validPackage = {
-      name: '@hatcherdx/dx-engine',
-      version: '1.0.0',
-      scripts: {},
-    }
-
-    const invalidPackage1 = null
-    const invalidPackage2 = { name: 'test' } // missing version
-    const invalidPackage3 = { version: '1.0.0' } // missing name
-
-    expect(validatePackageJson(validPackage)).toBe(true)
-    expect(validatePackageJson(invalidPackage1)).toBe(false)
-    expect(validatePackageJson(invalidPackage2)).toBe(false)
-    expect(validatePackageJson(invalidPackage3)).toBe(false)
+    })
   })
 
-  it('should test file path construction logic', () => {
-    const constructPackageJsonPaths = (workspaceRoot: string) => {
-      return [
-        `${workspaceRoot}/package.json`,
-        `${workspaceRoot}/apps/web/package.json`,
-        `${workspaceRoot}/apps/electron/package.json`,
-        `${workspaceRoot}/apps/preload/package.json`,
-        `${workspaceRoot}/universal/vite-plugin/package.json`,
-        `${workspaceRoot}/universal/puppeteer-google-translate/package.json`,
+  describe('updatePackageVersion Function', () => {
+    it('should update package.json with new version', () => {
+      const mockPackage = {
+        name: 'test-package',
+        version: '1.0.0',
+        scripts: {},
+      }
+      readFileSync.mockReturnValue(JSON.stringify(mockPackage))
+
+      const result = updatePackageVersion('package.json', '1.0.1')
+
+      expect(result).toBe(true)
+      expect(readFileSync).toHaveBeenCalledWith('package.json', 'utf8')
+      expect(writeFileSync).toHaveBeenCalledWith(
+        'package.json',
+        JSON.stringify({ ...mockPackage, version: '1.0.1' }, null, 2) + '\n'
+      )
+      expect(consoleLogSpy).toHaveBeenCalledWith('✅ Updated package.json')
+    })
+
+    it('should handle file read errors', () => {
+      readFileSync.mockImplementation(() => {
+        throw new Error('File not found')
+      })
+
+      const result = updatePackageVersion('package.json', '1.0.1')
+
+      expect(result).toBe(false)
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        '⚠️  Warning: Could not update package.json:',
+        'File not found'
+      )
+    })
+
+    it('should handle invalid JSON', () => {
+      readFileSync.mockReturnValue('invalid json')
+
+      const result = updatePackageVersion('package.json', '1.0.1')
+
+      expect(result).toBe(false)
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('⚠️  Warning: Could not update package.json:'),
+        expect.any(String)
+      )
+    })
+
+    it('should handle write errors', () => {
+      writeFileSync.mockImplementation(() => {
+        throw new Error('Permission denied')
+      })
+
+      const result = updatePackageVersion('package.json', '1.0.1')
+
+      expect(result).toBe(false)
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        '⚠️  Warning: Could not update package.json:',
+        'Permission denied'
+      )
+    })
+
+    it('should preserve JSON formatting', () => {
+      const mockPackage = {
+        name: 'test-package',
+        version: '1.0.0',
+        scripts: {
+          test: 'vitest',
+          build: 'tsc',
+        },
+        dependencies: {
+          vue: '^3.0.0',
+        },
+      }
+      readFileSync.mockReturnValue(JSON.stringify(mockPackage))
+
+      updatePackageVersion('package.json', '2.0.0')
+
+      const expectedOutput =
+        JSON.stringify({ ...mockPackage, version: '2.0.0' }, null, 2) + '\n'
+      expect(writeFileSync).toHaveBeenCalledWith('package.json', expectedOutput)
+    })
+
+    it('should handle non-Error exceptions', () => {
+      readFileSync.mockImplementation(() => {
+        throw 'String error'
+      })
+
+      const result = updatePackageVersion('package.json', '1.0.1')
+
+      expect(result).toBe(false)
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        '⚠️  Warning: Could not update package.json:',
+        'Unknown error'
+      )
+    })
+  })
+
+  describe('main Function', () => {
+    it('should show usage when no arguments provided', () => {
+      process.argv = ['node', 'version-bump.ts']
+
+      expect(() => main()).toThrow('Process exit with code 1')
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        '❌ Usage: npm run version:bump <major|minor|patch|version>'
+      )
+      expect(consoleErrorSpy).toHaveBeenCalledWith('\nExamples:')
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        '  npm run version:bump patch    # 0.3.0 -> 0.3.1'
+      )
+    })
+
+    it('should bump patch version across all packages', () => {
+      process.argv = ['node', 'version-bump.ts', 'patch']
+
+      const mockGlobResult = [
+        './apps/web/package.json',
+        './apps/electron/package.json',
       ]
-    }
+      mockGlobSync.mockImplementation((pattern) => {
+        if (pattern === './*/package.json') return []
+        if (pattern === './apps/*/package.json') return mockGlobResult
+        if (pattern === './universal/*/package.json') return []
+        return []
+      })
 
-    const paths = constructPackageJsonPaths('/test/workspace')
+      main()
 
-    expect(paths).toHaveLength(6)
-    expect(paths[0]).toBe('/test/workspace/package.json')
-    expect(paths[1]).toBe('/test/workspace/apps/web/package.json')
-    expect(paths.every((path) => path.endsWith('package.json'))).toBe(true)
-    expect(paths.every((path) => typeof path === 'string')).toBe(true)
-  })
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        '🚀 Bumping version from 1.0.0 to 1.0.1'
+      )
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        '📦 Found 3 package.json files to update'
+      )
+      expect(writeFileSync).toHaveBeenCalledTimes(3) // root + 2 apps
+    })
 
-  it('should test JSON parsing and serialization patterns', () => {
-    const parsePackageJson = (content: string) => {
-      try {
-        return { success: true, data: JSON.parse(content) }
-      } catch (error) {
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : 'Parse error',
+    it('should bump minor version', () => {
+      process.argv = ['node', 'version-bump.ts', 'minor']
+
+      mockGlobSync.mockReturnValue([])
+
+      main()
+
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        '🚀 Bumping version from 1.0.0 to 1.1.0'
+      )
+    })
+
+    it('should bump major version', () => {
+      process.argv = ['node', 'version-bump.ts', 'major']
+
+      mockGlobSync.mockReturnValue([])
+
+      main()
+
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        '🚀 Bumping version from 1.0.0 to 2.0.0'
+      )
+    })
+
+    it('should set specific version', () => {
+      process.argv = ['node', 'version-bump.ts', '3.0.0']
+
+      mockGlobSync.mockReturnValue([])
+
+      main()
+
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        '🚀 Bumping version from 1.0.0 to 3.0.0'
+      )
+    })
+
+    it('should handle mixed success and failure', () => {
+      process.argv = ['node', 'version-bump.ts', 'patch']
+
+      mockGlobSync.mockImplementation((pattern) => {
+        if (pattern === './apps/*/package.json') {
+          return ['./apps/web/package.json', './apps/electron/package.json']
         }
-      }
-    }
+        return []
+      })
 
-    const serializePackageJson = (data: any, spaces = 2) => {
-      try {
-        return {
-          success: true,
-          content: JSON.stringify(data, null, spaces) + '\n',
+      // Make one update fail
+      let callCount = 0
+      writeFileSync.mockImplementation(() => {
+        callCount++
+        if (callCount === 2) {
+          throw new Error('Permission denied')
         }
-      } catch (error) {
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : 'Serialize error',
+      })
+
+      main()
+
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        '📊 Successfully updated: 2/3 packages'
+      )
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        '⚠️  Errors: 1 packages failed to update'
+      )
+    })
+
+    it('should display next steps after successful bump', () => {
+      process.argv = ['node', 'version-bump.ts', 'patch']
+
+      mockGlobSync.mockReturnValue([])
+
+      main()
+
+      expect(consoleLogSpy).toHaveBeenCalledWith('\n📋 Next steps:')
+      expect(consoleLogSpy).toHaveBeenCalledWith('1. 📝 Update CHANGELOG.md')
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        '2. 💾 Commit changes: git add . && git commit -m "bump: version 1.0.1"'
+      )
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        '3. 🏷️  Create tag: git tag v1.0.1'
+      )
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        '4. 🚀 Push: git push && git push --tags'
+      )
+    })
+
+    it('should find all package.json files in monorepo', () => {
+      process.argv = ['node', 'version-bump.ts', 'patch']
+
+      mockGlobSync.mockImplementation((pattern) => {
+        if (pattern === './*/package.json') {
+          return ['./scripts/package.json']
         }
+        if (pattern === './apps/*/package.json') {
+          return ['./apps/web/package.json', './apps/electron/package.json']
+        }
+        if (pattern === './universal/*/package.json') {
+          return ['./universal/vite-plugin/package.json']
+        }
+        return []
+      })
+
+      main()
+
+      // Should find 5 files total (4 from glob + 1 root)
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        '📦 Found 5 package.json files to update'
+      )
+      expect(writeFileSync).toHaveBeenCalledTimes(5)
+    })
+
+    it('should handle empty glob results', () => {
+      process.argv = ['node', 'version-bump.ts', 'patch']
+
+      mockGlobSync.mockReturnValue([])
+
+      main()
+
+      // Should still update root package.json
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        '📦 Found 1 package.json files to update'
+      )
+      expect(writeFileSync).toHaveBeenCalledTimes(1)
+    })
+
+    it('should read current version from root package.json', () => {
+      process.argv = ['node', 'version-bump.ts', 'patch']
+
+      const mockRootPackage = {
+        name: '@hatcherdx/dx-engine',
+        version: '2.5.3',
       }
-    }
+      readFileSync.mockImplementation((path) => {
+        if (path === './package.json') {
+          return JSON.stringify(mockRootPackage)
+        }
+        return JSON.stringify({ name: 'sub-package', version: '1.0.0' })
+      })
+      mockGlobSync.mockReturnValue([])
 
-    const validJson = '{"name": "test", "version": "1.0.0"}'
-    const invalidJson = '{"name": "test", "version": 1.0.0' // missing closing brace
+      main()
 
-    const parseResult1 = parsePackageJson(validJson)
-    const parseResult2 = parsePackageJson(invalidJson)
-
-    expect(parseResult1.success).toBe(true)
-    expect(parseResult1.data).toEqual({ name: 'test', version: '1.0.0' })
-    expect(parseResult2.success).toBe(false)
-
-    const serializeResult = serializePackageJson({
-      name: 'test',
-      version: '1.0.0',
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        '🚀 Bumping version from 2.5.3 to 2.5.4'
+      )
     })
-    expect(serializeResult.success).toBe(true)
-    expect(serializeResult.content).toContain('"name": "test"')
-    expect(serializeResult.content).toContain('"version": "1.0.0"')
-    expect(serializeResult.content.endsWith('\n')).toBe(true)
+
+    it('should complete successfully with all packages updated', () => {
+      process.argv = ['node', 'version-bump.ts', 'minor']
+
+      mockGlobSync.mockReturnValue([])
+
+      main()
+
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        '✅ Version bump complete! New version: 1.1.0'
+      )
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        '📊 Successfully updated: 1/1 packages'
+      )
+    })
   })
 
-  it('should test error handling patterns', () => {
-    const handleFileError = (error: unknown, filePath: string) => {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error'
-      return {
-        success: false,
-        message: `Failed to process ${filePath}: ${errorMessage}`,
-        filePath,
+  describe('Process Error Handlers', () => {
+    it('should handle uncaught exceptions', () => {
+      const listeners = process.listeners('uncaughtException')
+      const handler = listeners[listeners.length - 1] as any
+
+      expect(() => handler(new Error('Test error'))).toThrow(
+        'Process exit with code 1'
+      )
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        '💥 Uncaught exception:',
+        'Test error'
+      )
+    })
+
+    it('should handle unhandled rejections', () => {
+      const listeners = process.listeners('unhandledRejection')
+      const handler = listeners[listeners.length - 1] as any
+
+      expect(() => handler('Test rejection')).toThrow(
+        'Process exit with code 1'
+      )
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        '💥 Unhandled rejection:',
+        'Test rejection'
+      )
+    })
+  })
+
+  describe('Edge Cases', () => {
+    it('should handle version with pre-release tags as custom version', () => {
+      process.argv = ['node', 'version-bump.ts', '1.0.0-beta.1']
+
+      mockGlobSync.mockReturnValue([])
+
+      main()
+
+      // Should treat it as a specific version
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        '🚀 Bumping version from 1.0.0 to 1.0.0-beta.1'
+      )
+    })
+
+    it('should handle very large version numbers', () => {
+      const mockPackage = {
+        name: 'test',
+        version: '999.999.999',
       }
-    }
+      readFileSync.mockReturnValue(JSON.stringify(mockPackage))
 
-    const testError = new Error('File not found')
-    const result1 = handleFileError(testError, '/test/package.json')
-    const result2 = handleFileError('String error', '/test/package.json')
+      process.argv = ['node', 'version-bump.ts', 'patch']
+      mockGlobSync.mockReturnValue([])
 
-    expect(result1.success).toBe(false)
-    expect(result1.message).toBe(
-      'Failed to process /test/package.json: File not found'
-    )
-    expect(result1.filePath).toBe('/test/package.json')
+      main()
 
-    expect(result2.success).toBe(false)
-    expect(result2.message).toBe(
-      'Failed to process /test/package.json: Unknown error'
-    )
-  })
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        '🚀 Bumping version from 999.999.999 to 999.999.1000'
+      )
+    })
 
-  it('should test console message formatting', () => {
-    const formatMessages = {
-      start: (type: string) => `🔄 Bumping ${type} version...`,
-      success: (file: string, oldVer: string, newVer: string) =>
-        `✅ Updated ${file}: ${oldVer} → ${newVer}`,
-      error: (file: string, error: string) =>
-        `❌ Failed to update ${file}: ${error}`,
-      complete: (count: number) =>
-        `🎉 Successfully updated ${count} package(s)`,
-      invalid: (type: string) =>
-        `❌ Invalid version type: ${type}. Use: patch, minor, or major`,
-    }
-
-    expect(formatMessages.start('patch')).toBe('🔄 Bumping patch version...')
-    expect(formatMessages.success('package.json', '1.0.0', '1.0.1')).toBe(
-      '✅ Updated package.json: 1.0.0 → 1.0.1'
-    )
-    expect(formatMessages.error('package.json', 'File not found')).toBe(
-      '❌ Failed to update package.json: File not found'
-    )
-    expect(formatMessages.complete(3)).toBe(
-      '🎉 Successfully updated 3 package(s)'
-    )
-    expect(formatMessages.invalid('beta')).toBe(
-      '❌ Invalid version type: beta. Use: patch, minor, or major'
-    )
-  })
-
-  it('should test version type validation', () => {
-    const isValidVersionType = (
-      type: string
-    ): type is 'patch' | 'minor' | 'major' => {
-      return ['patch', 'minor', 'major'].includes(type)
-    }
-
-    expect(isValidVersionType('patch')).toBe(true)
-    expect(isValidVersionType('minor')).toBe(true)
-    expect(isValidVersionType('major')).toBe(true)
-    expect(isValidVersionType('beta')).toBe(false)
-    expect(isValidVersionType('alpha')).toBe(false)
-    expect(isValidVersionType('')).toBe(false)
-    expect(isValidVersionType('PATCH')).toBe(false)
-  })
-
-  it('should test command line argument processing', () => {
-    const processArgs = (args: string[]) => {
-      // Skip 'node' and script name
-      const versionType = args[2]
-
-      if (!versionType) {
-        return { error: 'Version type is required' }
+    it('should handle missing version in root package.json', () => {
+      const mockPackage = {
+        name: 'test',
+        // version missing
       }
+      readFileSync.mockReturnValue(JSON.stringify(mockPackage))
 
-      if (!['patch', 'minor', 'major'].includes(versionType)) {
-        return { error: `Invalid version type: ${versionType}` }
-      }
+      process.argv = ['node', 'version-bump.ts', 'patch']
 
-      return { versionType }
-    }
-
-    expect(processArgs(['node', 'version-bump.ts', 'patch'])).toEqual({
-      versionType: 'patch',
+      // This will fail when trying to parse undefined version
+      expect(() => main()).toThrow()
     })
-    expect(processArgs(['node', 'version-bump.ts', 'minor'])).toEqual({
-      versionType: 'minor',
-    })
-    expect(processArgs(['node', 'version-bump.ts', 'major'])).toEqual({
-      versionType: 'major',
-    })
-    expect(processArgs(['node', 'version-bump.ts'])).toEqual({
-      error: 'Version type is required',
-    })
-    expect(processArgs(['node', 'version-bump.ts', 'beta'])).toEqual({
-      error: 'Invalid version type: beta',
-    })
-  })
-
-  it('should test success counter logic', () => {
-    let successCount = 0
-    const incrementSuccess = () => ++successCount
-    const resetCounter = () => (successCount = 0)
-    const getCount = () => successCount
-
-    expect(getCount()).toBe(0)
-
-    incrementSuccess()
-    expect(getCount()).toBe(1)
-
-    incrementSuccess()
-    incrementSuccess()
-    expect(getCount()).toBe(3)
-
-    resetCounter()
-    expect(getCount()).toBe(0)
-  })
-
-  it('should test file processing workflow', () => {
-    const processWorkflow = {
-      readFile: async (path: string) => ({
-        content: '{"version": "1.0.0"}',
-        path,
-      }),
-      parseJson: (content: string) => JSON.parse(content),
-      updateVersion: (data: any, type: string) => ({
-        ...data,
-        version: type === 'patch' ? '1.0.1' : '1.1.0',
-      }),
-      writeFile: async (path: string, content: string) => ({
-        success: true,
-        path,
-      }),
-    }
-
-    // Test workflow components
-    expect(typeof processWorkflow.readFile).toBe('function')
-    expect(typeof processWorkflow.parseJson).toBe('function')
-    expect(typeof processWorkflow.updateVersion).toBe('function')
-    expect(typeof processWorkflow.writeFile).toBe('function')
   })
 })

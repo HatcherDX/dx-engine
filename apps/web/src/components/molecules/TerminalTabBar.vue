@@ -1,12 +1,39 @@
 <template>
   <div class="terminal-tab-bar">
     <div class="terminal-tab-bar__tabs">
+      <!-- System terminals come first -->
+      <TerminalTab
+        v-for="terminal in systemTerminals"
+        :key="`system-${terminal.id}`"
+        :name="terminal.name"
+        :active="terminal.id === activeTerminalId"
+        :running="terminal.isRunning"
+        :terminal-type="terminal.terminalType"
+        :activity-state="terminal.activityState"
+        :closable="terminal.closable ?? false"
+        @click="$emit('tabClick', terminal.id)"
+        @close="$emit('tabClose', terminal.id)"
+        @contextmenu="$emit('tabContextMenu', terminal.id, $event)"
+      />
+
+      <!-- Separator between system and regular terminals -->
+      <div
+        v-if="
+          systemTerminals && systemTerminals.length > 0 && terminals.length > 0
+        "
+        class="terminal-tab-bar__separator"
+      />
+
+      <!-- Regular terminals -->
       <TerminalTab
         v-for="terminal in terminals"
         :key="terminal.id"
         :name="terminal.name"
         :active="terminal.id === activeTerminalId"
         :running="terminal.isRunning"
+        :terminal-type="terminal.terminalType ?? 'regular'"
+        :activity-state="terminal.activityState"
+        :closable="terminal.closable ?? true"
         @click="$emit('tabClick', terminal.id)"
         @close="$emit('tabClose', terminal.id)"
         @contextmenu="$emit('tabContextMenu', terminal.id, $event)"
@@ -21,15 +48,6 @@
       >
         <BaseIcon name="Plus" size="sm" />
       </BaseButton>
-      <BaseButton
-        variant="ghost"
-        size="sm"
-        title="Split Terminal"
-        :disabled="!activeTerminalId"
-        @click="$emit('splitTerminal')"
-      >
-        <BaseIcon name="Split" size="sm" />
-      </BaseButton>
     </div>
   </div>
 </template>
@@ -43,10 +61,14 @@ interface Terminal {
   id: string
   name: string
   isRunning: boolean
+  terminalType?: 'system' | 'timeline' | 'regular'
+  activityState?: 'info' | 'warning' | 'error' | 'idle'
+  closable?: boolean
 }
 
 interface Props {
   terminals: Terminal[]
+  systemTerminals?: Terminal[]
   activeTerminalId?: string
 }
 
@@ -55,7 +77,6 @@ interface Emits {
   tabClose: [string]
   tabContextMenu: [string, MouseEvent]
   newTerminal: []
-  splitTerminal: []
 }
 
 defineProps<Props>()
@@ -69,19 +90,22 @@ const handleNewTerminal = () => {
 <style scoped>
 .terminal-tab-bar {
   display: flex;
-  align-items: center;
   justify-content: space-between;
   background-color: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-primary);
-  min-height: 3rem;
 }
 
 .terminal-tab-bar__tabs {
   display: flex;
-  align-items: center;
   overflow-x: auto;
   scrollbar-width: none;
   flex: 1;
+}
+
+.terminal-tab-bar__separator {
+  width: 1px;
+  height: 1.5rem;
+  background-color: var(--border-primary);
+  margin: 0.5rem 0.25rem;
 }
 
 .terminal-tab-bar__tabs::-webkit-scrollbar {
@@ -92,7 +116,6 @@ const handleNewTerminal = () => {
   display: flex;
   align-items: center;
   padding: 0 0.5rem;
-  border-left: 1px solid var(--border-primary);
 }
 
 .terminal-tab-bar__actions > * + * {

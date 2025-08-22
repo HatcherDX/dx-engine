@@ -20,27 +20,24 @@
           v-for="file in changedFiles"
           :key="file.path"
           class="file-change-row"
+          @click="selectFile(file.path)"
         >
           <input
             :id="`file-${file.path}`"
             v-model="file.staged"
             type="checkbox"
             class="file-checkbox"
+            @click.stop="handleCheckboxClick"
           />
+          <span ref="filePathRef" class="file-path" :title="file.path">
+            {{ getTruncatedPath(file.path) }}
+          </span>
           <BaseIcon
             :name="getStatusIcon(file.status)"
             size="xs"
             :class="getStatusClass(file.status)"
             class="status-icon"
           />
-          <label
-            ref="filePathRef"
-            :for="`file-${file.path}`"
-            class="file-path"
-            :title="file.path"
-          >
-            {{ getTruncatedPath(file.path) }}
-          </label>
         </div>
       </div>
     </div>
@@ -96,20 +93,16 @@
         </BaseButton>
       </div>
     </div>
-
-    <!-- Logo Section -->
-    <div class="logo-section">
-      <BaseLogo size="lg" variant="inline" class="sidebar-content-logo" />
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import BaseIcon from '../atoms/BaseIcon.vue'
 import BaseButton from '../atoms/BaseButton.vue'
-import BaseLogo from '../atoms/BaseLogo.vue'
 import { useSmartTruncation } from '../../composables/useSmartTruncation'
+import { useTimelineEvents } from '../../composables/useTimelineEvents'
+import { useProjectContext } from '../../composables/useProjectContext'
 
 interface Tab {
   id: 'changes' | 'history'
@@ -118,7 +111,7 @@ interface Tab {
 
 interface FileChange {
   path: string
-  status: 'added' | 'modified' | 'deleted' | 'renamed'
+  status: 'added' | 'modified' | 'deleted' | 'renamed' | 'untracked'
   staged: boolean
 }
 
@@ -145,11 +138,131 @@ const { truncatePath } = useSmartTruncation()
 const containerWidth = ref(200) // Default fallback width
 const changesListRef = ref<HTMLElement>()
 
+// Timeline events for communication with GitTimelineView
+const { selectFile: selectFileGlobal, selectCommit: selectCommitGlobal } =
+  useTimelineEvents()
+
+// Project context for real file system access
+const { isProjectLoaded, projectRoot, projectName } = useProjectContext()
+
+// Define GitFileStatus type locally
+interface GitFileStatus {
+  path: string
+  indexStatus: string
+  worktreeStatus: string
+  isStaged: boolean
+  simplifiedStatus: 'added' | 'modified' | 'deleted' | 'renamed' | 'untracked'
+}
+
+// Pure Electron Git status - all files directly from simple-git
+const gitFiles = ref<GitFileStatus[]>([])
+
+const isGitRepository = ref(false)
+
+/**
+ * Loads Git status using pure Electron/Node.js simple-git API.
+ * Maximum performance - no web hybrid operations.
+ *
+ * @private
+ */
+const loadGitStatus = async () => {
+  console.log('[TimelineSidebar] 🔍 loadGitStatus called')
+  console.log('[TimelineSidebar] 🔍 Current state:', {
+    projectRoot: projectRoot.value,
+    isProjectLoaded: isProjectLoaded.value,
+    electronAPIExists: !!window.electronAPI,
+    getGitStatusExists: !!(
+      window.electronAPI && window.electronAPI.getGitStatus
+    ),
+  })
+
+  if (!projectRoot.value || !isProjectLoaded.value) {
+    console.log('[TimelineSidebar] ❌ No project root or project not loaded')
+    console.log('[TimelineSidebar] 📊 Details:', {
+      projectRootValue: projectRoot.value,
+      isProjectLoadedValue: isProjectLoaded.value,
+    })
+    gitFiles.value = []
+    isGitRepository.value = false
+    return
+  }
+
+  try {
+    console.log(
+      `[TimelineSidebar] 🚀 Loading Git status via Electron API for: ${projectRoot.value}`
+    )
+
+    // Verificar que window.electronAPI existe
+    if (!window.electronAPI) {
+      console.error('[TimelineSidebar] ❌ window.electronAPI is not defined!')
+      gitFiles.value = []
+      isGitRepository.value = false
+      return
+    }
+
+    // Verificar que getGitStatus existe
+    if (!window.electronAPI.getGitStatus) {
+      console.error(
+        '[TimelineSidebar] ❌ window.electronAPI.getGitStatus is not defined!'
+      )
+      console.log(
+        '[TimelineSidebar] 📊 Available APIs:',
+        Object.keys(window.electronAPI)
+      )
+      gitFiles.value = []
+      isGitRepository.value = false
+      return
+    }
+
+    console.log(
+      '[TimelineSidebar] 📡 Calling window.electronAPI.getGitStatus...'
+    )
+    const result = await window.electronAPI.getGitStatus(projectRoot.value)
+    console.log('[TimelineSidebar] 📡 IPC call completed, result:', result)
+
+    if (!result) {
+      console.error('[TimelineSidebar] ❌ Git status result is null/undefined')
+      gitFiles.value = []
+      isGitRepository.value = false
+      return
+    }
+
+    console.log(
+      `[TimelineSidebar] ✅ Got ${result.totalFiles} files from Electron:`,
+      result.files.map((f: GitFileStatus) => f.path)
+    )
+
+    gitFiles.value = result.files
+    isGitRepository.value = result.isRepository
+
+    console.log(
+      `[TimelineSidebar] 📊 Status breakdown:`,
+      gitFiles.value.reduce(
+        (acc: Record<string, number>, f) => {
+          acc[f.simplifiedStatus] = (acc[f.simplifiedStatus] || 0) + 1
+          return acc
+        },
+        {} as Record<string, number>
+      )
+    )
+  } catch (error) {
+    console.error('[TimelineSidebar] ❌ Failed to load Git status:', error)
+    console.error('[TimelineSidebar] ❌ Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      projectRoot: projectRoot.value,
+    })
+    gitFiles.value = []
+    isGitRepository.value = false
+  }
+}
+
 // Update container width
 const updateContainerWidth = () => {
   if (changesListRef.value) {
-    // Account for padding and other elements: checkbox (16px) + gaps (8px * 3) + icon (16px) = 56px
-    const reservedWidth = 56
+    // Account for layout: [checkbox] [gap] [file-path] [margin-left] [status-icon]
+    // checkbox (16px) + initial gap (8px) + status-icon (16px) + icon margin-left (8px) + row padding (32px) = 80px
+    const reservedWidth = 80
     const availableWidth = changesListRef.value.clientWidth - reservedWidth
     const newWidth = Math.max(availableWidth, 100) // Minimum 100px
     containerWidth.value = newWidth
@@ -175,6 +288,30 @@ onMounted(() => {
     // Fallback to window resize
     window.addEventListener('resize', updateContainerWidth)
   }
+
+  // Load initial Git data if project is already loaded
+  console.log(
+    '[TimelineSidebar] 🔧 onMounted - project loaded?',
+    isProjectLoaded.value,
+    'project root:',
+    projectRoot.value
+  )
+  console.log('[TimelineSidebar] 🔧 onMounted - useProjectContext state:', {
+    isProjectLoaded: isProjectLoaded.value,
+    projectRoot: projectRoot.value,
+    projectName: projectName.value,
+  })
+
+  if (isProjectLoaded.value) {
+    console.log(
+      '[TimelineSidebar] 🔧 onMounted - calling loadGitStatus immediately'
+    )
+    loadGitStatus()
+  } else {
+    console.log(
+      '[TimelineSidebar] 🔧 onMounted - no project loaded yet, waiting for watch trigger'
+    )
+  }
 })
 
 onUnmounted(() => {
@@ -185,64 +322,78 @@ onUnmounted(() => {
   }
 })
 
-const changedFiles = ref<FileChange[]>([
-  {
-    path: 'src/components/organisms/TimelineSidebar.vue',
-    status: 'modified',
-    staged: true,
-  },
-  {
-    path: 'src/components/molecules/ModeSelector.vue',
-    status: 'modified',
-    staged: true,
-  },
-  {
-    path: 'src/components/templates/UnifiedFrame.vue',
-    status: 'modified',
-    staged: false,
-  },
-  {
-    path: 'src/App.vue',
-    status: 'modified',
-    staged: false,
-  },
-  {
-    path: 'src/components/atoms/icons/Timeline.vue',
-    status: 'added',
-    staged: true,
-  },
-])
+// Pure Electron Git status integration
+const changedFiles = computed(() => {
+  console.log('[TimelineSidebar] Computing changedFiles:', {
+    isProjectLoaded: isProjectLoaded.value,
+    isGitRepository: isGitRepository.value,
+    gitFilesLength: gitFiles.value.length,
+  })
 
-const commitHistory = ref<Commit[]>([
-  {
-    id: 'c1',
-    hash: 'a1b2c3d',
-    message: 'feat: implement timeline mode with git-like interface',
-    author: 'Developer',
-    date: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-  },
-  {
-    id: 'c2',
-    hash: 'e4f5g6h',
-    message: 'fix: update mode selector active state styling',
-    author: 'Developer',
-    date: new Date(Date.now() - 5 * 60 * 60 * 1000), // 5 hours ago
-  },
-  {
-    id: 'c3',
-    hash: 'i7j8k9l',
-    message: 'style: remove header padding and adjust button margins',
-    author: 'Developer',
-    date: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
-  },
-  {
-    id: 'c4',
-    hash: 'm0n1o2p',
-    message: 'feat: add GitHub button styling with proper padding',
-    author: 'Developer',
-    date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-  },
-])
+  if (!isProjectLoaded.value || !isGitRepository.value) {
+    console.log(
+      '[TimelineSidebar] Not loaded or not git repo, returning empty array'
+    )
+    return []
+  }
+
+  if (gitFiles.value.length === 0) {
+    console.log('[TimelineSidebar] No git files available')
+    return []
+  }
+
+  // Convert pure Electron Git files to UI format
+  const uiFiles = gitFiles.value.map((gitFile) => ({
+    path: gitFile.path,
+    status: gitFile.simplifiedStatus,
+    staged: gitFile.isStaged,
+  }))
+
+  console.log(
+    `[TimelineSidebar] 📋 UI files (${uiFiles.length}):`,
+    uiFiles.map((f) => `${f.path} [${f.status}]`)
+  )
+  return uiFiles
+})
+
+// Real commit history from Git - simplified for now
+const commitHistory = ref<Commit[]>([])
+
+// Watch for project changes and load git data
+watch(
+  () => isProjectLoaded.value,
+  async (loaded, oldLoaded) => {
+    console.log('[TimelineSidebar] 👀 isProjectLoaded watch triggered:', {
+      loaded,
+      oldLoaded,
+      projectRoot: projectRoot.value,
+    })
+    if (loaded) {
+      console.log(
+        '[TimelineSidebar] 👀 Project loaded, loading Git data via pure Electron'
+      )
+      await loadGitStatus()
+    }
+  }
+)
+
+// Also watch for project root changes
+watch(
+  () => projectRoot.value,
+  async (newRoot, oldRoot) => {
+    console.log('[TimelineSidebar] 👀 projectRoot watch triggered:', {
+      newRoot,
+      oldRoot,
+      isProjectLoaded: isProjectLoaded.value,
+    })
+    if (newRoot && isProjectLoaded.value) {
+      console.log(
+        '[TimelineSidebar] 👀 Root changed and project loaded, calling loadGitStatus'
+      )
+      await loadGitStatus()
+    }
+  }
+)
 
 const canCommit = computed(() => {
   const hasStagedFiles = changedFiles.value.some((file) => file.staged)
@@ -272,15 +423,17 @@ const getTruncatedPath = (path: string) => {
 const getStatusIcon = (status: FileChange['status']) => {
   switch (status) {
     case 'added':
-      return 'GitBranch'
+      return 'Plus'
     case 'modified':
-      return 'Terminal'
+      return 'Circle'
     case 'deleted':
-      return 'X'
+      return 'Minus'
     case 'renamed':
-      return 'Code'
+      return 'ArrowRight'
+    case 'untracked':
+      return 'Plus'
     default:
-      return 'Code'
+      return 'Circle'
   }
 }
 
@@ -294,13 +447,32 @@ const getStatusClass = (status: FileChange['status']) => {
       return 'status-deleted'
     case 'renamed':
       return 'status-renamed'
+    case 'untracked':
+      return 'status-untracked'
     default:
-      return ''
+      return 'status-modified'
   }
+}
+
+const handleCheckboxClick = () => {
+  // El v-model ya maneja el cambio del estado del checkbox
+  // Solo necesitamos prevenir el event bubbling, que ya hace @click.stop
+}
+
+const selectFile = (filePath: string) => {
+  console.log('Selected file:', filePath, 'in tab:', activeTab.value)
+  // Use context based on active tab
+  const context = activeTab.value === 'changes' ? 'changes' : 'history'
+  selectFileGlobal(filePath, context)
 }
 
 const selectCommit = (commitId: string) => {
   console.log('Selected commit:', commitId)
+  // Find commit index by ID
+  const commitIndex = commitHistory.value.findIndex((c) => c.id === commitId)
+  if (commitIndex !== -1) {
+    selectCommitGlobal(commitHistory.value[commitIndex].hash, commitIndex)
+  }
 }
 
 const performCommit = () => {
@@ -404,28 +576,59 @@ const formatDate = (date: Date) => {
 .file-checkbox {
   width: 16px;
   height: 16px;
+  min-width: 16px;
+  min-height: 16px;
+  max-width: 16px;
+  max-height: 16px;
   accent-color: var(--accent-primary);
   cursor: pointer;
+  flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .status-icon {
   flex-shrink: 0;
+  margin-left: 8px;
 }
 
 .status-added {
   color: #10b981; /* Green for added files */
+  background-color: rgba(16, 185, 129, 0.1);
+  border: 1px solid #10b981;
+  border-radius: 3px;
+  padding: 2px;
 }
 
 .status-modified {
   color: #f59e0b; /* Orange for modified files */
+  background-color: rgba(245, 158, 11, 0.1);
+  border: 1px solid #f59e0b;
+  border-radius: 3px;
+  padding: 2px;
 }
 
 .status-deleted {
   color: #ef4444; /* Red for deleted files */
+  background-color: rgba(239, 68, 68, 0.1);
+  border: 1px solid #ef4444;
+  border-radius: 3px;
+  padding: 2px;
 }
 
 .status-renamed {
   color: #6366f1; /* Blue for renamed files */
+  background-color: rgba(99, 102, 241, 0.1);
+  border: 1px solid #6366f1;
+  border-radius: 3px;
+  padding: 2px;
+}
+
+.status-untracked {
+  color: #10b981; /* Green for untracked files (same as added) */
+  background-color: rgba(16, 185, 129, 0.1);
+  border: 1px solid #10b981;
+  border-radius: 3px;
+  padding: 2px;
 }
 
 .file-path {
@@ -589,14 +792,6 @@ const formatDate = (date: Date) => {
 
 .commit-button-active:hover::before {
   left: 100%;
-}
-
-/* Logo Section */
-.logo-section {
-  padding: 16px;
-  border-top: 1px solid var(--border-sidebar);
-  display: flex;
-  justify-content: center;
 }
 
 /* Scrollbar styling */

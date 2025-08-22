@@ -30,10 +30,35 @@ export default defineConfig({
     environment: 'happy-dom',
     setupFiles: ['./vitest.setup.ts'],
 
+    // Timeout configuration to prevent worker hangs
+    testTimeout: 30000,
+    hookTimeout: 10000,
+    teardownTimeout: 10000,
+
+    // CRITICAL SAFETY: Process isolation to prevent real Git operations
+    pool: 'forks',
+    poolOptions: {
+      forks: {
+        isolate: true,
+        singleFork: false,
+        execArgv: ['--no-warnings'],
+        env: {
+          // Explicit test environment variables for safety detection
+          NODE_ENV: 'test',
+          VITEST: 'true',
+          CI: process.env.CI || 'false',
+          // Block real Git operations at process level
+          GIT_TERMINAL_PROMPT: '0',
+          GIT_SSH_COMMAND: 'echo "Git SSH blocked in tests"',
+        },
+      },
+    },
+
     // Include all tests from monorepo (excluding WIP)
     include: [
       'apps/**/*.{test,spec}.{js,ts}',
       'universal/**/*.{test,spec}.{js,ts}',
+      'tooling/**/*.{test,spec}.{js,ts}',
       'scripts/**/*.{test,spec}.{js,ts}',
     ],
 
@@ -70,6 +95,7 @@ export default defineConfig({
       include: [
         'apps/**/*.{js,ts,vue}',
         'universal/**/*.{js,ts}',
+        'tooling/**/*.{js,ts}',
         'scripts/**/*.{js,ts}',
         '!apps/docs/**',
       ],
@@ -92,10 +118,6 @@ export default defineConfig({
         '**/registerServiceWorker.ts',
         '**/vite-env.d.ts',
         '**/style.css',
-        // Exclude development scripts that don't need coverage
-        'scripts/dev-electron.ts',
-        'scripts/watch.ts',
-        'scripts/translation/**',
       ],
     },
   },

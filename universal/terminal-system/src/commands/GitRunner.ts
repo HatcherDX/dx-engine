@@ -27,6 +27,7 @@
  * @public
  */
 
+import type { GitCommandLogger } from '../system/GitCommandLogger'
 import type {
   CommandOptions,
   CommandResult,
@@ -37,6 +38,27 @@ import type {
 } from '../types/commands'
 import { Logger } from '../utils/logger'
 import { CommandRunner } from './CommandRunner'
+import { getGitSafetyDetector } from '../utils/GitSafetyDetector'
+
+// Dynamic import for system logging (browser compatibility)
+let gitCommandLogger: GitCommandLogger | null = null
+
+/**
+ * Initialize logging system components.
+ *
+ * @private
+ */
+async function initializeLogging(): Promise<void> {
+  if (gitCommandLogger) return
+
+  try {
+    const systemModule = await import('../system/index')
+    gitCommandLogger = systemModule.gitCommandLogger
+  } catch (error) {
+    // Logging system not available - continue without it
+    console.warn('[GitRunner] Logging system not available:', error)
+  }
+}
 
 /**
  * Git command runner that provides type-safe Git operations.
@@ -54,6 +76,118 @@ import { CommandRunner } from './CommandRunner'
 export class GitRunner extends CommandRunner implements GitRunnerInterface {
   /** Logger instance for Git operations */
   protected logger = new Logger('GitRunner')
+
+  /** Whether logging system is initialized */
+  private loggingInitialized = false
+
+  /** Enhanced safety detector instance */
+  private safetyDetector = getGitSafetyDetector()
+
+  /**
+   * Create GitRunner instance and initialize logging system.
+   *
+   * @public
+   */
+  constructor() {
+    super()
+    // Initialize logging asynchronously (don't await to avoid blocking)
+    this.initializeLoggingAsync()
+    // Configure enhanced safety detection
+    this.initializeEnhancedSafety()
+  }
+
+  /**
+   * Initialize logging system asynchronously.
+   *
+   * @private
+   */
+  private async initializeLoggingAsync(): Promise<void> {
+    try {
+      await initializeLogging()
+      this.loggingInitialized = true
+    } catch (error) {
+      console.warn('[GitRunner] Failed to initialize logging:', error)
+    }
+  }
+
+  /**
+   * Initialize enhanced safety detection and monitoring.
+   *
+   * @private
+   */
+  private initializeEnhancedSafety(): void {
+    try {
+      // Configure the safety detector for this GitRunner instance
+      this.safetyDetector.configure({
+        strict: true,
+        enableMonitoring: true,
+        customTestEnvVars: ['VITEST', 'JEST_WORKER_ID', 'NODE_ENV', 'CI'],
+        customTestPatterns: [
+          /GitRunner\.spec\./,
+          /GitRunner\.test\./,
+          /GitRunner\.safety\.spec\./,
+        ],
+      })
+
+      // Log safety status
+      const detection = this.safetyDetector.detectEnvironment()
+      if (detection.isTestEnvironment) {
+        this.logger.info(
+          `🛡️ Enhanced Git Safety initialized (confidence: ${detection.confidence}%)`
+        )
+        this.logger.debug('Safety triggers:', detection.triggers)
+      }
+    } catch (error) {
+      this.logger.warn('Failed to initialize enhanced safety:', error)
+    }
+  }
+
+  /**
+   * Execute git operation with logging integration (Causa-Efecto pattern).
+   *
+   * @param operationName - Name of the git operation
+   * @param operation - Async function that performs the git operation
+   * @param args - Arguments passed to the operation (for logging)
+   * @param fallbackValue - Value to return if operation fails (optional)
+   * @returns Promise resolving to operation result
+   *
+   * @private
+   */
+  private async executeWithLogging<T>(
+    operationName: string,
+    operation: () => Promise<T>,
+    args?: unknown[],
+    fallbackValue?: T
+  ): Promise<T> {
+    try {
+      if (this.loggingInitialized && gitCommandLogger) {
+        // Use system logging with Causa-Efecto pattern
+        const result = await gitCommandLogger.wrapGitOperation(
+          operationName,
+          operation,
+          args
+        )
+        if (!result.success) {
+          throw result.error || new Error(result.message)
+        }
+        return result.data!
+      } else {
+        // Fallback to direct execution
+        return await operation()
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to execute git ${operationName}:`,
+        error instanceof Error ? error : new Error(String(error))
+      )
+
+      if (fallbackValue !== undefined) {
+        return fallbackValue
+      }
+
+      throw error
+    }
+  }
 
   /**
    * Detects if we're running in a test environment to prevent real Git operations.
@@ -223,6 +357,8 @@ export class GitRunner extends CommandRunner implements GitRunnerInterface {
    * In test environments, it returns mock data instead of executing real commands.
    * In production, it delegates to the parent CommandRunner.execute method.
    *
+   * The method now uses enhanced detection with detailed monitoring and logging.
+   *
    * @param command - The command to execute
    * @param options - Command execution options
    * @returns Promise resolving to command result (real or mocked)
@@ -242,15 +378,33 @@ export class GitRunner extends CommandRunner implements GitRunnerInterface {
     command: string,
     options: CommandOptions = {}
   ): Promise<CommandResult> {
-    // CRITICAL SAFETY CHECK: Prevent real Git operations in tests
-    if (this.isTestEnvironment()) {
+    // ENHANCED SAFETY CHECK: Use comprehensive detection
+    const detection = this.safetyDetector.detectEnvironment()
+
+    if (detection.isTestEnvironment) {
+      // Log detailed safety information
       this.logger.info(
-        `🛡️  SAFETY: Using mock result for test environment: ${command}`
+        `🛡️ ENHANCED SAFETY: Mock result for test environment: ${command}`
+      )
+      this.logger.debug(
+        `Safety confidence: ${detection.confidence}%, triggers: ${detection.triggers.join(', ')}`
+      )
+
+      // Use enhanced mock results
+      return this.safetyDetector.getMockResult(command)
+    }
+
+    // Fallback to legacy detection for extra safety
+    if (this.isTestEnvironment()) {
+      this.logger.warn(
+        '⚠️ FALLBACK SAFETY: Legacy detection triggered for command:',
+        command
       )
       return this.getSafeTestResult(command)
     }
 
-    // Production execution
+    // Production execution with monitoring
+    this.logger.debug(`Executing Git command in production: ${command}`)
     return super.execute(command, options)
   }
 
@@ -280,83 +434,87 @@ export class GitRunner extends CommandRunner implements GitRunnerInterface {
   async status(options: GitCommandOptions = {}): Promise<GitStatus> {
     this.logger.info('Getting git status')
 
-    try {
-      // Get current branch
-      const branchResult = await this.execute(
-        'git branch --show-current',
-        options
-      )
-      const branch = branchResult.stdout.trim() || 'main'
-
-      // Get ahead/behind info
-      const aheadBehindResult = await this.execute(
-        `git rev-list --left-right --count ${branch}...origin/${branch} 2>/dev/null || echo "0	0"`,
-        options
-      )
-      const [behind, ahead] = aheadBehindResult.stdout
-        .trim()
-        .split('\t')
-        .map(Number)
-
-      // Get file statuses
-      const statusResult = await this.execute('git status --porcelain', options)
-      // Don't trim to preserve leading spaces that are part of git status format
-      const statusLines = statusResult.stdout
-        .split('\n')
-        .filter((line) => line.length > 0)
-
-      const modified: string[] = []
-      const staged: string[] = []
-      const untracked: string[] = []
-      const conflicted: string[] = []
-
-      for (const line of statusLines) {
-        const status = line.substring(0, 2)
-        const file = line.substring(3)
-
-        if (
-          status.includes('U') ||
-          status === 'AA' ||
-          status === 'DD' ||
-          status === 'AU' ||
-          status === 'UA' ||
-          status === 'DU' ||
-          status === 'UD'
-        ) {
-          conflicted.push(file)
-        } else if (status === '??') {
-          untracked.push(file)
-        } else if (status[0] !== ' ' && status[0] !== '?') {
-          staged.push(file)
-        } else if (status[1] !== ' ' && status[1] !== '?') {
-          modified.push(file)
-        }
-      }
-
-      return {
-        branch,
-        ahead: ahead || 0,
-        behind: behind || 0,
-        modified,
-        staged,
-        untracked,
-        conflicted,
-      }
-    } catch (error) {
-      this.logger.error(
-        'Failed to get git status:',
-        error instanceof Error ? error : new Error(String(error))
-      )
-      return {
-        branch: 'unknown',
-        ahead: 0,
-        behind: 0,
-        modified: [],
-        staged: [],
-        untracked: [],
-        conflicted: [],
-      }
+    const fallbackStatus: GitStatus = {
+      branch: 'unknown',
+      ahead: 0,
+      behind: 0,
+      modified: [],
+      staged: [],
+      untracked: [],
+      conflicted: [],
     }
+
+    return this.executeWithLogging(
+      'status',
+      async () => {
+        // Get current branch
+        const branchResult = await this.execute(
+          'git branch --show-current',
+          options
+        )
+        const branch = branchResult.stdout.trim() || 'main'
+
+        // Get ahead/behind info
+        const aheadBehindResult = await this.execute(
+          `git rev-list --left-right --count ${branch}...origin/${branch} 2>/dev/null || echo "0	0"`,
+          options
+        )
+        const [behind, ahead] = aheadBehindResult.stdout
+          .trim()
+          .split('\t')
+          .map(Number)
+
+        // Get file statuses
+        const statusResult = await this.execute(
+          'git status --porcelain',
+          options
+        )
+        // Don't trim to preserve leading spaces that are part of git status format
+        const statusLines = statusResult.stdout
+          .split('\n')
+          .filter((line) => line.length > 0)
+
+        const modified: string[] = []
+        const staged: string[] = []
+        const untracked: string[] = []
+        const conflicted: string[] = []
+
+        for (const line of statusLines) {
+          const status = line.substring(0, 2)
+          const file = line.substring(3)
+
+          if (
+            status.includes('U') ||
+            status === 'AA' ||
+            status === 'DD' ||
+            status === 'AU' ||
+            status === 'UA' ||
+            status === 'DU' ||
+            status === 'UD'
+          ) {
+            conflicted.push(file)
+          } else if (status === '??') {
+            untracked.push(file)
+          } else if (status[0] !== ' ' && status[0] !== '?') {
+            staged.push(file)
+          } else if (status[1] !== ' ' && status[1] !== '?') {
+            modified.push(file)
+          }
+        }
+
+        return {
+          branch,
+          ahead: ahead || 0,
+          behind: behind || 0,
+          modified,
+          staged,
+          untracked,
+          conflicted,
+        }
+      },
+      [options],
+      fallbackStatus
+    )
   }
 
   async log(count = 10, options: GitCommandOptions = {}): Promise<GitCommit[]> {
@@ -408,9 +566,15 @@ export class GitRunner extends CommandRunner implements GitRunnerInterface {
   ): Promise<CommandResult> {
     this.logger.info('Creating git commit')
 
-    // Escape message properly
-    const escapedMessage = message.replace(/"/g, '\\"')
-    return this.execute(`git commit -m "${escapedMessage}"`, options)
+    return this.executeWithLogging(
+      'commit',
+      async () => {
+        // Escape message properly
+        const escapedMessage = message.replace(/"/g, '\\"')
+        return await this.execute(`git commit -m "${escapedMessage}"`, options)
+      },
+      [message]
+    )
   }
 
   async push(options: GitCommandOptions = {}): Promise<CommandResult> {
@@ -418,7 +582,14 @@ export class GitRunner extends CommandRunner implements GitRunnerInterface {
     const pushTarget = branch ? `${remote} ${branch}` : remote
 
     this.logger.info(`Pushing to ${pushTarget}`)
-    return this.execute(`git push ${pushTarget}`, options)
+
+    return this.executeWithLogging(
+      'push',
+      async () => {
+        return await this.execute(`git push ${pushTarget}`, options)
+      },
+      [{ remote, branch }]
+    )
   }
 
   async pull(options: GitCommandOptions = {}): Promise<CommandResult> {
@@ -426,7 +597,14 @@ export class GitRunner extends CommandRunner implements GitRunnerInterface {
     const pullTarget = branch ? `${remote} ${branch}` : ''
 
     this.logger.info(`Pulling from ${remote}`)
-    return this.execute(`git pull ${pullTarget}`.trim(), options)
+
+    return this.executeWithLogging(
+      'pull',
+      async () => {
+        return await this.execute(`git pull ${pullTarget}`.trim(), options)
+      },
+      [{ remote, branch }]
+    )
   }
 
   async branch(options: GitCommandOptions = {}): Promise<string[]> {
@@ -567,6 +745,49 @@ export class GitRunner extends CommandRunner implements GitRunnerInterface {
       return result.success && result.stdout.trim() === 'true'
     } catch {
       return false
+    }
+  }
+
+  /**
+   * Gets the current Git safety status and monitoring information.
+   *
+   * @remarks
+   * This method provides detailed information about the safety systems in place,
+   * including detection confidence, active triggers, and recent detection history.
+   * Useful for debugging, monitoring, and ensuring safety systems are working correctly.
+   *
+   * @returns Object containing comprehensive safety status information
+   *
+   * @example
+   * ```typescript
+   * const safetyStatus = gitRunner.getSafetyStatus()
+   * console.log(`Safety confidence: ${safetyStatus.confidence}%`)
+   * console.log(`Active triggers: ${safetyStatus.triggers.join(', ')}`)
+   * ```
+   *
+   * @public
+   */
+  getSafetyStatus(): {
+    isTestEnvironment: boolean
+    confidence: number
+    triggers: string[]
+    legacyDetection: boolean
+    enhancedDetection: boolean
+    recentDetections: number
+    lastDetection?: number
+  } {
+    const detection = this.safetyDetector.detectEnvironment()
+    const legacyDetection = this.isTestEnvironment()
+    const history = this.safetyDetector.getDetectionHistory(5)
+
+    return {
+      isTestEnvironment: detection.isTestEnvironment,
+      confidence: detection.confidence,
+      triggers: detection.triggers,
+      legacyDetection,
+      enhancedDetection: detection.isTestEnvironment,
+      recentDetections: history.length,
+      lastDetection: history[history.length - 1]?.timestamp,
     }
   }
 }

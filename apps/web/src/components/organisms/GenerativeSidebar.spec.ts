@@ -2,6 +2,23 @@ import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import GenerativeSidebar from './GenerativeSidebar.vue'
 
+// Type definition for GenerativeSidebar component instance - NO ANY TYPES ALLOWED
+interface GenerativeSidebarInstance
+  extends InstanceType<typeof GenerativeSidebar> {
+  aiModels: Array<{ id: string; name: string; description: string }>
+  selectedModelId: string
+  selectModel: (modelId: string) => void
+  [key: string]: unknown
+}
+
+// Mock child components
+vi.mock('../atoms/BaseLogo.vue', () => ({
+  default: {
+    name: 'BaseLogo',
+    template: '<div class="base-logo">Logo</div>',
+  },
+}))
+
 describe('GenerativeSidebar.vue', () => {
   it('should mount and render without errors', () => {
     const wrapper = mount(GenerativeSidebar)
@@ -72,16 +89,16 @@ describe('GenerativeSidebar.vue', () => {
     consoleSpy.mockRestore()
   })
 
-  it('should render logo section', () => {
+  it('should not render logo section (branding removed)', () => {
     const wrapper = mount(GenerativeSidebar)
     const logoSection = wrapper.find('.logo-section')
-    expect(logoSection.exists()).toBe(true)
+    expect(logoSection.exists()).toBe(false)
   })
 
-  it('should render BaseLogo component', () => {
+  it('should not render BaseLogo component (branding removed)', () => {
     const wrapper = mount(GenerativeSidebar)
     const logo = wrapper.findComponent({ name: 'BaseLogo' })
-    expect(logo.exists()).toBe(true)
+    expect(logo.exists()).toBe(false)
   })
 
   it('should apply correct task status classes', () => {
@@ -117,5 +134,41 @@ describe('GenerativeSidebar.vue', () => {
     // Verify structure exists
     expect(taskRows.length).toBe(taskTitles.length)
     expect(taskRows.length).toBe(statusIndicators.length)
+  })
+
+  it('should handle error status correctly', () => {
+    const wrapper = mount(GenerativeSidebar)
+    const vm = wrapper.vm as GenerativeSidebarInstance
+
+    // Test the getStatusClass function with error status
+    const errorClass = vm.getStatusClass('error')
+    expect(errorClass).toBe('status-error')
+  })
+
+  it('should handle unknown status with default case', () => {
+    const wrapper = mount(GenerativeSidebar)
+    const vm = wrapper.vm as GenerativeSidebarInstance
+
+    // Test the getStatusClass function with an unknown status
+    const unknownClass = vm.getStatusClass(
+      'unknown' as 'success' | 'running' | 'error' | 'inactive'
+    )
+    expect(unknownClass).toBe('status-inactive')
+  })
+
+  it('should apply all status classes correctly', () => {
+    const wrapper = mount(GenerativeSidebar)
+    const vm = wrapper.vm as GenerativeSidebarInstance
+
+    // Test all status cases
+    expect(vm.getStatusClass('success')).toBe('status-success')
+    expect(vm.getStatusClass('running')).toBe('status-running')
+    expect(vm.getStatusClass('error')).toBe('status-error')
+    expect(vm.getStatusClass('inactive')).toBe('status-inactive')
+    expect(
+      vm.getStatusClass(
+        'any-other' as 'success' | 'running' | 'error' | 'inactive'
+      )
+    ).toBe('status-inactive')
   })
 })

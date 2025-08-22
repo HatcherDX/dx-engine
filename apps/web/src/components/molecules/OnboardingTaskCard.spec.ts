@@ -7,8 +7,8 @@ import type { OnboardingTaskOption } from '../../composables/useOnboarding'
 vi.mock('../atoms/BaseIcon.vue', () => ({
   default: {
     name: 'BaseIcon',
-    template: '<span class="base-icon" />',
-    props: ['name', 'size', 'class'],
+    props: ['name', 'size'],
+    template: '<div data-testid="base-icon"><slot /></div>',
   },
 }))
 
@@ -17,8 +17,6 @@ vi.mock('../atoms/BaseButton.vue', () => ({
     name: 'BaseButton',
     template:
       '<button class="base-button" @click="$emit(\'click\')"><slot /></button>',
-    props: ['variant', 'size', 'class'],
-    emits: ['click'],
   },
 }))
 
@@ -28,11 +26,10 @@ const mockTask: OnboardingTaskOption = {
   description:
     'Recommended for building new functionalities, enhancements, or refactoring existing code.',
   icon: 'Code',
-  example: 'Add a new user authentication system with OAuth integration',
   tooltipDetails:
     'The starting point for creative work that adds direct value to your users.',
+  example: 'Example: Add user authentication, implement search functionality',
 }
-
 describe('OnboardingTaskCard.vue', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -41,6 +38,7 @@ describe('OnboardingTaskCard.vue', () => {
     const wrapper = mount(OnboardingTaskCard, {
       props: {
         task: mockTask,
+        isSelected: false,
       },
     })
     expect(wrapper.exists()).toBe(true)
@@ -50,6 +48,7 @@ describe('OnboardingTaskCard.vue', () => {
     const wrapper = mount(OnboardingTaskCard, {
       props: {
         task: mockTask,
+        isSelected: false,
       },
     })
 
@@ -63,6 +62,7 @@ describe('OnboardingTaskCard.vue', () => {
     const wrapper = mount(OnboardingTaskCard, {
       props: {
         task: mockTask,
+        isSelected: false,
       },
     })
 
@@ -79,6 +79,7 @@ describe('OnboardingTaskCard.vue', () => {
     const wrapper = mount(OnboardingTaskCard, {
       props: {
         task: mockTask,
+        isSelected: false,
       },
     })
 
@@ -104,6 +105,7 @@ describe('OnboardingTaskCard.vue', () => {
     const wrapper = mount(OnboardingTaskCard, {
       props: {
         task: mockTask,
+        isSelected: false,
       },
     })
 
@@ -120,6 +122,7 @@ describe('OnboardingTaskCard.vue', () => {
     const wrapper = mount(OnboardingTaskCard, {
       props: {
         task: mockTask,
+        isSelected: false,
       },
     })
 
@@ -193,18 +196,19 @@ describe('OnboardingTaskCard.vue', () => {
   it('should render with different task data', () => {
     const differentTask: OnboardingTaskOption = {
       id: 'improve-documentation',
-      title: '📖 Improve Documentation',
+      title: '📛 Improve Documentation',
       description:
         'Recommended for adding or refining comments, READMEs, or other documentation files.',
-      icon: 'Eye',
-      example: 'Update the CONTRIBUTING.md with the new release process',
+      icon: 'Book',
       tooltipDetails:
         "This keeps your code history clean and separates documentation improvements from changes to the application's logic.",
+      example: 'Example: Update API docs, add code comments',
     }
 
     const wrapper = mount(OnboardingTaskCard, {
       props: {
         task: differentTask,
+        isSelected: false,
       },
     })
 
@@ -216,13 +220,14 @@ describe('OnboardingTaskCard.vue', () => {
     expect(description.text()).toBe(
       'Recommended for adding or refining comments, READMEs, or other documentation files.'
     )
-    expect(emoji.text()).toBe('📖')
+    expect(emoji.text()).toBe('📛') // Corrected to match the actual emoji in the title
   })
 
   it('should have proper accessibility attributes', () => {
     const wrapper = mount(OnboardingTaskCard, {
       props: {
         task: mockTask,
+        isSelected: false,
       },
     })
 
@@ -273,6 +278,7 @@ describe('OnboardingTaskCard.vue', () => {
     const wrapper = mount(OnboardingTaskCard, {
       props: {
         task: mockTask,
+        isSelected: false,
       },
     })
 

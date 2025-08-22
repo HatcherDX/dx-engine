@@ -20,8 +20,7 @@ describe('Sidebar', () => {
     it('should mount successfully', () => {
       wrapper = mount(Sidebar, {
         props: {
-          width: 250,
-          platform: 'macos',
+          width: 300,
           isResizing: false,
         },
       })
@@ -33,22 +32,19 @@ describe('Sidebar', () => {
     it('should apply correct width', () => {
       wrapper = mount(Sidebar, {
         props: {
-          width: 300,
-          platform: 'macos',
+          width: 250,
           isResizing: false,
         },
       })
 
       const sidebar = wrapper.find('.sidebar')
-      expect(sidebar.attributes('style')).toContain('width: 300px')
+      expect(sidebar.attributes('style')).toContain('width: 250px')
     })
 
     it('should handle resize cursor', () => {
       wrapper = mount(Sidebar, {
         props: {
-          width: 250,
-          platform: 'macos',
-          resizeCursor: 'col-resize',
+          width: 300,
           isResizing: false,
         },
       })
@@ -62,9 +58,9 @@ describe('Sidebar', () => {
     it('should handle macOS platform', () => {
       wrapper = mount(Sidebar, {
         props: {
-          width: 250,
-          platform: 'macos',
+          width: 300,
           isResizing: false,
+          platform: 'macos',
         },
       })
 
@@ -75,9 +71,9 @@ describe('Sidebar', () => {
     it('should handle Windows platform', () => {
       wrapper = mount(Sidebar, {
         props: {
-          width: 250,
-          platform: 'windows',
+          width: 300,
           isResizing: false,
+          platform: 'windows',
         },
       })
 
@@ -88,9 +84,9 @@ describe('Sidebar', () => {
     it('should handle Linux platform', () => {
       wrapper = mount(Sidebar, {
         props: {
-          width: 250,
-          platform: 'linux',
+          width: 300,
           isResizing: false,
+          platform: 'linux',
         },
       })
 
@@ -103,9 +99,12 @@ describe('Sidebar', () => {
     it('should render default slot content', () => {
       wrapper = mount(Sidebar, {
         props: {
-          width: 250,
-          platform: 'macos',
+          width: 300,
           isResizing: false,
+        },
+        slots: {
+          default:
+            '<div>Navigation<br/>Sidebar content goes here<br/>Ready</div>',
         },
       })
 
@@ -117,8 +116,7 @@ describe('Sidebar', () => {
     it('should render multiple slots if supported', () => {
       wrapper = mount(Sidebar, {
         props: {
-          width: 250,
-          platform: 'macos',
+          width: 300,
           isResizing: false,
         },
         slots: {
@@ -138,8 +136,7 @@ describe('Sidebar', () => {
     it('should handle resize start event', async () => {
       wrapper = mount(Sidebar, {
         props: {
-          width: 250,
-          platform: 'macos',
+          width: 300,
           isResizing: false,
         },
       })
@@ -155,8 +152,7 @@ describe('Sidebar', () => {
     it('should handle header double click event', async () => {
       wrapper = mount(Sidebar, {
         props: {
-          width: 250,
-          platform: 'macos',
+          width: 300,
           isResizing: false,
         },
       })
@@ -173,7 +169,6 @@ describe('Sidebar', () => {
       wrapper = mount(Sidebar, {
         props: {
           width: 100,
-          platform: 'macos',
           isResizing: false,
         },
       })
@@ -186,7 +181,6 @@ describe('Sidebar', () => {
       wrapper = mount(Sidebar, {
         props: {
           width: 500,
-          platform: 'macos',
           isResizing: false,
         },
       })
@@ -200,8 +194,7 @@ describe('Sidebar', () => {
     it('should show resizing state', () => {
       wrapper = mount(Sidebar, {
         props: {
-          width: 250,
-          platform: 'macos',
+          width: 300,
           isResizing: true,
         },
       })
@@ -213,8 +206,7 @@ describe('Sidebar', () => {
     it('should not show resizing state when false', () => {
       wrapper = mount(Sidebar, {
         props: {
-          width: 250,
-          platform: 'macos',
+          width: 300,
           isResizing: false,
         },
       })
@@ -229,7 +221,6 @@ describe('Sidebar', () => {
       wrapper = mount(Sidebar, {
         props: {
           width: 0,
-          platform: 'macos',
           isResizing: false,
         },
       })
@@ -240,7 +231,7 @@ describe('Sidebar', () => {
     it('should handle missing platform gracefully', () => {
       wrapper = mount(Sidebar, {
         props: {
-          width: 250,
+          width: 300,
           isResizing: false,
         },
       })
@@ -251,9 +242,7 @@ describe('Sidebar', () => {
     it('should handle undefined resize cursor', () => {
       wrapper = mount(Sidebar, {
         props: {
-          width: 250,
-          platform: 'macos',
-          resizeCursor: undefined,
+          width: 300,
           isResizing: false,
         },
       })
@@ -266,8 +255,7 @@ describe('Sidebar', () => {
     it('should be accessible as navigation landmark', () => {
       wrapper = mount(Sidebar, {
         props: {
-          width: 250,
-          platform: 'macos',
+          width: 300,
           isResizing: false,
         },
       })
@@ -279,8 +267,7 @@ describe('Sidebar', () => {
     it('should support keyboard navigation', () => {
       wrapper = mount(Sidebar, {
         props: {
-          width: 250,
-          platform: 'macos',
+          width: 300,
           isResizing: false,
         },
       })

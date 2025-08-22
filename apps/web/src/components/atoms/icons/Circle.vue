@@ -12,3 +12,19 @@
     <circle cx="12" cy="12" r="10" />
   </svg>
 </template>
+
+<script setup lang="ts">
+/**
+ * Circle icon component for status indicators and general circular elements.
+ *
+ * @remarks
+ * Used for status indicators, bullet points, and general circular UI elements
+ * throughout the application interface.
+ *
+ * @public
+ * @since 1.0.0
+ */
+defineOptions({
+  name: 'CircleIcon',
+})
+</script>

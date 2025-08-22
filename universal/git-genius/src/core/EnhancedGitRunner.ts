@@ -611,7 +611,7 @@ export class EnhancedGitRunner {
    */
   private getEmptyStatus(): TerminalGitStatus {
     return {
-      branch: 'unknown',
+      branch: '',
       ahead: 0,
       behind: 0,
       modified: [],

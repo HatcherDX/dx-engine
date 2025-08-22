@@ -7,6 +7,8 @@ describe('TerminalTab', () => {
     const wrapper = mount(TerminalTab, {
       props: {
         name: 'Test Terminal',
+        active: false,
+        running: false,
       },
     })
 
@@ -17,6 +19,7 @@ describe('TerminalTab', () => {
     const wrapper = mount(TerminalTab, {
       props: {
         name: 'Test Terminal',
+        active: false,
         running: true,
       },
     })
@@ -28,6 +31,7 @@ describe('TerminalTab', () => {
     const wrapper = mount(TerminalTab, {
       props: {
         name: 'Test Terminal',
+        active: false,
         running: false,
       },
     })
@@ -40,6 +44,7 @@ describe('TerminalTab', () => {
       props: {
         name: 'Test Terminal',
         active: true,
+        running: false,
       },
     })
 
@@ -51,6 +56,7 @@ describe('TerminalTab', () => {
       props: {
         name: 'Test Terminal',
         active: false,
+        running: false,
       },
     })
 
@@ -61,6 +67,8 @@ describe('TerminalTab', () => {
     const wrapper = mount(TerminalTab, {
       props: {
         name: 'Test Terminal',
+        active: false,
+        running: false,
       },
     })
 
@@ -72,7 +80,8 @@ describe('TerminalTab', () => {
     const wrapper = mount(TerminalTab, {
       props: {
         name: 'Test Terminal',
-        closable: true,
+        active: false,
+        running: false,
       },
     })
 
@@ -87,6 +96,8 @@ describe('TerminalTab', () => {
     const wrapper = mount(TerminalTab, {
       props: {
         name: 'Test Terminal',
+        active: false,
+        running: false,
         closable: false,
       },
     })
@@ -98,6 +109,8 @@ describe('TerminalTab', () => {
     const wrapper = mount(TerminalTab, {
       props: {
         name: 'Test Terminal',
+        active: false,
+        running: false,
       },
     })
 

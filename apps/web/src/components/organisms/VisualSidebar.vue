@@ -33,18 +33,12 @@
         </div>
       </div>
     </div>
-
-    <!-- Logo Section -->
-    <div class="logo-section">
-      <BaseLogo size="lg" variant="inline" class="sidebar-content-logo" />
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
 import BaseIcon from '../atoms/BaseIcon.vue'
-import BaseLogo from '../atoms/BaseLogo.vue'
 
 interface ComponentNode {
   id: string
@@ -73,8 +67,8 @@ const componentTree = ref<ComponentNode[]>([
         expanded: true,
         children: [
           {
-            id: 'logo',
-            name: 'Logo',
+            id: 'brand',
+            name: 'Brand Image',
             type: 'image',
             depth: 2,
             expanded: false,
@@ -248,14 +242,6 @@ const getComponentIcon = (type: ComponentNode['type']) => {
   font-size: 13px;
   font-weight: 400;
   color: var(--text-primary);
-}
-
-/* Logo Section */
-.logo-section {
-  padding: 16px;
-  border-top: 1px solid var(--border-sidebar);
-  display: flex;
-  justify-content: center;
 }
 
 /* Scrollbar for layers */

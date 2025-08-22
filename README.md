@@ -39,7 +39,7 @@
 
 Software development is at an inflection point. While AI can generate 80% of an application's code, developers are left frustrated in the "last mile" of fine-tuning, debugging, and aligning the output with existing patterns. This is due to a fundamental loss of deterministic control.
 
-**Hatcher** is an open-source IDE designed to conquer the full "0-to-100" workflow. It acts as the definitive **deterministic control interface** for powerful AI engines like Claude Code and Gemini CLI. We call our philosophy "Controlled Amplification": the developer remains the surgeon, using Hatcher to wield AI as a high-precision scalpel.
+**Hatcher** is an open-source, **Next-Generation IDE** designed to be the definitive "Constitutional IDE" for the AI era. This control interface is the heart of our intelligence layer, which we call `//hatche.rs`. It's designed to compose and orchestrate powerful AI models (like Claude and Gemini), turning them into reliable, peer-level contributors. Our philosophy is "Controlled Amplification": the developer remains the surgeon, using Hatcher to wield AI as a high-precision scalpel.
 
 ## The Problem We Solve
 
@@ -48,8 +48,6 @@ Hatcher is built to eliminate the friction that AI introduces, transforming a fr
 - **Stop Describing. Start Pointing:** Bridge the gap between your live application and source code with the Visual-to-Code bridge.
 - **Your AI Forgets. Ours Remembers:** Replace static context files with dynamic Team Playbooks that provide the right architectural rules at the right time.
 - **No More Black Boxes. Just Power:** Maintain deterministic command over AI with visual diffs, **configurable quality pipelines**, and automated testing.
-
-## Project Status: Alpha
 
 ## Project Status: Alpha
 
@@ -63,6 +61,39 @@ Uses:
 - Typescript
 - Turborepo
 - Vite (for Electron builds)
+
+### Hatcher Manifesto: From Vision to Execution
+
+We believe in pairing a bold vision with relentless execution. This is a living document tracking our journey as we build the future of development.
+
+#### ✅ **Foundation: Validated & World-Class**
+
+- **10/10 World-Class Terminal:**
+  - _A native, GPU-accelerated terminal that demonstrably surpasses industry standards (like VSCode's) in performance and resource efficiency, validated against our internal `Context7` benchmarks._
+
+- **Robust, High-Performance Git Engine:**
+  - _A foundational Git implementation architected for the speed and reliability required by complex, large-scale monorepos._
+
+#### 🟡 **In Active Development: The Next Frontier**
+
+- **Hybrid AI Architecture:**
+  - _The blueprint is complete, and we are now actively integrating our first lightweight, local LLMs. This core innovation will bring instant, private AI feedback directly into the editor, forming the bedrock of Hatcher's intelligence._
+
+#### 🚀 **Future Conquests: The Road Ahead**
+
+- **Team Playbooks & "Corporate Constitutions":**
+  - _Our ultimate solution to the AI context problem. A versionable, governable system for teams to encode their architectural patterns and best practices, ensuring AI-generated code is always aligned with their unique standards._
+
+_For more details on each item and future plans, see our full **[Project Roadmap](ROADMAP.md)**._
+
+### Our Architecture: AI for Intent, Determinism for Quality
+
+While many tools treat AI as a black box that produces unreliable code, Hatcher is built on a hybrid architectural principle. We believe in using the right tool for the right job:
+
+- **AI for Intent:** We leverage state-of-the-art AI to perform creative, complex tasks that require understanding natural language and user intent.
+- **Determinism for Quality:** That AI output is then immediately fed into a rigorous and configurable **Quality Pipeline** of battle-tested, deterministic tools.
+
+This pipeline ensures every piece of AI-generated code is not just creative, but also robust, reliable, and compliant with professional standards before the developer ever sees it. This is "Controlled Amplification" in action.
 
 ## Supported Platforms
 
@@ -149,22 +180,19 @@ pnpm pack:dev
 pnpm pack:prod
 ```
 
-## Roadmap
-
-Our vision is ambitious. We're starting with the core "fine-tuning" workflow, but our roadmap includes building a full "0-to-100" experience.
-
-- ✅ **Core Innovation:** Visual-to-Code Sync (AST-based)
-- ➡️ **Next Up:** Integrated Git & Automated Test-Correction Loops
-- 🚀 **Future: The "Corporate Constitutions" / Team Playbooks System** This is more than a feature; it's our strategic solution to the context problem. It will allow teams to create versionable, governable sets of rules and context for the AI.
-- 🌌 **Long Term: The Open-Source Workflow Marketplace** Our long-term vision is to evolve the Playbooks system into a marketplace where experts can build, share, and sell high-quality, trusted workflows, creating a defensible ecosystem built on safety and reliability.
-
-_For more details on each item and future plans, see our full **[Project Roadmap](ROADMAP.md)**._
-
 ## Contributing
 
 We believe the future of development tools will be built by the community. If you are passionate about developer experience and the future of AI, we would love your help.
 
 Please read our **[CONTRIBUTING.md](CONTRIBUTING.md)** to learn how you can get involved, from reporting bugs to submitting your first pull request.
+
+## Our Open-Core Philosophy
+
+Hatcher is and always will be an open-core project. We are committed to building a powerful, free, and open-source tool for individual developers. Our core mission is to empower the community.
+
+Our commercial strategy is focused on providing features for professional teams and enterprises. Paid offerings, such as advanced "Team Playbooks", centralized governance, and premium support, are what will fund the continuous development and innovation of the free, core product that everyone can use.
+
+This model allows us to build a sustainable business while staying true to our open-source roots.
 
 ## About the Author
 

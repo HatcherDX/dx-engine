@@ -671,4 +671,771 @@ describe('TabManager', () => {
       )
     })
   })
+
+  describe('Tab reordering', () => {
+    let tabId1: string
+    let tabId2: string
+    let tabId3: string
+
+    beforeEach(async () => {
+      const { v4 } = await import('uuid')
+      vi.mocked(v4)
+        .mockReturnValueOnce('tab-1')
+        .mockReturnValueOnce('tab-2')
+        .mockReturnValueOnce('tab-3')
+
+      await tabManager.createTab({ name: 'Terminal 1' })
+      tabId1 = 'tab-1'
+
+      await tabManager.createTab({ name: 'Terminal 2' })
+      tabId2 = 'tab-2'
+
+      await tabManager.createTab({ name: 'Terminal 3' })
+      tabId3 = 'tab-3'
+    })
+
+    /**
+     * Tests tab reordering functionality.
+     *
+     * @returns void
+     * Should reorder tabs according to provided array and emit reordering event
+     *
+     * @example
+     * ```typescript
+     * const reorderedSpy = vi.fn()
+     * tabManager.on('tabs-reordered', reorderedSpy)
+     * tabManager.reorderTabs([tabId3, tabId1, tabId2])
+     * expect(reorderedSpy).toHaveBeenCalledWith([tabId3, tabId1, tabId2])
+     * ```
+     *
+     * @public
+     */
+    it('should reorder tabs', () => {
+      const reorderedSpy = vi.fn()
+      tabManager.on('tabs-reordered', reorderedSpy)
+
+      const newOrder = [tabId3, tabId1, tabId2]
+      const result = tabManager.reorderTabs(newOrder)
+
+      expect(result).toBe(true)
+      expect(reorderedSpy).toHaveBeenCalledWith(newOrder)
+
+      const tabsInOrder = tabManager.getTabsInOrder()
+      expect(tabsInOrder[0].id).toBe(tabId3)
+      expect(tabsInOrder[1].id).toBe(tabId1)
+      expect(tabsInOrder[2].id).toBe(tabId2)
+    })
+
+    /**
+     * Tests reordering with invalid tab IDs.
+     *
+     * @returns void
+     * Should return false and not reorder when invalid tab ID is provided
+     *
+     * @example
+     * ```typescript
+     * const result = tabManager.reorderTabs(['invalid-id', tabId1])
+     * expect(result).toBe(false)
+     * ```
+     *
+     * @public
+     */
+    it('should return false when reordering with invalid tab IDs', () => {
+      const reorderedSpy = vi.fn()
+      tabManager.on('tabs-reordered', reorderedSpy)
+
+      const result = tabManager.reorderTabs(['invalid-id', tabId1, tabId2])
+
+      expect(result).toBe(false)
+      expect(reorderedSpy).not.toHaveBeenCalled()
+    })
+
+    /**
+     * Tests reordering when disposed.
+     *
+     * @returns void
+     * Should return false when TabManager is disposed
+     *
+     * @example
+     * ```typescript
+     * await tabManager.dispose()
+     * const result = tabManager.reorderTabs([tabId1, tabId2])
+     * expect(result).toBe(false)
+     * ```
+     *
+     * @public
+     */
+    it('should return false when disposed', async () => {
+      await tabManager.dispose()
+      const result = tabManager.reorderTabs([tabId1, tabId2, tabId3])
+
+      expect(result).toBe(false)
+    })
+  })
+
+  describe('Tab pinning', () => {
+    let tabId1: string
+
+    beforeEach(async () => {
+      const { v4 } = await import('uuid')
+      vi.mocked(v4).mockReturnValueOnce('tab-1')
+
+      await tabManager.createTab({ name: 'Terminal 1' })
+      tabId1 = 'tab-1'
+    })
+
+    /**
+     * Tests tab pinning functionality.
+     *
+     * @returns void
+     * Should toggle pin state of specified tab
+     *
+     * @example
+     * ```typescript
+     * const result = tabManager.togglePin(tabId1)
+     * expect(result).toBe(true)
+     * ```
+     *
+     * @public
+     */
+    it('should toggle pin state', () => {
+      const result1 = tabManager.togglePin(tabId1)
+      expect(result1).toBe(true)
+
+      // Should be pinned now, toggle again to unpin
+      const result2 = tabManager.togglePin(tabId1)
+      expect(result2).toBe(true)
+    })
+
+    /**
+     * Tests pinning non-existent tab.
+     *
+     * @returns void
+     * Should return false when trying to pin non-existent tab
+     *
+     * @example
+     * ```typescript
+     * const result = tabManager.togglePin('non-existent')
+     * expect(result).toBe(false)
+     * ```
+     *
+     * @public
+     */
+    it('should return false for non-existent tab', () => {
+      const result = tabManager.togglePin('non-existent-id')
+      expect(result).toBe(false)
+    })
+
+    /**
+     * Tests pinning when disposed.
+     *
+     * @returns void
+     * Should return false when TabManager is disposed
+     *
+     * @example
+     * ```typescript
+     * await tabManager.dispose()
+     * const result = tabManager.togglePin(tabId1)
+     * expect(result).toBe(false)
+     * ```
+     *
+     * @public
+     */
+    it('should return false when disposed', async () => {
+      await tabManager.dispose()
+      const result = tabManager.togglePin(tabId1)
+
+      expect(result).toBe(false)
+    })
+  })
+
+  describe('Bulk operations', () => {
+    let tabId1: string
+    let tabId2: string
+    let tabId3: string
+
+    beforeEach(async () => {
+      const { v4 } = await import('uuid')
+      vi.mocked(v4)
+        .mockReturnValueOnce('tab-1')
+        .mockReturnValueOnce('tab-2')
+        .mockReturnValueOnce('tab-3')
+
+      await tabManager.createTab({ name: 'Terminal 1' })
+      tabId1 = 'tab-1'
+
+      await tabManager.createTab({ name: 'Terminal 2' })
+      tabId2 = 'tab-2'
+
+      await tabManager.createTab({ name: 'Terminal 3' })
+      tabId3 = 'tab-3'
+
+      // Pin one tab
+      tabManager.togglePin(tabId2)
+    })
+
+    /**
+     * Tests closing all tabs except pinned.
+     *
+     * @returns Promise<void>
+     * Should close all unpinned tabs and return count of closed tabs
+     *
+     * @example
+     * ```typescript
+     * const closedCount = await tabManager.closeAllExceptPinned()
+     * expect(closedCount).toBe(2)
+     * expect(tabManager.getTabCount()).toBe(1)
+     * ```
+     *
+     * @public
+     */
+    it('should close all tabs except pinned', async () => {
+      expect(tabManager.getTabCount()).toBe(3)
+
+      const closedCount = await tabManager.closeAllExceptPinned()
+
+      expect(closedCount).toBe(2)
+      expect(tabManager.getTabCount()).toBe(1)
+      expect(tabManager.hasTab(tabId2)).toBe(true) // Pinned tab should remain
+      expect(tabManager.hasTab(tabId1)).toBe(false)
+      expect(tabManager.hasTab(tabId3)).toBe(false)
+    })
+
+    /**
+     * Tests closing all tabs.
+     *
+     * @returns Promise<void>
+     * Should close all tabs including pinned ones
+     *
+     * @example
+     * ```typescript
+     * const closedCount = await tabManager.closeAllTabs()
+     * expect(closedCount).toBe(3)
+     * expect(tabManager.getTabCount()).toBe(0)
+     * ```
+     *
+     * @public
+     */
+    it('should close all tabs including pinned', async () => {
+      expect(tabManager.getTabCount()).toBe(3)
+
+      const closedCount = await tabManager.closeAllTabs()
+
+      expect(closedCount).toBe(3)
+      expect(tabManager.getTabCount()).toBe(0)
+      expect(tabManager.getActiveTabId()).toBeNull()
+    })
+
+    /**
+     * Tests bulk operations when disposed.
+     *
+     * @returns Promise<void>
+     * Should return 0 when TabManager is disposed
+     *
+     * @example
+     * ```typescript
+     * await tabManager.dispose()
+     * const count = await tabManager.closeAllExceptPinned()
+     * expect(count).toBe(0)
+     * ```
+     *
+     * @public
+     */
+    it('should return 0 when disposed', async () => {
+      await tabManager.dispose()
+
+      const closedCount1 = await tabManager.closeAllExceptPinned()
+      expect(closedCount1).toBe(0)
+
+      const closedCount2 = await tabManager.closeAllTabs()
+      expect(closedCount2).toBe(0)
+    })
+  })
+
+  describe('Tab search', () => {
+    beforeEach(async () => {
+      const { v4 } = await import('uuid')
+      vi.mocked(v4)
+        .mockReturnValueOnce('tab-1')
+        .mockReturnValueOnce('tab-2')
+        .mockReturnValueOnce('tab-3')
+
+      // Create mock instances with different titles
+      const mockInstance1 = {
+        ...mockTerminalInstance,
+        id: 'tab-1',
+        title: 'Development Server',
+      }
+      const mockInstance2 = {
+        ...mockTerminalInstance,
+        id: 'tab-2',
+        title: 'Git Operations',
+      }
+      const mockInstance3 = {
+        ...mockTerminalInstance,
+        id: 'tab-3',
+        title: 'Development Build',
+      }
+
+      vi.mocked(TerminalInstance)
+        .mockReturnValueOnce(mockInstance1 as TerminalInstance)
+        .mockReturnValueOnce(mockInstance2 as TerminalInstance)
+        .mockReturnValueOnce(mockInstance3 as TerminalInstance)
+
+      await tabManager.createTab({ name: 'Terminal 1' })
+      await tabManager.createTab({ name: 'Terminal 2' })
+      await tabManager.createTab({ name: 'Terminal 3' })
+    })
+
+    /**
+     * Tests finding tab by exact title.
+     *
+     * @returns void
+     * Should find tab with exact title match
+     *
+     * @example
+     * ```typescript
+     * const tab = tabManager.findTabByTitle('Development Server', true)
+     * expect(tab).toBeDefined()
+     * expect(tab?.title).toBe('Development Server')
+     * ```
+     *
+     * @public
+     */
+    it('should find tab by exact title', () => {
+      const tab = tabManager.findTabByTitle('Development Server', true)
+
+      expect(tab).toBeDefined()
+      expect(tab?.title).toBe('Development Server')
+    })
+
+    /**
+     * Tests finding tab by partial title.
+     *
+     * @returns void
+     * Should find tab with partial title match (case insensitive)
+     *
+     * @example
+     * ```typescript
+     * const tab = tabManager.findTabByTitle('development')
+     * expect(tab).toBeDefined()
+     * expect(tab?.title).toBe('Development Server')
+     * ```
+     *
+     * @public
+     */
+    it('should find tab by partial title (case insensitive)', () => {
+      const tab = tabManager.findTabByTitle('development')
+
+      expect(tab).toBeDefined()
+      expect(tab?.title).toBe('Development Server')
+    })
+
+    /**
+     * Tests finding non-existent tab.
+     *
+     * @returns void
+     * Should return null when no tab matches the title
+     *
+     * @example
+     * ```typescript
+     * const tab = tabManager.findTabByTitle('Non-existent Title')
+     * expect(tab).toBeNull()
+     * ```
+     *
+     * @public
+     */
+    it('should return null for non-existent title', () => {
+      const tab = tabManager.findTabByTitle('Non-existent Title')
+
+      expect(tab).toBeNull()
+    })
+
+    /**
+     * Tests exact vs partial matching.
+     *
+     * @returns void
+     * Should distinguish between exact and partial matches
+     *
+     * @example
+     * ```typescript
+     * const exactTab = tabManager.findTabByTitle('Development', true)
+     * expect(exactTab).toBeNull()
+     *
+     * const partialTab = tabManager.findTabByTitle('Development')
+     * expect(partialTab).toBeDefined()
+     * ```
+     *
+     * @public
+     */
+    it('should distinguish between exact and partial matches', () => {
+      const exactTab = tabManager.findTabByTitle('Development', true)
+      expect(exactTab).toBeNull()
+
+      const partialTab = tabManager.findTabByTitle('Development')
+      expect(partialTab).toBeDefined()
+      expect(partialTab?.title).toBe('Development Server')
+    })
+  })
+
+  describe('Utility methods', () => {
+    beforeEach(async () => {
+      const { v4 } = await import('uuid')
+      vi.mocked(v4).mockReturnValueOnce('tab-1').mockReturnValueOnce('tab-2')
+
+      await tabManager.createTab({ name: 'Terminal 1' })
+      await tabManager.createTab({ name: 'Terminal 2' })
+    })
+
+    /**
+     * Tests hasTab method.
+     *
+     * @returns void
+     * Should return true for existing tabs and false for non-existent tabs
+     *
+     * @example
+     * ```typescript
+     * expect(tabManager.hasTab('tab-1')).toBe(true)
+     * expect(tabManager.hasTab('non-existent')).toBe(false)
+     * ```
+     *
+     * @public
+     */
+    it('should check if tab exists', () => {
+      expect(tabManager.hasTab('tab-1')).toBe(true)
+      expect(tabManager.hasTab('tab-2')).toBe(true)
+      expect(tabManager.hasTab('non-existent-id')).toBe(false)
+    })
+
+    /**
+     * Tests getTabsInOrder method.
+     *
+     * @returns void
+     * Should return tabs in correct order with metadata
+     *
+     * @example
+     * ```typescript
+     * const tabsInOrder = tabManager.getTabsInOrder()
+     * expect(tabsInOrder).toHaveLength(2)
+     * expect(tabsInOrder[0].id).toBe('tab-1')
+     * ```
+     *
+     * @public
+     */
+    it('should get tabs in order with metadata', () => {
+      const tabsInOrder = tabManager.getTabsInOrder()
+
+      expect(tabsInOrder).toHaveLength(2)
+      expect(tabsInOrder[0]).toMatchObject({
+        id: 'tab-1',
+        instance: expect.any(Object),
+        isActive: expect.any(Boolean),
+        isPinned: expect.any(Boolean),
+      })
+    })
+
+    /**
+     * Tests isDisposed getter.
+     *
+     * @returns Promise<void>
+     * Should return correct disposal state
+     *
+     * @example
+     * ```typescript
+     * expect(tabManager.isDisposed).toBe(false)
+     * await tabManager.dispose()
+     * expect(tabManager.isDisposed).toBe(true)
+     * ```
+     *
+     * @public
+     */
+    it('should return correct disposal state', async () => {
+      expect(tabManager.isDisposed).toBe(false)
+
+      await tabManager.dispose()
+
+      expect(tabManager.isDisposed).toBe(true)
+    })
+  })
+
+  describe('Statistics', () => {
+    beforeEach(async () => {
+      const { v4 } = await import('uuid')
+      vi.mocked(v4)
+        .mockReturnValueOnce('tab-1')
+        .mockReturnValueOnce('tab-2')
+        .mockReturnValueOnce('tab-3')
+
+      await tabManager.createTab({ name: 'Terminal 1' })
+      await tabManager.createTab({ name: 'Terminal 2' })
+      await tabManager.createTab({ name: 'Terminal 3' })
+
+      // Pin one tab
+      tabManager.togglePin('tab-2')
+
+      // Activate a specific tab
+      tabManager.activateTab('tab-3')
+    })
+
+    /**
+     * Tests getting tab statistics.
+     *
+     * @returns void
+     * Should return comprehensive statistics about all tabs
+     *
+     * @example
+     * ```typescript
+     * const stats = tabManager.getStats()
+     * expect(stats.totalTabs).toBe(3)
+     * expect(stats.pinnedTabs).toBe(1)
+     * expect(stats.activeTabId).toBe('tab-3')
+     * ```
+     *
+     * @public
+     */
+    it('should return comprehensive tab statistics', () => {
+      const stats = tabManager.getStats()
+
+      expect(stats.totalTabs).toBe(3)
+      expect(stats.activeTabs).toBe(1) // Only one active tab
+      expect(stats.pinnedTabs).toBe(1)
+      expect(stats.activeTabId).toBe('tab-3')
+      expect(stats.oldestTab).toBeDefined()
+      expect(stats.newestTab).toBeDefined()
+      expect(stats.oldestTab?.id).toBe('tab-1')
+      expect(stats.newestTab?.id).toBe('tab-3')
+    })
+
+    /**
+     * Tests statistics with no tabs.
+     *
+     * @returns Promise<void>
+     * Should return empty statistics when no tabs exist
+     *
+     * @example
+     * ```typescript
+     * await tabManager.closeAllTabs()
+     * const stats = tabManager.getStats()
+     * expect(stats.totalTabs).toBe(0)
+     * expect(stats.oldestTab).toBeUndefined()
+     * ```
+     *
+     * @public
+     */
+    it('should return empty statistics when no tabs exist', async () => {
+      await tabManager.closeAllTabs()
+      const stats = tabManager.getStats()
+
+      expect(stats.totalTabs).toBe(0)
+      expect(stats.activeTabs).toBe(0)
+      expect(stats.pinnedTabs).toBe(0)
+      expect(stats.activeTabId).toBeNull()
+      expect(stats.oldestTab).toBeUndefined()
+      expect(stats.newestTab).toBeUndefined()
+    })
+  })
+
+  describe('Event handling edge cases', () => {
+    beforeEach(async () => {
+      const { v4 } = await import('uuid')
+      vi.mocked(v4).mockReturnValueOnce('tab-1')
+
+      await tabManager.createTab({ name: 'Test Terminal' })
+    })
+
+    /**
+     * Tests terminal instance data event handling.
+     *
+     * @returns void
+     * Should update tab modification state when data is received
+     *
+     * @example
+     * ```typescript
+     * const dataHandler = mockTerminalInstance.on.mock.calls.find(call => call[0] === 'data')[1]
+     * dataHandler()
+     * // Should mark tab as modified if not active
+     * ```
+     *
+     * @public
+     */
+    it('should handle terminal data events', () => {
+      // Get the data event handler
+      const dataCall = mockTerminalInstance.on.mock.calls.find(
+        (call) => call[0] === 'data'
+      )
+      expect(dataCall).toBeDefined()
+
+      const dataHandler = dataCall?.[1]
+
+      // Tab is currently active, should not mark as modified
+      dataHandler()
+
+      // Deactivate tab and test again
+      tabManager.activateTab('different-tab')
+      dataHandler()
+    })
+
+    /**
+     * Tests terminal instance focus event handling.
+     *
+     * @returns void
+     * Should activate tab when terminal instance receives focus
+     *
+     * @example
+     * ```typescript
+     * const focusHandler = mockTerminalInstance.on.mock.calls.find(call => call[0] === 'focus')[1]
+     * focusHandler()
+     * expect(tabManager.getActiveTabId()).toBe('tab-1')
+     * ```
+     *
+     * @public
+     */
+    it('should handle terminal focus events', () => {
+      const activatedSpy = vi.fn()
+      tabManager.on('tab-activated', activatedSpy)
+
+      // Get the focus event handler
+      const focusCall = mockTerminalInstance.on.mock.calls.find(
+        (call) => call[0] === 'focus'
+      )
+      expect(focusCall).toBeDefined()
+
+      const focusHandler = focusCall?.[1]
+
+      // Since tab is already active, should not trigger activation
+      focusHandler()
+      expect(activatedSpy).not.toHaveBeenCalled()
+    })
+
+    /**
+     * Tests terminal instance exit event handling setup.
+     *
+     * @returns void
+     * Should register exit event handler for terminal instance
+     *
+     * @example
+     * ```typescript
+     * expect(mockTerminalInstance.on).toHaveBeenCalledWith('exit', expect.any(Function))
+     * ```
+     *
+     * @public
+     */
+    it('should setup exit event handler for terminal instance', () => {
+      // Get the exit event handler
+      const exitCall = mockTerminalInstance.on.mock.calls.find(
+        (call) => call[0] === 'exit'
+      )
+
+      expect(exitCall).toBeDefined()
+      expect(exitCall?.[0]).toBe('exit')
+      expect(typeof exitCall?.[1]).toBe('function')
+    })
+  })
+
+  describe('Error handling', () => {
+    beforeEach(async () => {
+      const { v4 } = await import('uuid')
+      vi.mocked(v4).mockReturnValueOnce('tab-1')
+
+      await tabManager.createTab({ name: 'Test Terminal' })
+    })
+
+    /**
+     * Tests removal of non-existent tab.
+     *
+     * @returns Promise<void>
+     * Should return false when trying to remove non-existent tab
+     *
+     * @example
+     * ```typescript
+     * const result = await tabManager.removeTab('non-existent-id')
+     * expect(result).toBe(false)
+     * ```
+     *
+     * @public
+     */
+    it('should handle removal of non-existent tab', async () => {
+      const removedSpy = vi.fn()
+      tabManager.on('tab-removed', removedSpy)
+
+      const result = await tabManager.removeTab('non-existent-id')
+
+      expect(result).toBe(false)
+      expect(removedSpy).not.toHaveBeenCalled()
+    })
+
+    /**
+     * Tests activation of non-existent tab.
+     *
+     * @returns void
+     * Should return false when trying to activate non-existent tab
+     *
+     * @example
+     * ```typescript
+     * const result = tabManager.activateTab('non-existent-id')
+     * expect(result).toBe(false)
+     * ```
+     *
+     * @public
+     */
+    it('should handle activation of non-existent tab', () => {
+      const activatedSpy = vi.fn()
+      tabManager.on('tab-activated', activatedSpy)
+
+      const result = tabManager.activateTab('non-existent-id')
+
+      expect(result).toBe(false)
+      expect(activatedSpy).not.toHaveBeenCalled()
+    })
+
+    /**
+     * Tests disposal error handling during tab removal.
+     *
+     * @returns Promise<void>
+     * Should continue removal even when terminal disposal fails
+     *
+     * @example
+     * ```typescript
+     * mockTerminalInstance.dispose.mockImplementation(() => { throw new Error('Disposal failed') })
+     * const result = await tabManager.removeTab('tab-1')
+     * expect(result).toBe(true)
+     * ```
+     *
+     * @public
+     */
+    it('should handle disposal errors during tab removal', async () => {
+      mockTerminalInstance.dispose = vi.fn().mockImplementation(() => {
+        throw new Error('Terminal disposal failed')
+      })
+
+      const result = await tabManager.removeTab('tab-1')
+
+      expect(result).toBe(true)
+      expect(tabManager.getTab('tab-1')).toBeNull()
+    })
+
+    /**
+     * Tests operations after disposal.
+     *
+     * @returns Promise<void>
+     * Should handle all operations gracefully after disposal
+     *
+     * @example
+     * ```typescript
+     * await tabManager.dispose()
+     * expect(tabManager.activateTab('tab-1')).toBe(false)
+     * expect(await tabManager.removeTab('tab-1')).toBe(false)
+     * ```
+     *
+     * @public
+     */
+    it('should handle operations after disposal', async () => {
+      await tabManager.dispose()
+
+      expect(tabManager.activateTab('tab-1')).toBe(false)
+      expect(await tabManager.removeTab('tab-1')).toBe(false)
+      expect(tabManager.togglePin('tab-1')).toBe(false)
+      expect(tabManager.reorderTabs(['tab-1'])).toBe(false)
+    })
+  })
 })

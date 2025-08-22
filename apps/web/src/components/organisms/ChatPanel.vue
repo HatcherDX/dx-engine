@@ -172,7 +172,7 @@ const generateId = () => {
   height: 100%;
   background-color: var(--bg-primary);
   border-left: 1px solid var(--border-primary);
-  transition: width var(--transition-normal) ease-in-out;
+  /* Remove width transition to prevent lag during resize */
   min-width: 250px;
 }
 
@@ -184,41 +184,54 @@ const generateId = () => {
   transition: none;
 }
 
-/* Resize handle */
+/* Resize handle - replicates terminal-resize-handle behavior */
 .resize-handle {
   position: absolute;
   top: 0;
   left: 0;
-  width: 4px;
+  width: 6px;
   height: 100%;
-  background-color: transparent;
+  background: transparent;
   cursor: col-resize;
-  z-index: 100;
-  transition: background-color var(--transition-fast);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .resize-handle:hover {
-  background-color: var(--resize-handle-hover);
+  background: rgba(59, 130, 246, 0.1);
 }
 
 .resize-handle.is-resizing {
-  background-color: var(--accent-primary);
+  background: rgba(59, 130, 246, 0.1);
 }
 
-.resize-handle::before {
+/* Resize handle line indicator */
+.resize-handle::after {
   content: '';
   position: absolute;
-  top: 0;
-  left: -2px;
-  right: -2px;
-  height: 100%;
-  background-color: transparent;
+  top: 50%;
+  left: 2px;
+  transform: translateY(-50%);
+  width: 2px;
+  height: 40px;
+  background: var(--border-primary);
+  border-radius: 1px;
+  transition: all 0.2s ease;
+  opacity: 1;
 }
 
-.resize-handle:hover::before,
-.resize-handle.is-resizing::before {
-  background-color: var(--resize-handle-color);
-  opacity: 0.3;
+.resize-handle:hover::after {
+  background: var(--accent-primary);
+  width: 2px;
+  height: 60px;
+}
+
+.resize-handle.is-resizing::after {
+  background: var(--accent-primary);
+  width: 2px;
+  height: 60px;
 }
 
 /* Header removed - minimalist design */
@@ -278,6 +291,33 @@ const generateId = () => {
   color: var(--text-primary);
   align-self: flex-end;
   max-width: 70%;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  position: relative;
+}
+
+.user-message::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 2px;
+  background: var(--border-primary);
+  border-radius: 1px;
+  transition: all 0.2s ease;
+  opacity: 0;
+}
+
+.user-message:hover {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.user-message:hover::after {
+  background: var(--accent-primary);
+  width: 40px;
+  opacity: 1;
 }
 
 /* Minimal Typing Indicator */

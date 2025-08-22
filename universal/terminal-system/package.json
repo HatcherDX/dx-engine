@@ -5,6 +5,16 @@
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./system/browser": {
+      "types": "./dist/system/browser.d.ts",
+      "import": "./dist/system/browser.js"
+    }
+  },
   "files": [
     "dist"
   ],
@@ -15,9 +25,8 @@
     "test:coverage": "vitest run --coverage",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
-    "setup-node": "bash scripts/setup-node.sh",
     "test-pty": "tsx scripts/test-node-pty.ts",
-    "verify-pty": "node scripts/verify-node-pty.mjs",
+    "debug-electron": "tsx scripts/electron-console-debug.ts",
     "debug-console": "echo 'Copy and paste scripts/electron-console-debug.js content into Electron DevTools console'"
   },
   "keywords": [
@@ -33,13 +42,17 @@
   },
   "license": "MIT",
   "dependencies": {
+    "@hatcherdx/shared-rendering": "workspace:^",
     "node-pty": "^1.1.0-beta34",
+    "tslog": "^4.9.3",
     "uuid": "^9.0.0"
   },
   "devDependencies": {
+    "@types/jsdom": "^21.1.7",
     "@types/node": "^22.14.1",
     "@types/uuid": "^9.0.0",
     "@vitest/coverage-istanbul": "^3.2.4",
+    "jsdom": "^26.1.0",
     "tsx": "^4.0.0",
     "typescript": "^5.3.0",
     "vitest": "^3.2.4"

@@ -10,36 +10,22 @@ describe('useWindowControls', () => {
     }
 
     const mockElement = {
-      style: {},
-      appendChild: vi.fn(),
-      insertBefore: vi.fn(),
-      removeChild: vi.fn(),
-      setAttribute: vi.fn(),
-      getAttribute: vi.fn(),
-      classList: {
-        add: vi.fn(),
-        remove: vi.fn(),
-        contains: vi.fn(),
-      },
-      children: [],
-      parentNode: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
     }
 
     Object.defineProperty(global, 'window', {
       value: {
         electronAPI: mockElectronAPI,
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
+        addEventListener: mockElement.addEventListener,
+        removeEventListener: mockElement.removeEventListener,
       },
       writable: true,
     })
 
     global.document = {
-      body: { ...mockElement },
-      documentElement: { ...mockElement },
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
-      createElement: vi.fn(() => ({ ...mockElement })),
     } as unknown as Document
   })
 
@@ -272,5 +258,88 @@ describe('useWindowControls', () => {
     }).not.toThrow()
 
     global.window = originalWindow
+  })
+
+  it('should handle updateMaximizedState error gracefully', async () => {
+    const error = new Error('Window state check failed')
+    // First call for maximizeWindow succeeds, second call for isWindowMaximized fails
+    mockElectronAPI.send
+      .mockResolvedValueOnce(true) // maximizeWindow
+      .mockRejectedValueOnce(error) // isWindowMaximized
+
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const controls = useWindowControls()
+
+    // Call maximize which triggers updateMaximizedState internally
+    await controls.maximizeWindow()
+
+    expect(consoleSpy).toHaveBeenCalledWith(
+      'Failed to get window state:',
+      error
+    )
+
+    consoleSpy.mockRestore()
+  })
+
+  it('should test non-electron behavior to improve branch coverage', () => {
+    // Test the non-Electron path to improve branch coverage
+    const originalWindow = global.window
+    global.window = {} as unknown as Window & typeof globalThis
+
+    const controls = useWindowControls()
+
+    // In non-Electron mode, these operations should not call electronAPI
+    controls.minimizeWindow()
+    controls.maximizeWindow()
+    controls.closeWindow()
+
+    // Should not have called any electronAPI methods
+    expect(mockElectronAPI.send).not.toHaveBeenCalled()
+    expect(controls.isElectron).toBe(false)
+
+    global.window = originalWindow
+  })
+
+  it('should verify lifecycle hooks are properly defined', () => {
+    // This test verifies that the composable handles lifecycle properly
+    // even though we can't directly test onMounted/onUnmounted in isolation
+    const controls = useWindowControls()
+
+    // Verify that the composable initializes correctly
+    expect(controls.isMaximized.value).toBe(false)
+    expect(controls.isElectron).toBe(true)
+
+    // The onMounted and onUnmounted code paths exist in the composable
+    // but can only be fully tested when used within a Vue component
+    // This test ensures the composable can be instantiated without errors
+    expect(typeof controls.maximizeWindow).toBe('function')
+    expect(typeof controls.minimizeWindow).toBe('function')
+    expect(typeof controls.closeWindow).toBe('function')
+  })
+
+  it('should handle state check error separately from maximize error', async () => {
+    // Test the specific updateMaximizedState error path (line 46)
+    const stateError = new Error('State check failed')
+
+    // First call is for maximizeWindow (succeeds), second is for isWindowMaximized (fails)
+    mockElectronAPI.send
+      .mockResolvedValueOnce(true) // maximizeWindow succeeds
+      .mockRejectedValueOnce(stateError) // isWindowMaximized fails
+
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const controls = useWindowControls()
+
+    // This should call maximizeWindow which then calls updateMaximizedState
+    await controls.maximizeWindow()
+
+    // Check that the state check error was logged from updateMaximizedState
+    expect(consoleSpy).toHaveBeenCalledWith(
+      'Failed to get window state:',
+      stateError
+    )
+
+    consoleSpy.mockRestore()
   })
 })

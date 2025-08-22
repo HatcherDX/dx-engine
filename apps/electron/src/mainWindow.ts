@@ -1,7 +1,7 @@
 import { BrowserWindow, session } from 'electron'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { isDev, isPackaged } from '/@/utils/'
+import { isDev, isPackaged } from './utils'
 import { setupApplicationMenu } from './menu'
 
 /**

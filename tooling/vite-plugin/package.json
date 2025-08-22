@@ -1,0 +1,40 @@
+{
+  "name": "@hatcherdx/dx-engine-vite-plugin",
+  "version": "0.3.0",
+  "description": "Vite plugins for DX Engine",
+  "author": {
+    "name": "Chriss Mejia",
+    "email": "chriss@hatche.rs",
+    "url": "https://github.com/hatcherdx/dx-engine"
+  },
+  "license": "MIT",
+  "keywords": [],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "development": "./src/index.ts",
+      "default": "./dist/index.mjs"
+    },
+    "./dist/*": "./dist/*"
+  },
+  "main": "index.js",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "npx tsx watch ./src/index.ts",
+    "test": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest --watch",
+    "lint": "echo \"Linting handled at root level\"",
+    "lint:fix": "echo \"Linting handled at root level\""
+  },
+  "dependencies": {
+    "terser": "^5.31.5"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^3.2.4",
+    "typescript": "^5.5.4",
+    "vitest": "^3.2.4"
+  }
+}

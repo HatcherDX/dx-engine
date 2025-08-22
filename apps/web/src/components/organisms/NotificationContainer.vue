@@ -19,7 +19,11 @@
           :aria-live="notification.type === 'error' ? 'assertive' : 'polite'"
         >
           <!-- Icon -->
-          <div v-if="showIcon" class="notification-icon">
+          <div
+            v-if="showIcon"
+            class="notification-icon"
+            data-testid="notification-icon"
+          >
             <component
               :is="getIconComponent(notification.type || 'default')"
               class="notification-icon-svg"
