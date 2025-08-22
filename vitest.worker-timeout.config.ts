@@ -1,3 +1,16 @@
+/**
+ * Alternative Vitest configuration specifically designed to handle worker timeout issues.
+ *
+ * This configuration implements the most robust pool settings based on Vitest documentation
+ * for resolving "[vitest-worker]: Timeout calling 'onTaskUpdate'" errors.
+ *
+ * Use with: `pnpm test --config=vitest.worker-timeout.config.ts`
+ *
+ * @fileoverview Robust worker timeout mitigation configuration
+ * @since 1.0.0
+ * @public
+ */
+
 import vue from '@vitejs/plugin-vue'
 import { defineConfig } from 'vitest/config'
 import { resolve } from 'path'
@@ -30,72 +43,75 @@ export default defineConfig({
     environment: 'happy-dom',
     setupFiles: ['./vitest.setup.ts'],
 
-    // Robust timeout configuration to prevent worker hangs
-    testTimeout: 30000,
-    hookTimeout: 30000,
-    teardownTimeout: 30000,
+    // Extended timeouts for problematic worker scenarios
+    testTimeout: 60000,
+    hookTimeout: 60000,
+    teardownTimeout: 60000,
 
-    // Worker parallelism control for large monorepo
-    fileParallelism: true,
-    maxWorkers: 4,
+    // Disable parallelism to isolate worker timeout issues
+    fileParallelism: false,
+    maxWorkers: 1,
     minWorkers: 1,
-    maxConcurrency: 5,
+    maxConcurrency: 1,
 
-    // Error handling configuration
+    // Enhanced error handling
     dangerouslyIgnoreUnhandledErrors: false,
-    logHeapUsage: false,
+    logHeapUsage: true,
 
-    // CRITICAL SAFETY: Process isolation to prevent real Git operations
-    pool: 'forks',
+    // Use vmForks pool - most isolated and robust for timeout issues
+    pool: 'vmForks',
     poolOptions: {
-      forks: {
-        // Enhanced process isolation
+      vmForks: {
+        // Maximum isolation to prevent cross-test contamination
         isolate: true,
-        singleFork: false,
+        singleFork: true,
 
-        // Conservative worker limits to prevent resource exhaustion
-        maxForks: 4,
+        // Single worker to eliminate worker communication issues
+        maxForks: 1,
         minForks: 1,
 
-        // Memory management to prevent worker crashes
-        memoryLimit: '256MB',
+        // Generous memory limits
+        memoryLimit: '512MB',
 
-        // Process cleanup and communication timeouts
+        // Node.js arguments optimized for stability over performance
         execArgv: [
           '--no-warnings',
-          '--max-old-space-size=512',
+          '--max-old-space-size=1024',
           '--gc-interval=100',
+          '--expose-gc',
+          '--optimize-for-size',
         ],
 
         env: {
-          // Explicit test environment variables for safety detection
           NODE_ENV: 'test',
           VITEST: 'true',
           CI: process.env.CI || 'false',
-          // Block real Git operations at process level
+          // Disable all real Git operations
           GIT_TERMINAL_PROMPT: '0',
           GIT_SSH_COMMAND: 'echo "Git SSH blocked in tests"',
-          // Worker environment isolation
+          // Force single worker environment
           VITEST_POOL_ID: '1',
           VITEST_WORKER_ID: '1',
+          // Memory pressure settings
+          NODE_OPTIONS: '--max-old-space-size=1024',
         },
       },
     },
 
-    // Sequence configuration for deterministic test execution
+    // Sequential execution to eliminate race conditions
     sequence: {
       shuffle: false,
       concurrent: false,
       hooks: 'stack',
-      setupFiles: 'parallel',
+      setupFiles: 'list', // Sequential setup files
     },
 
-    // Advanced worker timeout mitigation
-    slowTestThreshold: 300,
-    bail: 0,
+    // Conservative thresholds
+    slowTestThreshold: 1000,
+    bail: 1, // Stop on first failure to prevent cascade issues
     retry: 0,
 
-    // Dependency optimization for faster startup
+    // Optimize dependencies for stability
     deps: {
       optimizer: {
         ssr: {
@@ -104,9 +120,10 @@ export default defineConfig({
       },
       external: [/node_modules/],
       inline: [],
+      fallbackCJS: true,
     },
 
-    // Include all tests from monorepo (excluding WIP)
+    // Same includes as main config but with conservative settings
     include: [
       'apps/**/*.{test,spec}.{js,ts}',
       'universal/**/*.{test,spec}.{js,ts}',
@@ -134,43 +151,9 @@ export default defineConfig({
       '/logo-dark.svg': resolve(__dirname, 'apps/web/public/logo-dark.svg'),
     },
 
-    // Istanbul coverage configuration - automatic
+    // Disable coverage for timeout debugging
     coverage: {
-      provider: 'istanbul',
-      reporter: ['text', 'json-summary', 'json', 'html'],
-      reportsDirectory: 'coverage',
-      enabled: true,
-      clean: true,
-      cleanOnRerun: true,
-
-      // Include all source code (excluding WIP)
-      include: [
-        'apps/**/*.{js,ts,vue}',
-        'universal/**/*.{js,ts}',
-        'tooling/**/*.{js,ts}',
-        'scripts/**/*.{js,ts}',
-        '!apps/docs/**',
-      ],
-
-      // Exclude irrelevant files
-      exclude: [
-        '**/*.{test,spec}.{js,ts,vue}',
-        '**/test/**',
-        '**/tests/**',
-        '**/__tests__/**',
-        '**/coverage/**',
-        '**/dist/**',
-        '**/build/**',
-        '**/node_modules/**',
-        '**/*.config.{js,ts}',
-        '**/*.d.ts',
-        '**/public/**',
-        '**/assets/**',
-        '**/*.min.js',
-        '**/registerServiceWorker.ts',
-        '**/vite-env.d.ts',
-        '**/style.css',
-      ],
+      enabled: false,
     },
   },
 })

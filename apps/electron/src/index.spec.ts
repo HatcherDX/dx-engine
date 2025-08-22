@@ -165,7 +165,10 @@ describe('Electron Main Process Index', () => {
     it('should set dock icon on macOS when icon file exists', async () => {
       vi.resetModules()
 
-      // Mock macOS platform
+      // Reset all mocks
+      vi.clearAllMocks()
+
+      // Mock macOS platform BEFORE importing
       Object.defineProperty(process, 'platform', {
         value: 'darwin',
         writable: true,
@@ -173,6 +176,9 @@ describe('Electron Main Process Index', () => {
 
       // Mock icon file exists - let the real path be found
       mockExistsSync.mockImplementation((path) => path.includes('build/icon'))
+
+      // Mock path.join to return predictable paths
+      mockJoin.mockImplementation((...parts) => parts.join('/'))
 
       mockApp.requestSingleInstanceLock.mockReturnValue(true)
       mockApp.whenReady.mockResolvedValue(undefined)
@@ -205,7 +211,10 @@ describe('Electron Main Process Index', () => {
     it('should handle dock icon setting error', async () => {
       vi.resetModules()
 
-      // Mock macOS platform
+      // Reset all mocks
+      vi.clearAllMocks()
+
+      // Mock macOS platform BEFORE importing
       Object.defineProperty(process, 'platform', {
         value: 'darwin',
         writable: true,
@@ -213,6 +222,9 @@ describe('Electron Main Process Index', () => {
 
       // Mock icon file exists - let the real path be found
       mockExistsSync.mockImplementation((path) => path.includes('build/icon'))
+
+      // Mock path.join to return predictable paths
+      mockJoin.mockImplementation((...parts) => parts.join('/'))
 
       // Mock dock.setIcon to throw error
       mockApp.dock?.setIcon.mockImplementation(() => {
@@ -234,7 +246,10 @@ describe('Electron Main Process Index', () => {
     it('should handle icon file finding logic', async () => {
       vi.resetModules()
 
-      // Mock macOS platform
+      // Reset all mocks
+      vi.clearAllMocks()
+
+      // Mock macOS platform BEFORE importing
       Object.defineProperty(process, 'platform', {
         value: 'darwin',
         writable: true,
@@ -242,6 +257,9 @@ describe('Electron Main Process Index', () => {
 
       // Mock icon file exists - let the real path be found
       mockExistsSync.mockImplementation((path) => path.includes('build/icon'))
+
+      // Mock path.join to return predictable paths
+      mockJoin.mockImplementation((...parts) => parts.join('/'))
 
       mockApp.requestSingleInstanceLock.mockReturnValue(true)
       mockApp.whenReady.mockResolvedValue(undefined)
