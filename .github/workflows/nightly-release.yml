@@ -1,0 +1,218 @@
+name: Nightly Release
+
+on:
+  schedule:
+    # Run at 2 AM UTC every day
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      skip-build:
+        description: 'Skip building binaries (for testing)'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  packages: write
+
+jobs:
+  check-commits:
+    name: Check for new commits
+    runs-on: ubuntu-latest
+    outputs:
+      should-release: ${{ steps.check.outputs.should-release }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for commits in last 24 hours
+        id: check
+        run: |
+          # Get commits from last 24 hours
+          COMMITS=$(git log --since="24 hours ago" --oneline)
+
+          if [ -z "$COMMITS" ]; then
+            echo "No new commits in the last 24 hours"
+            echo "should-release=false" >> $GITHUB_OUTPUT
+          else
+            echo "Found new commits:"
+            echo "$COMMITS"
+            echo "should-release=true" >> $GITHUB_OUTPUT
+          fi
+
+  nightly-release:
+    name: Create Nightly Release
+    runs-on: ubuntu-latest
+    needs: check-commits
+    if: needs.check-commits.outputs.should-release == 'true'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '10.6.1'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Configure Git
+        run: |
+          git config --global user.email "noreply@hatche.rs"
+          git config --global user.name "Hatcher Release Bot"
+
+      - name: Switch to nightly branch
+        run: |
+          # Create or update nightly branch
+          git checkout -B nightly
+          git merge main --no-ff -m "Merge main into nightly for release"
+
+      - name: Run semantic-release (dry run)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx semantic-release --dry-run
+
+      - name: Run semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx semantic-release
+
+  build-binaries:
+    name: Build ${{ matrix.os }} ${{ matrix.arch }}
+    needs: nightly-release
+    if: success() && github.event.inputs.skip-build != 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # macOS builds
+          - os: macos-latest
+            arch: universal
+            build-cmd: pnpm --filter @hatcherdx/dx-engine-electron build:mac-universal
+
+          # Windows builds
+          - os: windows-latest
+            arch: x64
+            build-cmd: pnpm --filter @hatcherdx/dx-engine-electron pack:prod
+
+          - os: windows-latest
+            arch: arm64
+            build-cmd: pnpm --filter @hatcherdx/dx-engine-electron build:win-arm64
+
+          # Linux builds
+          - os: ubuntu-latest
+            arch: x64
+            build-cmd: pnpm --filter @hatcherdx/dx-engine-electron pack:prod
+
+          - os: ubuntu-latest
+            arch: arm64
+            build-cmd: pnpm --filter @hatcherdx/dx-engine-electron build:linux-arm64
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: nightly
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '10.6.1'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
+          architecture: ${{ matrix.arch == 'arm64' && 'arm64' || 'x64' }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Rebuild native modules for architecture
+        if: matrix.arch == 'arm64'
+        run: |
+          pnpm rebuild --arch=${{ matrix.arch }}
+
+      - name: Build application
+        run: pnpm run build
+        env:
+          npm_config_arch: ${{ matrix.arch }}
+          npm_config_target_arch: ${{ matrix.arch }}
+          TARGET_ARCH: ${{ matrix.arch }}
+
+      - name: Build Electron binaries
+        run: ${{ matrix.build-cmd }}
+        env:
+          npm_config_arch: ${{ matrix.arch }}
+          npm_config_target_arch: ${{ matrix.arch }}
+          TARGET_ARCH: ${{ matrix.arch }}
+
+      - name: Get release info
+        id: release
+        run: |
+          # Get the latest nightly release tag
+          TAG=$(git describe --tags --abbrev=0)
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+      - name: Upload binaries to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.release.outputs.tag }}
+          files: |
+            apps/electron/dist-final/*.dmg
+            apps/electron/dist-final/*.zip
+            apps/electron/dist-final/*.exe
+            apps/electron/dist-final/*.AppImage
+            apps/electron/dist-final/*.deb
+            apps/electron/dist-final/*.snap
+            apps/electron/dist-final/*.tar.gz
+          fail_on_unmatched_files: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  notify-completion:
+    name: Notify Release Completion
+    runs-on: ubuntu-latest
+    needs: [nightly-release, build-binaries]
+    if: always()
+    steps:
+      - name: Get release status
+        id: status
+        run: |
+          if [ "${{ needs.nightly-release.result }}" == "success" ]; then
+            echo "status=✅ Nightly release created successfully" >> $GITHUB_OUTPUT
+          else
+            echo "status=❌ Nightly release failed" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create issue comment (if triggered manually)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const status = '${{ steps.status.outputs.status }}';
+            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: 1, // You may want to configure this
+              body: `## Nightly Release Status\n\n${status}\n\n[View workflow run](${runUrl})`
+            });

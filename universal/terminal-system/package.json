@@ -1,6 +1,6 @@
 {
   "name": "@hatcherdx/terminal-system",
-  "version": "0.1.0",
+  "version": "0.3.5",
   "description": "Robust terminal system based on VSCode architecture for DX Engine",
   "type": "module",
   "main": "dist/index.js",
@@ -23,6 +23,9 @@
     "dev": "tsc --watch",
     "test": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:ci": "vitest run --config vitest.ci.config.ts",
+    "test:pty": "vitest run --config vitest.pty.config.ts",
+    "test:pty:watch": "vitest --config vitest.pty.config.ts",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
     "test-pty": "tsx scripts/test-node-pty.ts",

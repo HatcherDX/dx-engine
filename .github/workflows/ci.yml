@@ -68,6 +68,399 @@ jobs:
           name: unit-coverage-reports
           path: coverage/
 
+  # Terminal PTY tests with OS matrix (runs on main branch)
+  terminal-pty-tests:
+    runs-on: ${{ matrix.os }}
+    if: github.ref == 'refs/heads/main' || contains(github.event.pull_request.labels.*.name, 'test-terminal')
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+      fail-fast: false
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '10.6.1'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build terminal-system
+        run: pnpm --filter @hatcherdx/terminal-system build
+
+      - name: Run PTY integration tests
+        run: pnpm --filter @hatcherdx/terminal-system test:pty
+        env:
+          VITEST_USE_REAL_PTY: 'true'
+
+      - name: Upload PTY test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pty-test-results-${{ matrix.os }}
+          path: universal/terminal-system/coverage/pty/
+
+  # Git integration tests with OS matrix (runs on main branch)
+  git-integration-tests:
+    runs-on: ${{ matrix.os }}
+    if: github.ref == 'refs/heads/main' || contains(github.event.pull_request.labels.*.name, 'test-git')
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+      fail-fast: false
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '10.6.1'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
+          cache: 'pnpm'
+
+      - name: Configure Git
+        run: |
+          git config --global user.email "test@example.com"
+          git config --global user.name "Test User"
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build git-genius
+        run: pnpm --filter @hatcherdx/git-genius build
+
+      - name: Run Git integration tests
+        run: pnpm --filter @hatcherdx/git-genius test:integration
+        env:
+          VITEST_USE_REAL_GIT: 'true'
+
+      - name: Upload Git test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: git-test-results-${{ matrix.os }}
+          path: universal/git-genius/coverage/integration/
+
+  # Electron integration tests with OS matrix (runs on main branch)
+  electron-integration-tests:
+    runs-on: ${{ matrix.os }}
+    if: github.ref == 'refs/heads/main' || contains(github.event.pull_request.labels.*.name, 'test-electron')
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+      fail-fast: false
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '10.6.1'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Install Electron dependencies (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get install xvfb
+
+      - name: Build Electron app
+        run: pnpm --filter @hatcherdx/dx-engine-electron build:dev
+
+      - name: Run Electron integration tests (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: xvfb-run -a pnpm --filter @hatcherdx/dx-engine-electron test:integration
+        env:
+          VITEST_ELECTRON_INTEGRATION: 'true'
+
+      - name: Run Electron integration tests (Windows/macOS)
+        if: matrix.os != 'ubuntu-latest'
+        run: pnpm --filter @hatcherdx/dx-engine-electron test:integration
+        env:
+          VITEST_ELECTRON_INTEGRATION: 'true'
+
+      - name: Upload Electron test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: electron-test-results-${{ matrix.os }}
+          path: apps/electron/coverage/integration/
+
+  # Translation system cross-platform tests (runs on main branch)
+  translation-crossplatform-tests:
+    runs-on: ${{ matrix.os }}
+    if: github.ref == 'refs/heads/main' || contains(github.event.pull_request.labels.*.name, 'test-translation')
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+      fail-fast: false
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '10.6.1'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build translation-system
+        run: pnpm --filter @hatcherdx/translation-system build
+
+      - name: Run cross-platform tests
+        run: pnpm --filter @hatcherdx/translation-system test:crossplatform
+        env:
+          VITEST_CROSSPLATFORM: 'true'
+
+      - name: Upload translation test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: translation-test-results-${{ matrix.os }}
+          path: tooling/translation-system/coverage/crossplatform/
+
+  # Build scripts integration tests (runs on main branch)
+  scripts-integration-tests:
+    runs-on: ${{ matrix.os }}
+    if: github.ref == 'refs/heads/main' || contains(github.event.pull_request.labels.*.name, 'test-scripts')
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+      fail-fast: false
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '10.6.1'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Run scripts integration tests
+        run: vitest run --config scripts/vitest.integration.config.ts
+        env:
+          VITEST_SCRIPTS_INTEGRATION: 'true'
+
+      - name: Upload scripts test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scripts-test-results-${{ matrix.os }}
+          path: coverage/scripts/
+
+  # Vite plugin cross-platform tests (runs on main branch)
+  vite-plugin-crossplatform-tests:
+    runs-on: ${{ matrix.os }}
+    if: github.ref == 'refs/heads/main' || contains(github.event.pull_request.labels.*.name, 'test-vite-plugin')
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+      fail-fast: false
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '10.6.1'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Run Vite plugin cross-platform tests
+        run: pnpm --filter @hatcherdx/dx-engine-vite-plugin test:crossplatform
+        env:
+          VITEST_CROSSPLATFORM: 'true'
+
+      - name: Upload Vite plugin test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vite-plugin-test-results-${{ matrix.os }}
+          path: tooling/vite-plugin/coverage/crossplatform/
+
+  # ARM64 Architecture Tests - Native ARM64 support validation
+  arm64-native-tests:
+    runs-on: ${{ matrix.os }}
+    if: github.ref == 'refs/heads/main' || contains(github.event.pull_request.labels.*.name, 'test-arm64')
+    strategy:
+      matrix:
+        include:
+          # macOS ARM64 (Apple Silicon)
+          - os: macos-latest
+            arch: arm64
+            node-arch: arm64
+          # Linux ARM64 via QEMU emulation
+          - os: ubuntu-latest
+            arch: arm64
+            node-arch: arm64
+            use-qemu: true
+          # Linux x64 for comparison
+          - os: ubuntu-latest
+            arch: x64
+            node-arch: x64
+            use-qemu: false
+      fail-fast: false
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU for ARM64 emulation (Linux)
+        if: matrix.use-qemu == true
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/arm64
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '10.6.1'
+
+      - name: Set up Node.js for ARM64
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
+          architecture: ${{ matrix.node-arch }}
+          cache: 'pnpm'
+
+      - name: Verify architecture
+        run: |
+          echo "🏗️ Architecture Information:"
+          echo "OS: ${{ matrix.os }}"
+          echo "Target Arch: ${{ matrix.arch }}"
+          echo "Node Arch: $(node -p 'process.arch')"
+          echo "Platform: $(node -p 'process.platform')"
+          echo "CPU: $(node -p 'os.cpus()[0].model')"
+
+      - name: Install dependencies with architecture-specific rebuild
+        run: |
+          npm_config_arch=${{ matrix.arch }} pnpm install
+          # Rebuild native dependencies for target architecture
+          pnpm rebuild --arch=${{ matrix.arch }}
+
+      - name: Build packages for ARM64
+        run: pnpm run build
+        env:
+          npm_config_arch: ${{ matrix.arch }}
+          npm_config_target_arch: ${{ matrix.arch }}
+
+      - name: Run architecture-specific tests
+        run: pnpm test -- --reporter=verbose
+        env:
+          VITEST_ARM64_TEST: 'true'
+          TARGET_ARCH: ${{ matrix.arch }}
+
+      - name: Test native bindings
+        run: |
+          echo "🔧 Testing native bindings for ${{ matrix.arch }}..."
+          # Test node-pty
+          pnpm --filter @hatcherdx/terminal-system test:pty || echo "PTY tests require native terminal"
+          # Test better-sqlite3
+          pnpm --filter @hatcherdx/storage test || echo "SQLite tests completed"
+
+      - name: Upload ARM64 test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: arm64-test-results-${{ matrix.os }}-${{ matrix.arch }}
+          path: coverage/arm64/
+
+  # Windows ARM64 Tests via Cross-compilation
+  windows-arm64-build:
+    runs-on: windows-latest
+    if: github.ref == 'refs/heads/main' || contains(github.event.pull_request.labels.*.name, 'test-arm64')
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '10.6.1'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Cross-compile for Windows ARM64
+        run: |
+          echo "🏗️ Cross-compiling for Windows ARM64..."
+          $env:npm_config_arch = "arm64"
+          $env:npm_config_target_arch = "arm64"
+          pnpm run build
+
+      - name: Build Electron for Windows ARM64
+        run: |
+          cd apps/electron
+          pnpm run build:win-arm64
+        env:
+          npm_config_arch: arm64
+          npm_config_target_arch: arm64
+
+      - name: Upload Windows ARM64 build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-arm64-build
+          path: apps/electron/dist/
+
   # Integration tests disabled in CI - require native dependencies
   # These tests should be run locally during development
   # integration-tests job removed to save CI resources

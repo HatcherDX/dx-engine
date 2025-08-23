@@ -1,0 +1,81 @@
+{
+  "branches": [
+    "main",
+    {
+      "name": "nightly",
+      "prerelease": true
+    }
+  ],
+  "plugins": [
+    "@semantic-release/commit-analyzer",
+    "@semantic-release/release-notes-generator",
+    [
+      "@semantic-release/changelog",
+      {
+        "changelogFile": "CHANGELOG.md"
+      }
+    ],
+    [
+      "@semantic-release/exec",
+      {
+        "prepareCmd": "pnpm tsx scripts/version-sync.ts ${nextRelease.version} && pnpm run build"
+      }
+    ],
+    [
+      "@semantic-release/git",
+      {
+        "assets": [
+          "package.json",
+          "apps/*/package.json",
+          "universal/*/package.json",
+          "tooling/*/package.json",
+          "CHANGELOG.md"
+        ],
+        "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+      }
+    ],
+    [
+      "@semantic-release/github",
+      {
+        "assets": [
+          {
+            "path": "apps/electron/dist-final/*.dmg",
+            "label": "macOS Universal (${nextRelease.version})",
+            "name": "Hatcher-${nextRelease.version}-universal.dmg"
+          },
+          {
+            "path": "apps/electron/dist-final/*.zip",
+            "label": "macOS Universal ZIP (${nextRelease.version})",
+            "name": "Hatcher-${nextRelease.version}-universal.zip"
+          },
+          {
+            "path": "apps/electron/dist-final/*.exe",
+            "label": "Windows Installer (${nextRelease.version})",
+            "name": "Hatcher-Setup-${nextRelease.version}.exe"
+          },
+          {
+            "path": "apps/electron/dist-final/*.AppImage",
+            "label": "Linux AppImage (${nextRelease.version})",
+            "name": "Hatcher-${nextRelease.version}.AppImage"
+          },
+          {
+            "path": "apps/electron/dist-final/*.deb",
+            "label": "Linux DEB (${nextRelease.version})",
+            "name": "Hatcher-${nextRelease.version}.deb"
+          },
+          {
+            "path": "apps/electron/dist-final/*.snap",
+            "label": "Linux Snap (${nextRelease.version})",
+            "name": "Hatcher-${nextRelease.version}.snap"
+          },
+          {
+            "path": "apps/electron/dist-final/*.tar.gz",
+            "label": "Linux Archive (${nextRelease.version})",
+            "name": "Hatcher-${nextRelease.version}.tar.gz"
+          }
+        ]
+      }
+    ]
+  ],
+  "tagFormat": "v${version}"
+}

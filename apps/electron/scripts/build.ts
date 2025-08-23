@@ -39,6 +39,14 @@ cpSync(
   copySyncOptions
 )
 
+// Detect target architecture from environment or use default
+const targetArch =
+  process.env.npm_config_arch || process.env.TARGET_ARCH || 'x64'
+const isARM64Build = targetArch === 'arm64'
+
+console.log('Target architecture:', targetArch)
+console.log('Building for ARM64:', isARM64Build)
+
 const config: Configuration = {
   appId: 'com.hatcherdx.engine',
   productName: 'Hatcher',
@@ -63,22 +71,78 @@ const config: Configuration = {
   mac: {
     icon: 'build/icon.icns',
     category: 'public.app-category.developer-tools',
+    // Universal binary support for macOS (both x64 and ARM64)
     target: [
       {
         target: 'dmg',
-        arch: ['x64', 'arm64'],
+        arch: ['x64', 'arm64', 'universal'],
+      },
+      {
+        target: 'zip',
+        arch: ['x64', 'arm64', 'universal'],
       },
     ],
+    // Minimum macOS version for ARM64 support
+    minimumSystemVersion: '11.0',
+    // Enable hardened runtime for notarization
+    hardenedRuntime: true,
+    gatekeeperAssess: false,
+    entitlements: 'build/entitlements.mac.plist',
+    entitlementsInherit: 'build/entitlements.mac.plist',
   },
   win: {
     icon: 'build/icon.ico',
     target: [
       {
         target: 'nsis',
-        arch: ['x64'],
+        arch: ['x64', 'arm64'],
+      },
+      {
+        target: 'portable',
+        arch: ['x64', 'arm64'],
       },
     ],
   },
+  linux: {
+    icon: 'build/icon.png',
+    category: 'Development',
+    target: [
+      {
+        target: 'AppImage',
+        arch: ['x64', 'arm64'],
+      },
+      {
+        target: 'deb',
+        arch: ['x64', 'arm64'],
+      },
+      {
+        target: 'snap',
+        arch: ['x64', 'arm64'],
+      },
+      {
+        target: 'tar.gz',
+        arch: ['x64', 'arm64'],
+      },
+    ],
+  },
+  // NSIS installer configuration for Windows
+  nsis: {
+    oneClick: false,
+    allowToChangeInstallationDirectory: true,
+    // Different installer names for different architectures
+    artifactName: '${productName}-Setup-${version}-${arch}.${ext}',
+  },
+  // DMG configuration for macOS
+  dmg: {
+    artifactName: '${productName}-${version}-${arch}.${ext}',
+  },
+  // Architecture-specific node modules rebuild
+  npmRebuild: true,
+  // Build for specific architecture if specified
+  ...(isARM64Build && {
+    electronDist: `node_modules/electron/dist`,
+    electronVersion: require('electron/package.json').version,
+  }),
 }
 
 // Target platform to package

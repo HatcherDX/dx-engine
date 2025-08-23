@@ -19,6 +19,7 @@ export default defineConfig({
         'src/**/*.{test,spec}.{js,ts}',
         'src/**/*.d.ts',
         'src/**/index.ts',
+        'src/test-*.ts',
         'node_modules/**',
         'dist/**',
         '**/coverage/**',

@@ -1,6 +1,6 @@
 {
   "name": "@hatcherdx/translation-system",
-  "version": "1.0.0",
+  "version": "0.3.5",
   "description": "Professional TypeScript translation system for Hatcher DX Engine documentation",
   "type": "module",
   "main": "dist/index.js",
@@ -13,6 +13,8 @@
     "dev": "tsx watch src/cli/index.ts",
     "test": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:crossplatform": "vitest run --config vitest.crossplatform.config.ts",
+    "test:crossplatform:watch": "vitest --config vitest.crossplatform.config.ts",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
     "clean": "rm -rf dist"

@@ -23,9 +23,10 @@
   <a href="https://discord.gg/cZ7PZvnMk4"><img src="https://img.shields.io/badge/Discord-HatcherDX-5865F2?style=social&logo=discord" alt="Hatcher on Discord"></a>
   <a href="https://github.com/HatcherDX/dx-engine"><img src="https://img.shields.io/github/stars/HatcherDX/dx-engine?style=social" alt="Star on GitHub"></a>
   <br />
-  <a href="#supported-platforms"><img src="https://img.shields.io/badge/macOS-Supported-green.svg?style=flat&logo=apple&colorB=brightgreen&colorA=gray&style=flat" alt="macOS Supported"></a>
-  <a href="#supported-platforms"><img src="https://img.shields.io/badge/Linux-Supported-green.svg?style=flat&logo=linux&colorB=brightgreen&colorA=gray&style=flat" alt="Linux Supported"></a>
-  <a href="#supported-platforms"><img src="https://img.shields.io/badge/Windows-Planned-lightgrey.svg?style=flat&logo=windows&colorA=3c3c3c" alt="Windows Planned"></a>
+  <a href="#supported-platforms"><img src="https://img.shields.io/badge/macOS-Nightly%20🌙-orange?style=flat&logo=apple" alt="macOS Nightly"></a>
+  <a href="#supported-platforms"><img src="https://img.shields.io/badge/Linux-Nightly%20🌙-orange?style=flat&logo=linux" alt="Linux Nightly"></a>
+  <a href="#supported-platforms"><img src="https://img.shields.io/badge/Windows-Nightly%20🌙-orange?style=flat&logo=windows" alt="Windows Nightly"></a>
+  
 </p>
 <br>
 
