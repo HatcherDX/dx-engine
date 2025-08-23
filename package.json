@@ -24,7 +24,7 @@
     "dev:all": "tsx scripts/watch.ts",
     "dev:watch": "tsx scripts/watch.ts --watch",
     "dev:pkg": "pnpm -F \"./packages/**\" dev",
-    "build:pkg": "pnpm -F \"./packages/**\" build",
+    "build:pkg": "pnpm --filter @hatcherdx/puppeteer-google-translate build",
     "build": "turbo run build",
     "build:docs": "pnpm --filter @hatcherdx/dx-engine-docs build:pages",
     "dev:p": "turbo run dev --parallel",
@@ -105,7 +105,19 @@
         "eslint": "*"
       }
     },
-    "overrides": {}
+    "overrides": {},
+    "onlyBuiltDependencies": [
+      "@tailwindcss/oxide",
+      "argon2",
+      "better-sqlite3",
+      "electron",
+      "electron-winstaller",
+      "esbuild",
+      "lz4",
+      "lzma-native",
+      "node-pty",
+      "simple-git-hooks"
+    ]
   },
   "simple-git-hooks": {
     "pre-commit": "pnpm lint-staged"

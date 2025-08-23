@@ -16,6 +16,11 @@ const mockApp = {
 
 vi.mock('electron', () => ({
   app: mockApp,
+  ipcMain: {
+    handle: vi.fn(),
+    removeHandler: vi.fn(),
+    removeAllListeners: vi.fn(),
+  },
 }))
 
 const mockExistsSync = vi.fn()

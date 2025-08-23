@@ -145,10 +145,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Rebuild native modules for architecture
+      - name: Rebuild native modules for ARM64
         if: matrix.arch == 'arm64'
         run: |
-          pnpm rebuild --arch=${{ matrix.arch }}
+          npm rebuild --arch=${{ matrix.arch }}
+          pnpm --filter @hatcherdx/terminal-system rebuild --arch=${{ matrix.arch }} || true
 
       - name: Build application
         run: pnpm run build

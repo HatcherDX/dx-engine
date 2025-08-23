@@ -744,8 +744,8 @@ describe('GitCommandLogger', () => {
           mockOperation
         )
 
-        expect(result.message).toBe(
-          'Git customOperation completed successfully (0ms)'
+        expect(result.message).toMatch(
+          /^Git customOperation completed successfully \(\d+ms\)$/
         )
       })
 

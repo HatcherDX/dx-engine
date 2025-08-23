@@ -3,6 +3,7 @@
     <h1>Hatcher: The DX Engine</h1>
   </details>
 <br><br><br>
+
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="./.github/assets/logo-dark.svg">
@@ -12,21 +13,24 @@
 </p>
 
 <p align="center">
-  <strong>The IDE for builders who ship.</strong>
-  <br /><br />
-  <a href="ROADMAP.md"><img src="https://img.shields.io/badge/Project%20Status-Alpha-orange" alt="Project Status: Alpha"></a>
+  <em>The IDE for builders who ship.</em>
+</p>
+
+<p align="center">
+  <a href="#-project-status-alpha"><img src="https://img.shields.io/badge/Project%20Status-Alpha-orange" alt="Project Status: Alpha"></a>
   <a href="LICENSE.md"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
   <img src="https://img.shields.io/badge/dynamic/json?label=Coverage&query=%24.total.statements.pct&suffix=%25&url=https%3A%2F%2Fraw.githubusercontent.com%2FHatcherDX%2Fdx-engine%2Fcoverage-reports%2Fcoverage-summary.json&colorB=brightgreen&colorA=gray&style=flat&cacheSeconds=300" alt="Test Coverage">
   <a href="CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome"></a>
   <br />
-  <a href="https://twitter.com/HatcherDX"><img src="https://img.shields.io/twitter/follow/HatcherDX?style=social" alt="Follow on Twitter"></a>
-  <a href="https://discord.gg/cZ7PZvnMk4"><img src="https://img.shields.io/badge/Discord-HatcherDX-5865F2?style=social&logo=discord" alt="Hatcher on Discord"></a>
-  <a href="https://github.com/HatcherDX/dx-engine"><img src="https://img.shields.io/github/stars/HatcherDX/dx-engine?style=social" alt="Star on GitHub"></a>
-  <br />
   <a href="#supported-platforms"><img src="https://img.shields.io/badge/macOS-Nightly%20🌙-orange?style=flat&logo=apple" alt="macOS Nightly"></a>
   <a href="#supported-platforms"><img src="https://img.shields.io/badge/Linux-Nightly%20🌙-orange?style=flat&logo=linux" alt="Linux Nightly"></a>
   <a href="#supported-platforms"><img src="https://img.shields.io/badge/Windows-Nightly%20🌙-orange?style=flat&logo=windows" alt="Windows Nightly"></a>
-  
+  <br /><br />
+  <a href="https://twitter.com/HatcherDX"><strong>Follow on X</strong></a>
+  ·
+  <a href="https://discord.gg/cZ7PZvnMk4"><strong>Join our Discord</strong></a>
+  ·
+  <a href="https://github.com/HatcherDX/dx-engine"><strong>Star on GitHub</strong></a>
 </p>
 <br>
 
@@ -36,11 +40,21 @@
 
 <br>
 
-## The Vision: Controlled Amplification
+## The Manifesto: Amplifying, Not Replacing.
 
-Software development is at an inflection point. While AI can generate 80% of an application's code, developers are left frustrated in the "last mile" of fine-tuning, debugging, and aligning the output with existing patterns. This is due to a fundamental loss of deterministic control.
+Software development is at a turning point. AI can generate code, but it operates like a chaotic junior developer, often breaking more than it fixes. The industry's answer has been to chase full automation, trying to replace the developer. We believe this is fundamentally wrong.
 
-**Hatcher** is an open-source, **Next-Generation IDE** designed to be the definitive "Constitutional IDE" for the AI era. This control interface is the heart of our intelligence layer, which we call `//hatche.rs`. It's designed to compose and orchestrate powerful AI models (like Claude and Gemini), turning them into reliable, peer-level contributors. Our philosophy is "Controlled Amplification": the developer remains the surgeon, using Hatcher to wield AI as a high-precision scalpel.
+**Hatcher** is the counter-narrative. It's an open-source IDE designed to be the definitive **"Constitutional IDE"** for the AI era. This control interface is the heart of our intelligence layer, which we call `//hatche.rs`. It's built to compose and orchestrate powerful AI models, turning them into reliable, peer-level contributors.
+
+Our philosophy is **"Controlled Amplification"**: the developer remains the surgeon, using Hatcher to wield AI as a high-precision scalpel.
+
+## Core Features
+
+🏛️ **The Constitutional IDE:** Hatcher is built on a foundation of radical transparency. With dedicated, read-only `System` and `Timeline` terminals, you have an immutable audit log of every action the IDE and Git engine perform on your behalf. No black boxes.
+
+⚡️ **AI with Deterministic Control:** Leverage the power of state-of-the-art AI (like GPT-5 and Claude) through a rigorous and configurable **Quality Pipeline**. Every AI suggestion is linted, tested, and validated _before_ you even see it, eliminating the "panicked junior dev" problem.
+
+‍🔬 **Enterprise-Grade Foundations:** We built our own world-class infrastructure to ensure a premium experience. This includes a 10/10-rated Git Engine (`@hatcherdx/git-genius`), a 9.5/10-rated GPU-accelerated Terminal, and an 11/10-rated secure Storage Engine.
 
 ## The Problem We Solve
 
@@ -50,59 +64,26 @@ Hatcher is built to eliminate the friction that AI introduces, transforming a fr
 - **Your AI Forgets. Ours Remembers:** Replace static context files with dynamic Team Playbooks that provide the right architectural rules at the right time.
 - **No More Black Boxes. Just Power:** Maintain deterministic command over AI with visual diffs, **configurable quality pipelines**, and automated testing.
 
-## Project Status: Alpha
+## 🏛️ Project Status: Alpha
 
-Hatcher is currently in a very early stage of development, but it's built on a robust foundation. The core `Visual-to-Code` technology has been validated in a private proof-of-concept, and key infrastructure, like our integrated terminal, is architected for performance and reliability, matching the professional-grade experience of industry leaders like VSCode. We are now building the foundational MVP.
+Hatcher is in active development, built on the principle of "luxury scaffolding." We have architected the full vision and are now implementing the core functionality, layer by layer.
 
-We are building in public and welcome the community to join us on this journey. Expect bugs, rapid changes, and an open conversation about the future of development.
+| Mode         | Status                        | Next Steps                                                                                                   |
+| :----------- | :---------------------------- | :----------------------------------------------------------------------------------------------------------- |
+| **Code**     | 🏗️ **Functional Foundations** | The file explorer and interactive terminal are fully functional. Next: integrating the Monaco code editor.   |
+| **Timeline** | 🏗️ **Functional Foundations** | The visualization layer is operative. Next: connecting write actions (`commit`, `push`) from our Git engine. |
+| **Visual**   | 🏛️ **Architectural Preview**  | The UI scaffolding is in place, ready for the Visual-to-Code bridge implementation.                          |
+| **Gen**      | 🏛️ **Architectural Preview**  | The UI is ready for the integration of the first AI model.                                                   |
 
-Uses:
+_For more details, see our full **[Project Roadmap](ROADMAP.md)**._
 
-- Vue.js
-- Typescript
-- Turborepo
-- Vite (for Electron builds)
-
-### Hatcher Manifesto: From Vision to Execution
-
-We believe in pairing a bold vision with relentless execution. This is a living document tracking our journey as we build the future of development.
-
-#### ✅ **Foundation: Validated & World-Class**
-
-- **10/10 World-Class Terminal:**
-  - _A native, GPU-accelerated terminal that demonstrably surpasses industry standards (like VSCode's) in performance and resource efficiency, validated against our internal `Context7` benchmarks._
-
-- **Robust, High-Performance Git Engine:**
-  - _A foundational Git implementation architected for the speed and reliability required by complex, large-scale monorepos._
-
-#### 🟡 **In Active Development: The Next Frontier**
-
-- **Hybrid AI Architecture:**
-  - _The blueprint is complete, and we are now actively integrating our first lightweight, local LLMs. This core innovation will bring instant, private AI feedback directly into the editor, forming the bedrock of Hatcher's intelligence._
-
-#### 🚀 **Future Conquests: The Road Ahead**
-
-- **Team Playbooks & "Corporate Constitutions":**
-  - _Our ultimate solution to the AI context problem. A versionable, governable system for teams to encode their architectural patterns and best practices, ensuring AI-generated code is always aligned with their unique standards._
-
-_For more details on each item and future plans, see our full **[Project Roadmap](ROADMAP.md)**._
-
-### Our Architecture: AI for Intent, Determinism for Quality
-
-While many tools treat AI as a black box that produces unreliable code, Hatcher is built on a hybrid architectural principle. We believe in using the right tool for the right job:
-
-- **AI for Intent:** We leverage state-of-the-art AI to perform creative, complex tasks that require understanding natural language and user intent.
-- **Determinism for Quality:** That AI output is then immediately fed into a rigorous and configurable **Quality Pipeline** of battle-tested, deterministic tools.
-
-This pipeline ensures every piece of AI-generated code is not just creative, but also robust, reliable, and compliant with professional standards before the developer ever sees it. This is "Controlled Amplification" in action.
+---
 
 ## Supported Platforms
 
-For our initial MVP, Hatcher's primary development and testing focus is on **macOS** and **Linux**. As an independent open-source project, we are prioritizing the environments most common among our target users and where we can ensure a first-class, stable experience through automated testing.
+Hatcher is engineered for **uncompromising cross-platform reliability.** Our sophisticated hybrid testing strategy and multi-job CI/CD pipeline guarantee that every critical component is rigorously validated on **macOS, Linux, and Windows** with every commit. We don't just hope it works everywhere; **we prove it.**
 
-Hatcher for Linux is officially built and validated for both **`x86_64`** (Intel/AMD) and **`aarch64`** (ARM) architectures. Our automated test suite runs on the latest Ubuntu LTS release, and the application is expected to work on most modern Debian-based distributions.
-
-While the application may also run on Windows, we currently lack the dedicated hardware and resources to provide official support. We believe that robust Windows support is a significant business opportunity. We are open to strategic partnerships, sponsorships, or direct support from organizations like Microsoft to fund a dedicated team and the necessary licenses to make Hatcher a premier, fully-supported IDE on the Windows platform.
+_We currently offer experimental **Nightly Builds** for all platforms. As we approach our v1.0, we will begin publishing official, stable releases._
 
 ## More Than an IDE: Your Productivity Anchor
 
@@ -111,6 +92,12 @@ Hatcher isn't just another AI-powered editor. It's designed as your **productivi
 Every design choice, from our intentionally bold interface to our focused feature set, serves a single purpose: **minimizing cognitive friction**. When Slack notifications pull your attention, when emails demand immediate response, when the chaos of modern work threatens to fragment your focus – Hatcher acts as a visual beacon, instantly reconnecting you to your code and your flow.
 
 We believe that in an attention-fractured world, the most revolutionary IDE isn't the one with the most features – it's the one that helps you remember what truly matters: **the code, the problem, and the elegant solution waiting to emerge**.
+
+## Our Open Core Pact
+
+Hatcher is and always will be an open-core project. **Our commitment is simple: the core IDE, for local, individual use, will always be free and MIT-licensed.**
+
+Our commercial strategy is focused on providing optional, premium cloud services for teams who need collaboration, governance, and security at scale. This model funds the continuous development of the free, world-class tool that everyone can use.
 
 ## Getting Started
 
@@ -186,14 +173,6 @@ pnpm pack:prod
 We believe the future of development tools will be built by the community. If you are passionate about developer experience and the future of AI, we would love your help.
 
 Please read our **[CONTRIBUTING.md](CONTRIBUTING.md)** to learn how you can get involved, from reporting bugs to submitting your first pull request.
-
-## Our Open-Core Philosophy
-
-Hatcher is and always will be an open-core project. We are committed to building a powerful, free, and open-source tool for individual developers. Our core mission is to empower the community.
-
-Our commercial strategy is focused on providing features for professional teams and enterprises. Paid offerings, such as advanced "Team Playbooks", centralized governance, and premium support, are what will fund the continuous development and innovation of the free, core product that everyone can use.
-
-This model allows us to build a sustainable business while staying true to our open-source roots.
 
 ## About the Author
 

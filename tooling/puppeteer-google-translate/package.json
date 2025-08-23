@@ -27,7 +27,8 @@
     "dev": "npx tsx watch ./src/index.ts",
     "build": "tsc",
     "lint": "echo \"Linting handled at root level\"",
-    "lint:fix": "echo \"Linting handled at root level\""
+    "lint:fix": "echo \"Linting handled at root level\"",
+    "postinstall": "pnpm run build"
   },
   "dependencies": {
     "chrome-launcher": "^1.1.2",

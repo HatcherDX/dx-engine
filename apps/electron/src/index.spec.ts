@@ -63,6 +63,11 @@ const { mockSetupDevConsoleFilter } = vi.hoisted(() => ({
 // Mock Electron app
 vi.mock('electron', () => ({
   app: mockApp,
+  ipcMain: {
+    handle: vi.fn(),
+    removeHandler: vi.fn(),
+    removeAllListeners: vi.fn(),
+  },
 }))
 
 // Mock Node.js modules

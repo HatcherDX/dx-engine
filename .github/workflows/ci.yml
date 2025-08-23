@@ -280,7 +280,7 @@ jobs:
         run: pnpm install
 
       - name: Run scripts integration tests
-        run: vitest run --config scripts/vitest.integration.config.ts
+        run: npx vitest run --config scripts/vitest.integration.config.ts
         env:
           VITEST_SCRIPTS_INTEGRATION: 'true'
 
