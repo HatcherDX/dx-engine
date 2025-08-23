@@ -54,15 +54,7 @@ Our philosophy is **"Controlled Amplification"**: the developer remains the surg
 
 ⚡️ **AI with Deterministic Control:** Leverage the power of state-of-the-art AI (like GPT-5 and Claude) through a rigorous and configurable **Quality Pipeline**. Every AI suggestion is linted, tested, and validated _before_ you even see it, eliminating the "panicked junior dev" problem.
 
-‍🔬 **Enterprise-Grade Foundations:** We built our own world-class infrastructure to ensure a premium experience. This includes a 10/10-rated Git Engine (`@hatcherdx/git-genius`), a 9.5/10-rated GPU-accelerated Terminal, and an 11/10-rated secure Storage Engine.
-
-## The Problem We Solve
-
-Hatcher is built to eliminate the friction that AI introduces, transforming a frustrating cycle of trial-and-error into a fluid, intuitive workflow.
-
-- **Stop Describing. Start Pointing:** Bridge the gap between your live application and source code with the Visual-to-Code bridge.
-- **Your AI Forgets. Ours Remembers:** Replace static context files with dynamic Team Playbooks that provide the right architectural rules at the right time.
-- **No More Black Boxes. Just Power:** Maintain deterministic command over AI with visual diffs, **configurable quality pipelines**, and automated testing.
+‍🔬 **Enterprise-Grade Foundations:** We built our own world-class infrastructure to ensure a premium experience. Our core components—the Git Engine, the GPU-accelerated Terminal, and the Secure Storage Engine—are all architected and validated to a **10/10 enterprise-grade standard**.
 
 ## 🏛️ Project Status: Alpha
 
@@ -84,14 +76,6 @@ _For more details, see our full **[Project Roadmap](ROADMAP.md)**._
 Hatcher is engineered for **uncompromising cross-platform reliability.** Our sophisticated hybrid testing strategy and multi-job CI/CD pipeline guarantee that every critical component is rigorously validated on **macOS, Linux, and Windows** with every commit. We don't just hope it works everywhere; **we prove it.**
 
 _We currently offer experimental **Nightly Builds** for all platforms. As we approach our v1.0, we will begin publishing official, stable releases._
-
-## More Than an IDE: Your Productivity Anchor
-
-Hatcher isn't just another AI-powered editor. It's designed as your **productivity anchor** – a command center that protects your flow state from the relentless stream of digital distractions that plague modern development.
-
-Every design choice, from our intentionally bold interface to our focused feature set, serves a single purpose: **minimizing cognitive friction**. When Slack notifications pull your attention, when emails demand immediate response, when the chaos of modern work threatens to fragment your focus – Hatcher acts as a visual beacon, instantly reconnecting you to your code and your flow.
-
-We believe that in an attention-fractured world, the most revolutionary IDE isn't the one with the most features – it's the one that helps you remember what truly matters: **the code, the problem, and the elegant solution waiting to emerge**.
 
 ## Our Open Core Pact
 

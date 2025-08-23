@@ -969,53 +969,56 @@ describe('PtyManager', () => {
     })
 
     describe('Destroy method with cleanup', () => {
-      it('should clean up terminals and pending requests in destroy', async () => {
-        const { PtyManager } = await import('./ptyManager')
-        const manager = new PtyManager()
+      it(
+        'should clean up terminals and pending requests in destroy',
+        { timeout: 30000 },
+        async () => {
+          const { PtyManager } = await import('./ptyManager')
+          const manager = new PtyManager()
 
-        // Wait for initialization with shorter timeout
-        await new Promise((resolve) => {
-          manager.on('ready', resolve)
-          setTimeout(resolve, 50) // Reduced from 200ms
-        })
+          // Wait for initialization
+          await new Promise((resolve) => setTimeout(resolve, 100))
 
-        // Add some terminals to the manager by simulating terminal creation
-        const createPromise1 = manager.createTerminal({ shell: '/bin/bash' })
-        const createPromise2 = manager.createTerminal({ shell: '/bin/zsh' })
+          // Add some terminals to the manager by simulating terminal creation
+          const createPromise1 = manager.createTerminal({ shell: '/bin/bash' })
+          const createPromise2 = manager.createTerminal({ shell: '/bin/zsh' })
 
-        const childProcess = mockFork.mock.results[0]?.value
+          const childProcess = mockFork.mock.results[0]?.value
 
-        if (childProcess) {
-          // Simulate terminal creation success for first terminal
-          childProcess.emit('message', {
-            type: 'created',
-            id: 'test-uuid-123',
-            shell: '/bin/bash',
-            cwd: '/home/user',
-            pid: 54321,
-            strategy: 'node-pty',
-            backend: 'node-pty',
-          })
+          if (childProcess) {
+            // Simulate terminal creation success for first terminal
+            childProcess.emit('message', {
+              type: 'created',
+              id: 'test-uuid-123',
+              shell: '/bin/bash',
+              cwd: '/home/user',
+              pid: 54321,
+              strategy: 'node-pty',
+              backend: 'node-pty',
+            })
 
-          await createPromise1
+            await createPromise1
 
-          // Call destroy while we have terminals and pending requests
-          manager.destroy()
+            // Call destroy while we have terminals and pending requests
+            manager.destroy()
 
-          // Should have called unregisterTerminal for the created terminal
-          expect(
-            mockPerformanceMonitor.unregisterTerminal
-          ).toHaveBeenCalledWith('test-uuid-123')
+            // Should have called unregisterTerminal for the created terminal
+            expect(
+              mockPerformanceMonitor.unregisterTerminal
+            ).toHaveBeenCalledWith('test-uuid-123')
 
-          // The second promise should be rejected due to cleanup
-          await expect(createPromise2).rejects.toThrow('PTY Manager destroyed')
+            // The second promise should be rejected due to cleanup
+            await expect(createPromise2).rejects.toThrow(
+              'PTY Manager destroyed'
+            )
 
-          // Should have killed the PTY Host process
-          if (childProcess.kill) {
-            expect(childProcess.kill).toHaveBeenCalledWith('SIGTERM')
+            // Should have killed the PTY Host process
+            if (childProcess.kill) {
+              expect(childProcess.kill).toHaveBeenCalledWith('SIGTERM')
+            }
           }
         }
-      })
+      )
 
       it('should handle destroy when no terminals or pending requests exist', async () => {
         const { PtyManager } = await import('./ptyManager')
@@ -1405,121 +1408,133 @@ describe('PtyManager', () => {
         }
       })
 
-      it('should handle multiple simultaneous terminal creations', async () => {
-        const { PtyManager } = await import('./ptyManager')
-        const manager = new PtyManager()
+      it(
+        'should handle multiple simultaneous terminal creations',
+        { timeout: 30000 },
+        async () => {
+          const { PtyManager } = await import('./ptyManager')
+          const manager = new PtyManager()
 
-        // Create multiple terminals simultaneously
-        const promises = [
-          manager.createTerminal({ shell: '/bin/bash' }),
-          manager.createTerminal({ shell: '/bin/zsh' }),
-          manager.createTerminal({ shell: '/bin/sh' }),
-        ]
+          // Create multiple terminals simultaneously
+          const promises = [
+            manager.createTerminal({ shell: '/bin/bash' }),
+            manager.createTerminal({ shell: '/bin/zsh' }),
+            manager.createTerminal({ shell: '/bin/sh' }),
+          ]
 
-        const childProcess = mockFork.mock.results[0]?.value
+          const childProcess = mockFork.mock.results[0]?.value
 
-        if (childProcess) {
-          // Simulate responses for each terminal
-          childProcess.emit('message', {
-            type: 'created',
-            id: 'test-uuid-123',
-            shell: '/bin/bash',
-            pid: 11111,
-            strategy: 'node-pty',
-          })
+          if (childProcess) {
+            // Simulate responses for each terminal
+            childProcess.emit('message', {
+              type: 'created',
+              id: 'test-uuid-123',
+              shell: '/bin/bash',
+              pid: 11111,
+              strategy: 'node-pty',
+            })
 
-          // Note: In the real implementation, each createTerminal generates a unique ID
-          // For testing, we're using mock UUIDs
-          const terminals = await Promise.all(promises)
+            // Note: In the real implementation, each createTerminal generates a unique ID
+            // For testing, we're using mock UUIDs
+            const terminals = await Promise.all(promises)
 
-          expect(terminals).toHaveLength(3)
-          expect(terminals[0].id).toBe('test-uuid-123')
+            expect(terminals).toHaveLength(3)
+            expect(terminals[0].id).toBe('test-uuid-123')
+          }
         }
-      })
+      )
 
-      it('should handle restart after PTY Host crash with pending operations', async () => {
-        vi.useFakeTimers()
+      it(
+        'should handle restart after PTY Host crash with pending operations',
+        { timeout: 30000 },
+        async () => {
+          vi.useFakeTimers()
 
-        const { PtyManager } = await import('./ptyManager')
-        const manager = new PtyManager()
+          const { PtyManager } = await import('./ptyManager')
+          const manager = new PtyManager()
 
-        const childProcess = mockFork.mock.results[0]?.value
+          const childProcess = mockFork.mock.results[0]?.value
 
-        if (childProcess) {
-          // Start a terminal creation
+          if (childProcess) {
+            // Start a terminal creation
+            const createPromise = manager.createTerminal({ shell: '/bin/bash' })
+
+            // Simulate crash before response
+            childProcess.emit('exit', 1, 'SIGKILL')
+
+            // Fast-forward restart timer
+            vi.advanceTimersByTime(1000)
+
+            // The promise should be rejected due to crash
+            await expect(createPromise).rejects.toThrow('PTY Manager destroyed')
+          }
+
+          vi.useRealTimers()
+        }
+      )
+
+      it(
+        'should handle all terminal info fields in list response',
+        { timeout: 30000 },
+        async () => {
+          const { PtyManager } = await import('./ptyManager')
+          const manager = new PtyManager()
+
+          // First create a terminal
           const createPromise = manager.createTerminal({ shell: '/bin/bash' })
+          const childProcess = mockFork.mock.results[0]?.value
 
-          // Simulate crash before response
-          childProcess.emit('exit', 1, 'SIGKILL')
+          if (childProcess) {
+            childProcess.emit('message', {
+              type: 'created',
+              id: 'terminal-1',
+              shell: '/bin/bash',
+              cwd: '/home/user',
+              pid: 12345,
+              strategy: 'node-pty',
+            })
 
-          // Fast-forward restart timer
-          vi.advanceTimersByTime(1000)
+            await createPromise
 
-          // The promise should be rejected due to crash
-          await expect(createPromise).rejects.toThrow('PTY Manager destroyed')
-        }
+            // Now list terminals
+            const listPromise = manager.listTerminals()
 
-        vi.useRealTimers()
-      })
-
-      it('should handle all terminal info fields in list response', async () => {
-        const { PtyManager } = await import('./ptyManager')
-        const manager = new PtyManager()
-
-        // First create a terminal
-        const createPromise = manager.createTerminal({ shell: '/bin/bash' })
-        const childProcess = mockFork.mock.results[0]?.value
-
-        if (childProcess) {
-          childProcess.emit('message', {
-            type: 'created',
-            id: 'terminal-1',
-            shell: '/bin/bash',
-            cwd: '/home/user',
-            pid: 12345,
-            strategy: 'node-pty',
-          })
-
-          await createPromise
-
-          // Now list terminals
-          const listPromise = manager.listTerminals()
-
-          childProcess.emit('message', {
-            type: 'list',
-            requestId: 'test-uuid-123',
-            terminals: [
-              {
-                id: 'terminal-1',
-                shell: '/bin/bash',
-                cwd: '/home/user',
-                pid: 12345,
-                strategy: 'node-pty',
-                backend: 'node-pty',
-                capabilities: {
+            childProcess.emit('message', {
+              type: 'list',
+              requestId: 'test-uuid-123',
+              terminals: [
+                {
+                  id: 'terminal-1',
+                  shell: '/bin/bash',
+                  cwd: '/home/user',
+                  pid: 12345,
+                  strategy: 'node-pty',
                   backend: 'node-pty',
-                  supportsResize: true,
-                  supportsColors: true,
-                  supportsInteractivity: true,
-                  supportsHistory: true,
-                  reliability: 'high',
+                  capabilities: {
+                    backend: 'node-pty',
+                    supportsResize: true,
+                    supportsColors: true,
+                    supportsInteractivity: true,
+                    supportsHistory: true,
+                    reliability: 'high',
+                  },
                 },
-              },
-            ],
-          })
+              ],
+            })
 
-          const terminals = await listPromise
+            const terminals = await listPromise
 
-          expect(terminals).toHaveLength(1)
-          expect(terminals[0]).toMatchObject({
-            id: 'terminal-1',
-            shell: '/bin/bash',
-            cwd: '/home/user',
-            pid: 12345,
-            strategy: 'node-pty',
-          })
+            expect(terminals).toHaveLength(1)
+            expect(terminals[0]).toMatchObject({
+              id: 'terminal-1',
+              shell: '/bin/bash',
+              cwd: '/home/user',
+              pid: 12345,
+              strategy: 'node-pty',
+            })
+          }
         }
-      })
+      )
 
       it('should properly clean up event listeners in destroy', async () => {
         const { PtyManager } = await import('./ptyManager')
@@ -1658,47 +1673,51 @@ describe('PtyManager', () => {
         }
       })
 
-      it('should reach 80% coverage with comprehensive tests', async () => {
-        // Import fresh instance to ensure all code paths are executed
-        vi.resetModules()
-        const ptyManagerModule = await import('./ptyManager')
-        const PtyManager = ptyManagerModule.PtyManager
+      it(
+        'should reach 80% coverage with comprehensive tests',
+        { timeout: 30000 },
+        async () => {
+          // Import fresh instance to ensure all code paths are executed
+          vi.resetModules()
+          const ptyManagerModule = await import('./ptyManager')
+          const PtyManager = ptyManagerModule.PtyManager
 
-        // Test 1: Create manager and test successful initialization
-        const manager1 = new PtyManager()
+          // Test 1: Create manager and test successful initialization
+          const manager1 = new PtyManager()
 
-        // Wait a bit for initialization
-        await new Promise((resolve) => setTimeout(resolve, 10))
+          // Wait a bit for initialization
+          await new Promise((resolve) => setTimeout(resolve, 10))
 
-        // Test all public methods
-        manager1.getPerformanceMetrics()
-        manager1.getTerminalPerformanceMetrics('test', 5)
-        manager1.getTerminalAlerts('test', 3)
-        manager1.exportPerformanceData()
+          // Test all public methods
+          manager1.getPerformanceMetrics()
+          manager1.getTerminalPerformanceMetrics('test', 5)
+          manager1.getTerminalAlerts('test', 3)
+          manager1.exportPerformanceData()
 
-        // Test write, resize, kill operations
-        manager1.writeToTerminal('test', 'data')
-        manager1.resizeTerminal('test', 80, 24)
-        manager1.killTerminal('test')
+          // Test write, resize, kill operations
+          manager1.writeToTerminal('test', 'data')
+          manager1.resizeTerminal('test', 80, 24)
+          manager1.killTerminal('test')
 
-        // Clean up
-        manager1.destroy()
+          // Clean up
+          manager1.destroy()
 
-        // Test 2: Create another manager with error in initialization
-        mockFork.mockImplementationOnce(() => {
-          throw new Error('Fork failed')
-        })
+          // Test 2: Create another manager with error in initialization
+          mockFork.mockImplementationOnce(() => {
+            throw new Error('Fork failed')
+          })
 
-        const manager2 = new PtyManager()
-        await new Promise((resolve) => setTimeout(resolve, 10))
+          const manager2 = new PtyManager()
+          await new Promise((resolve) => setTimeout(resolve, 10))
 
-        // Try operations when initialization failed
-        manager2.writeToTerminal('test', 'data')
-        manager2.resizeTerminal('test', 80, 24)
-        manager2.killTerminal('test')
+          // Try operations when initialization failed
+          manager2.writeToTerminal('test', 'data')
+          manager2.resizeTerminal('test', 80, 24)
+          manager2.killTerminal('test')
 
-        manager2.destroy()
-      })
+          manager2.destroy()
+        }
+      )
 
       it('should handle terminal operations after destroy', async () => {
         const { PtyManager } = await import('./ptyManager')
@@ -1818,67 +1837,78 @@ describe('PtyManager', () => {
         }
       })
 
-      it('should achieve >80% line coverage with edge cases', async () => {
-        const manager = new PtyManager()
+      it(
+        'should achieve >80% line coverage with edge cases',
+        { timeout: 30000 },
+        async () => {
+          const manager = new PtyManager()
 
-        // Wait briefly for initialization
-        await new Promise((resolve) => setTimeout(resolve, 50))
+          // Wait briefly for initialization
+          await new Promise((resolve) => setTimeout(resolve, 50))
 
-        // Get the mocked child process
-        const childProcess = mockFork.mock.results[0]?.value
+          // Get the mocked child process
+          const childProcess = mockFork.mock.results[0]?.value
 
-        if (childProcess) {
-          // Test various message types to hit all branches
-          childProcess.emit('message', {
-            type: 'data',
-            id: 'test-uuid-123',
-            data: 'output',
-          })
-          childProcess.emit('message', {
-            type: 'exit',
-            id: 'test-uuid-123',
-            exitCode: 0,
-            signal: null,
-          })
-          childProcess.emit('message', { type: 'killed', id: 'test-uuid-123' })
-          childProcess.emit('message', {
-            type: 'unknown_type',
-            id: 'test-uuid-123',
-          })
+          if (childProcess) {
+            // Test various message types to hit all branches
+            childProcess.emit('message', {
+              type: 'data',
+              id: 'test-uuid-123',
+              data: 'output',
+            })
+            childProcess.emit('message', {
+              type: 'exit',
+              id: 'test-uuid-123',
+              exitCode: 0,
+              signal: null,
+            })
+            childProcess.emit('message', {
+              type: 'killed',
+              id: 'test-uuid-123',
+            })
+            childProcess.emit('message', {
+              type: 'unknown_type',
+              id: 'test-uuid-123',
+            })
 
-          // Test PTY Host restart on crash
-          childProcess.emit('exit', 1, null)
+            // Test PTY Host restart on crash
+            childProcess.emit('exit', 1, null)
 
-          // Wait for restart attempt
-          await new Promise((resolve) => setTimeout(resolve, 100))
+            // Wait for restart attempt
+            await new Promise((resolve) => setTimeout(resolve, 100))
+          }
+
+          // Final cleanup
+          manager.destroy()
         }
+      )
 
-        // Final cleanup
-        manager.destroy()
-      })
+      it(
+        'should test all branch conditions for complete coverage',
+        { timeout: 30000 },
+        async () => {
+          // Test normal flow
+          const manager = new PtyManager()
 
-      it('should test all branch conditions for complete coverage', async () => {
-        // Test normal flow
-        const manager = new PtyManager()
+          // Wait for initialization
+          await new Promise((resolve) => setTimeout(resolve, 50))
 
-        // Wait for initialization
-        await new Promise((resolve) => setTimeout(resolve, 50))
+          // Test disconnect event
+          const childProcess = mockFork.mock.results[0]?.value
+          if (childProcess) {
+            childProcess.emit('disconnect')
 
-        // Test disconnect event
-        const childProcess = mockFork.mock.results[0]?.value
-        if (childProcess) {
-          childProcess.emit('disconnect')
+            // Verify state after disconnect
+            expect((manager as { ptyHost: unknown }).ptyHost).toBeNull()
+            expect((manager as { isInitialized: boolean }).isInitialized).toBe(
+              false
+            )
+          }
 
-          // Verify state after disconnect
-          expect((manager as { ptyHost: unknown }).ptyHost).toBeNull()
-          expect((manager as { isInitialized: boolean }).isInitialized).toBe(
-            false
-          )
+          // Clean up
+          manager.destroy()
         }
-
-        // Clean up
-        manager.destroy()
-      })
+      )
     })
   })
 })

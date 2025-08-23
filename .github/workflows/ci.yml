@@ -14,6 +14,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Enable Corepack
+        run: corepack enable
+
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -41,6 +44,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Enable Corepack
+        run: corepack enable
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
@@ -81,6 +87,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Enable Corepack
+        run: corepack enable
+
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -91,6 +100,12 @@ jobs:
         with:
           node-version: '22.14.0'
           cache: 'pnpm'
+
+      - name: Setup Windows build environment
+        if: matrix.os == 'windows-latest'
+        run: |
+          npm config set msvs_version 2022
+          npm config set python python3
 
       - name: Install dependencies
         run: pnpm install
@@ -126,6 +141,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Enable Corepack
+        run: corepack enable
+
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -136,6 +154,12 @@ jobs:
         with:
           node-version: '22.14.0'
           cache: 'pnpm'
+
+      - name: Setup Windows build environment
+        if: matrix.os == 'windows-latest'
+        run: |
+          npm config set msvs_version 2022
+          npm config set python python3
 
       - name: Configure Git
         run: |
@@ -187,8 +211,19 @@ jobs:
           node-version: '22.14.0'
           cache: 'pnpm'
 
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Setup Windows build environment
+        if: matrix.os == 'windows-latest'
+        run: |
+          npm config set msvs_version 2022
+          npm config set python python3
+
       - name: Install dependencies
         run: pnpm install
+        env:
+          npm_config_build_from_source: true
 
       - name: Install Electron dependencies (Linux)
         if: matrix.os == 'ubuntu-latest'
@@ -243,6 +278,15 @@ jobs:
           node-version: '22.14.0'
           cache: 'pnpm'
 
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Setup Windows build environment
+        if: matrix.os == 'windows-latest'
+        run: |
+          npm config set msvs_version 2022
+          npm config set python python3
+
       - name: Install dependencies
         run: pnpm install
 
@@ -285,6 +329,15 @@ jobs:
           node-version: '22.14.0'
           cache: 'pnpm'
 
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Setup Windows build environment
+        if: matrix.os == 'windows-latest'
+        run: |
+          npm config set msvs_version 2022
+          npm config set python python3
+
       - name: Install dependencies
         run: pnpm install
 
@@ -323,6 +376,15 @@ jobs:
         with:
           node-version: '22.14.0'
           cache: 'pnpm'
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Setup Windows build environment
+        if: matrix.os == 'windows-latest'
+        run: |
+          npm config set msvs_version 2022
+          npm config set python python3
 
       - name: Install dependencies
         run: pnpm install
@@ -379,6 +441,9 @@ jobs:
         with:
           node-version: '22.14.0'
           cache: 'pnpm'
+
+      - name: Enable Corepack
+        run: corepack enable
 
       - name: Verify architecture
         run: |
@@ -442,8 +507,18 @@ jobs:
           node-version: '22.14.0'
           cache: 'pnpm'
 
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Setup Windows build environment
+        run: |
+          npm config set msvs_version 2022
+          npm config set python python3
+
       - name: Install dependencies
         run: pnpm install
+        env:
+          npm_config_build_from_source: true
 
       - name: Cross-compile for Windows ARM64
         run: |
@@ -492,6 +567,9 @@ jobs:
         with:
           node-version: '22.14.0'
           cache: 'pnpm'
+
+      - name: Enable Corepack
+        run: corepack enable
 
       - name: Install dependencies
         run: pnpm install
@@ -564,6 +642,9 @@ jobs:
         with:
           node-version: '22.14.0'
           cache: 'pnpm'
+
+      - name: Enable Corepack
+        run: corepack enable
 
       - name: Install dependencies
         run: pnpm install

@@ -11,7 +11,23 @@
  * @public
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  type Mock,
+} from 'vitest'
+import type { IpcMainInvokeEvent } from 'electron'
+
+// Type definitions for IPC handlers
+type IpcHandler = (
+  event: IpcMainInvokeEvent | null,
+  ...args: unknown[]
+) => unknown | Promise<unknown>
+type IpcHandlerCall = [string, IpcHandler]
 
 // Get references to mocked modules for use in tests
 const {
@@ -42,7 +58,7 @@ const {
   const mockSimpleGit = vi.fn()
 
   const electronIpcMain = {
-    handle: vi.fn(),
+    handle: vi.fn() as Mock<[string, IpcHandler], void>,
     on: vi.fn(),
     removeHandler: vi.fn(),
     removeAllListeners: vi.fn(),
@@ -78,16 +94,30 @@ vi.mock('electron', () => ({
   ipcMain: electronIpcMain,
 }))
 
-vi.mock('node:fs/promises', async (importOriginal) => {
-  const actual = await importOriginal()
-  return {
-    ...actual,
+vi.mock('node:fs/promises', () => ({
+  default: {
     readFile: mockReadFile,
     stat: mockStat,
     readdir: mockReaddir,
     access: mockAccess,
-  }
-})
+    writeFile: vi.fn(),
+    mkdir: vi.fn(),
+    rm: vi.fn(),
+    constants: {
+      F_OK: 0,
+    },
+  },
+  readFile: mockReadFile,
+  stat: mockStat,
+  readdir: mockReaddir,
+  access: mockAccess,
+  writeFile: vi.fn(),
+  mkdir: vi.fn(),
+  rm: vi.fn(),
+  constants: {
+    F_OK: 0,
+  },
+}))
 
 vi.mock('node:path', async (importOriginal) => {
   const actual = await importOriginal()
@@ -97,16 +127,20 @@ vi.mock('node:path', async (importOriginal) => {
   }
 })
 
-vi.mock('node:fs', async (importOriginal) => {
-  const actual = await importOriginal()
-  return {
-    ...actual,
+vi.mock('node:fs', () => ({
+  default: {
     constants: {
-      ...actual.constants,
       F_OK: 0,
     },
-  }
-})
+    existsSync: vi.fn(() => true),
+    readFileSync: vi.fn(() => '{}'),
+  },
+  constants: {
+    F_OK: 0,
+  },
+  existsSync: vi.fn(() => true),
+  readFileSync: vi.fn(() => '{}'),
+}))
 
 vi.mock('simple-git', () => ({
   simpleGit: mockSimpleGit,
@@ -262,10 +296,11 @@ describe('IPC Module', () => {
 
   describe('Actual IPC Handler Tests', () => {
     beforeEach(async () => {
-      // Don't use vi.resetModules() here to keep mocks intact
+      // Reset modules to ensure fresh import with mocks
+      vi.resetModules()
       vi.clearAllMocks()
 
-      // Reconfigure basic mocks
+      // Reconfigure basic mocks before importing
       mockReadFile.mockResolvedValue('default file content')
       mockStat.mockResolvedValue({
         isFile: () => true,
@@ -276,7 +311,7 @@ describe('IPC Module', () => {
       mockReaddir.mockResolvedValue([])
       mockAccess.mockResolvedValue(undefined)
 
-      // Import the module to register handlers
+      // Import the module to register handlers with mocks
       await import('./ipc')
     })
 
@@ -291,14 +326,14 @@ describe('IPC Module', () => {
 
       // Get the openProjectDialog handler
       const openProjectHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'openProjectDialog'
+        (call: IpcHandlerCall) => call[0] === 'openProjectDialog'
       )?.[1]
 
       expect(openProjectHandler).toBeDefined()
 
-      // This will fail with ENOENT error due to real file system access
+      // This will fail with error due to real file system access
       await expect(openProjectHandler()).rejects.toThrow(
-        /ENOENT: no such file or directory/
+        /Failed to read package\.json:/
       )
 
       expect(mockDialog.showOpenDialog).toHaveBeenCalledWith(mockWindow, {
@@ -320,7 +355,7 @@ describe('IPC Module', () => {
       })
 
       const openProjectHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'openProjectDialog'
+        (call: IpcHandlerCall) => call[0] === 'openProjectDialog'
       )?.[1]
 
       const result = await openProjectHandler()
@@ -334,7 +369,7 @@ describe('IPC Module', () => {
       })
 
       const openProjectHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'openProjectDialog'
+        (call: IpcHandlerCall) => call[0] === 'openProjectDialog'
       )?.[1]
 
       await expect(openProjectHandler()).rejects.toThrow(
@@ -350,7 +385,7 @@ describe('IPC Module', () => {
       })
 
       const openProjectHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'openProjectDialog'
+        (call: IpcHandlerCall) => call[0] === 'openProjectDialog'
       )?.[1]
 
       await expect(openProjectHandler()).rejects.toThrow(
@@ -366,7 +401,7 @@ describe('IPC Module', () => {
       })
 
       const openProjectHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'openProjectDialog'
+        (call: IpcHandlerCall) => call[0] === 'openProjectDialog'
       )?.[1]
 
       await expect(openProjectHandler()).rejects.toThrow(
@@ -378,7 +413,7 @@ describe('IPC Module', () => {
       mockBrowserWindow.getFocusedWindow.mockReturnValue(null)
 
       const openProjectHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'openProjectDialog'
+        (call: IpcHandlerCall) => call[0] === 'openProjectDialog'
       )?.[1]
 
       await expect(openProjectHandler()).rejects.toThrow(
@@ -396,24 +431,28 @@ describe('IPC Module', () => {
       mockStat.mockResolvedValue(mockStats)
 
       const statFileHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'statFile'
+        (call: IpcHandlerCall) => call[0] === 'statFile'
       )?.[1]
 
-      await expect(statFileHandler(null, '/test/file.txt')).rejects.toThrow(
-        /Failed to stat file: ENOENT/
-      )
+      const result = await statFileHandler(null, '/test/file.txt')
+      expect(result).toEqual({
+        isFile: true,
+        isDirectory: false,
+        size: 2048,
+        modified: new Date('2023-06-01'),
+      })
     })
 
     it('should handle statFile errors', async () => {
       mockStat.mockRejectedValue(new Error('File not found'))
 
       const statFileHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'statFile'
+        (call: IpcHandlerCall) => call[0] === 'statFile'
       )?.[1]
 
       await expect(
         statFileHandler(null, '/test/nonexistent.txt')
-      ).rejects.toThrow(/Failed to stat file: ENOENT/)
+      ).rejects.toThrow(/Failed to stat file:/)
     })
 
     it('should handle readDirectory successfully', async () => {
@@ -425,23 +464,22 @@ describe('IPC Module', () => {
       mockReaddir.mockResolvedValue(mockEntries)
 
       const readDirHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'readDirectory'
+        (call: IpcHandlerCall) => call[0] === 'readDirectory'
       )?.[1]
 
-      await expect(readDirHandler(null, '/test/dir')).rejects.toThrow(
-        /Failed to read directory: ENOENT/
-      )
+      const result = await readDirHandler(null, '/test/dir')
+      expect(result).toEqual(['/test/dir/file1.txt', '/test/dir/file2.js'])
     })
 
     it('should handle readDirectory errors', async () => {
       mockReaddir.mockRejectedValue(new Error('Permission denied'))
 
       const readDirHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'readDirectory'
+        (call: IpcHandlerCall) => call[0] === 'readDirectory'
       )?.[1]
 
       await expect(readDirHandler(null, '/test/protected')).rejects.toThrow(
-        /Failed to read directory: ENOENT/
+        /Failed to read directory:/
       )
     })
 
@@ -449,18 +487,18 @@ describe('IPC Module', () => {
       mockAccess.mockResolvedValue(undefined)
 
       const pathExistsHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'pathExists'
+        (call: IpcHandlerCall) => call[0] === 'pathExists'
       )?.[1]
 
       const result = await pathExistsHandler(null, '/test/path')
-      expect(result).toBe(false) // File doesn't exist in test environment
+      expect(result).toBe(true) // File exists when mockAccess resolves
     })
 
     it('should handle pathExists when file does not exist', async () => {
       mockAccess.mockRejectedValue(new Error('ENOENT'))
 
       const pathExistsHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'pathExists'
+        (call: IpcHandlerCall) => call[0] === 'pathExists'
       )?.[1]
 
       const result = await pathExistsHandler(null, '/test/nonexistent')
@@ -474,18 +512,18 @@ describe('IPC Module', () => {
       mockStat.mockResolvedValue(mockStats)
 
       const isDirHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'isDirectory'
+        (call: IpcHandlerCall) => call[0] === 'isDirectory'
       )?.[1]
 
       const result = await isDirHandler(null, '/test/directory')
-      expect(result).toBe(false) // Directory doesn't exist in test environment
+      expect(result).toBe(true) // Directory exists when mockStat resolves
     })
 
     it('should handle isDirectory when path is not directory', async () => {
       mockStat.mockRejectedValue(new Error('ENOENT'))
 
       const isDirHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'isDirectory'
+        (call: IpcHandlerCall) => call[0] === 'isDirectory'
       )?.[1]
 
       const result = await isDirHandler(null, '/test/nonexistent')
@@ -496,24 +534,23 @@ describe('IPC Module', () => {
       mockReadFile.mockResolvedValue('file content here')
 
       const readFileHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'readFile'
+        (call: IpcHandlerCall) => call[0] === 'readFile'
       )?.[1]
 
-      await expect(readFileHandler(null, '/test/file.txt')).rejects.toThrow(
-        /Failed to read file: ENOENT/
-      )
+      const result = await readFileHandler(null, '/test/file.txt')
+      expect(result).toBe('file content here')
     })
 
     it('should handle readFile errors', async () => {
       mockReadFile.mockRejectedValue(new Error('Permission denied'))
 
       const readFileHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'readFile'
+        (call: IpcHandlerCall) => call[0] === 'readFile'
       )?.[1]
 
       await expect(
         readFileHandler(null, '/test/protected.txt')
-      ).rejects.toThrow(/Failed to read file: ENOENT/)
+      ).rejects.toThrow(/Failed to read file:/)
     })
 
     it('should handle scanDirectory successfully', async () => {
@@ -543,26 +580,50 @@ describe('IPC Module', () => {
       mockStat.mockResolvedValue(mockFileStats)
 
       const scanDirHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'scanDirectory'
+        (call: IpcHandlerCall) => call[0] === 'scanDirectory'
       )?.[1]
 
-      await expect(
-        scanDirHandler(null, '/test/project', {
-          ignoredDirs: ['node_modules'],
-          configFiles: ['package.json'],
-        })
-      ).rejects.toThrow(/Failed to scan directory: ENOENT/)
+      const result = await scanDirHandler(null, '/test/project', {
+        ignoredDirs: ['node_modules'],
+        configFiles: ['package.json'],
+      })
+
+      expect(result).toContainEqual({
+        path: 'file1.txt',
+        name: 'file1.txt',
+        type: 'file',
+        extension: '.txt',
+        size: 1024,
+        lastModified: new Date('2023-06-01'),
+        isConfig: false,
+      })
+      expect(result).toContainEqual({
+        path: 'src',
+        name: 'src',
+        type: 'directory',
+        extension: '',
+        isConfig: false,
+      })
+      expect(result).toContainEqual({
+        path: 'package.json',
+        name: 'package.json',
+        type: 'file',
+        extension: '.json',
+        size: 1024,
+        lastModified: new Date('2023-06-01'),
+        isConfig: true,
+      })
     })
 
     it('should handle scanDirectory errors', async () => {
       mockReaddir.mockRejectedValue(new Error('Permission denied'))
 
       const scanDirHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'scanDirectory'
+        (call: IpcHandlerCall) => call[0] === 'scanDirectory'
       )?.[1]
 
       await expect(scanDirHandler(null, '/test/protected')).rejects.toThrow(
-        /Failed to scan directory: ENOENT/
+        /Failed to scan directory:/
       )
     })
 
@@ -578,7 +639,7 @@ describe('IPC Module', () => {
       mockGitInstance.status.mockResolvedValue(mockStatusResult)
 
       const gitStatusHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'getGitStatus'
+        (call: IpcHandlerCall) => call[0] === 'getGitStatus'
       )?.[1]
 
       const result = await gitStatusHandler(null, '/test/git-project')
@@ -595,7 +656,7 @@ describe('IPC Module', () => {
       mockGitInstance.checkIsRepo.mockResolvedValue(false)
 
       const gitStatusHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'getGitStatus'
+        (call: IpcHandlerCall) => call[0] === 'getGitStatus'
       )?.[1]
 
       const result = await gitStatusHandler(null, '/test/non-git')
@@ -611,7 +672,7 @@ describe('IPC Module', () => {
       mockGitInstance.status.mockRejectedValue(new Error('Git command failed'))
 
       const gitStatusHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'getGitStatus'
+        (call: IpcHandlerCall) => call[0] === 'getGitStatus'
       )?.[1]
 
       await expect(gitStatusHandler(null, '/test/git-project')).rejects.toThrow(
@@ -621,7 +682,7 @@ describe('IPC Module', () => {
 
     it('should handle getGitStatus with no project path', async () => {
       const gitStatusHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'getGitStatus'
+        (call: IpcHandlerCall) => call[0] === 'getGitStatus'
       )?.[1]
 
       await expect(gitStatusHandler(null, '')).rejects.toThrow(
@@ -636,7 +697,7 @@ describe('IPC Module', () => {
       mockGitInstance.status.mockResolvedValue({ not_added: [] })
 
       const gitDiffHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'getGitDiff'
+        (call: IpcHandlerCall) => call[0] === 'getGitDiff'
       )?.[1]
 
       const result = await gitDiffHandler(null, '/test/git-project', 'file.js')
@@ -650,7 +711,7 @@ describe('IPC Module', () => {
       )
 
       const gitDiffHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'getGitDiff'
+        (call: IpcHandlerCall) => call[0] === 'getGitDiff'
       )?.[1]
 
       const result = await gitDiffHandler(
@@ -671,7 +732,7 @@ describe('IPC Module', () => {
       mockGitInstance.status.mockResolvedValue({ not_added: [] })
 
       const gitDiffHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'getGitDiff'
+        (call: IpcHandlerCall) => call[0] === 'getGitDiff'
       )?.[1]
 
       const result = await gitDiffHandler(
@@ -689,7 +750,7 @@ describe('IPC Module', () => {
       mockGitInstance.status.mockRejectedValue(new Error('Git status failed'))
 
       const gitDiffHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'getGitDiff'
+        (call: IpcHandlerCall) => call[0] === 'getGitDiff'
       )?.[1]
 
       await expect(
@@ -701,7 +762,7 @@ describe('IPC Module', () => {
       mockReadFile.mockResolvedValue('file content from working tree')
 
       const fileContentHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'getFileContent'
+        (call: IpcHandlerCall) => call[0] === 'getFileContent'
       )?.[1]
 
       const result = await fileContentHandler(
@@ -720,7 +781,7 @@ describe('IPC Module', () => {
       mockGitInstance.show.mockResolvedValue('file content from HEAD')
 
       const fileContentHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'getFileContent'
+        (call: IpcHandlerCall) => call[0] === 'getFileContent'
       )?.[1]
 
       const result = await fileContentHandler(
@@ -741,7 +802,7 @@ describe('IPC Module', () => {
       mockGitInstance.show.mockResolvedValue('')
 
       const fileContentHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'getFileContent'
+        (call: IpcHandlerCall) => call[0] === 'getFileContent'
       )?.[1]
 
       const result = await fileContentHandler(
@@ -755,7 +816,7 @@ describe('IPC Module', () => {
 
     it('should handle getFileContent with missing project path', async () => {
       const fileContentHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'getFileContent'
+        (call: IpcHandlerCall) => call[0] === 'getFileContent'
       )?.[1]
 
       await expect(fileContentHandler(null, '', 'file.js')).rejects.toThrow(
@@ -765,7 +826,7 @@ describe('IPC Module', () => {
 
     it('should handle getFileContent with missing file path', async () => {
       const fileContentHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'getFileContent'
+        (call: IpcHandlerCall) => call[0] === 'getFileContent'
       )?.[1]
 
       await expect(
@@ -777,7 +838,7 @@ describe('IPC Module', () => {
       mockGitInstance.checkIsRepo.mockResolvedValue(false)
 
       const fileContentHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'getFileContent'
+        (call: IpcHandlerCall) => call[0] === 'getFileContent'
       )?.[1]
 
       await expect(
@@ -789,7 +850,7 @@ describe('IPC Module', () => {
       mockReadFile.mockRejectedValue(new Error('Permission denied'))
 
       const fileContentHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'getFileContent'
+        (call: IpcHandlerCall) => call[0] === 'getFileContent'
       )?.[1]
 
       await expect(
@@ -807,7 +868,7 @@ describe('IPC Module', () => {
       )
 
       const fileContentHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'getFileContent'
+        (call: IpcHandlerCall) => call[0] === 'getFileContent'
       )?.[1]
 
       const result = await fileContentHandler(
@@ -821,7 +882,7 @@ describe('IPC Module', () => {
 
     it('should handle getGitDiff with missing project path', async () => {
       const gitDiffHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'getGitDiff'
+        (call: IpcHandlerCall) => call[0] === 'getGitDiff'
       )?.[1]
 
       await expect(gitDiffHandler(null, '', 'file.js')).rejects.toThrow(
@@ -831,7 +892,7 @@ describe('IPC Module', () => {
 
     it('should handle getGitDiff with missing file path', async () => {
       const gitDiffHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'getGitDiff'
+        (call: IpcHandlerCall) => call[0] === 'getGitDiff'
       )?.[1]
 
       await expect(gitDiffHandler(null, '/test/project', '')).rejects.toThrow(
@@ -843,7 +904,7 @@ describe('IPC Module', () => {
       mockGitInstance.checkIsRepo.mockResolvedValue(false)
 
       const gitDiffHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'getGitDiff'
+        (call: IpcHandlerCall) => call[0] === 'getGitDiff'
       )?.[1]
 
       await expect(
@@ -857,7 +918,7 @@ describe('IPC Module', () => {
       mockGitInstance.status.mockResolvedValue({ not_added: [] })
 
       const gitDiffHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'getGitDiff'
+        (call: IpcHandlerCall) => call[0] === 'getGitDiff'
       )?.[1]
 
       const result = await gitDiffHandler(
@@ -880,7 +941,7 @@ describe('IPC Module', () => {
       mockGitInstance.show.mockResolvedValue('file content from HEAD')
 
       const gitDiffHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'getGitDiff'
+        (call: IpcHandlerCall) => call[0] === 'getGitDiff'
       )?.[1]
 
       const result = await gitDiffHandler(null, '/test/git-project', 'file.js')
@@ -894,7 +955,7 @@ describe('IPC Module', () => {
       mockGitInstance.show.mockRejectedValue(new Error('Cannot show file'))
 
       const gitDiffHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'getGitDiff'
+        (call: IpcHandlerCall) => call[0] === 'getGitDiff'
       )?.[1]
 
       const result = await gitDiffHandler(null, '/test/git-project', 'file.js')
@@ -909,7 +970,7 @@ describe('IPC Module', () => {
       mockReadFile.mockRejectedValue(new Error('Cannot read file'))
 
       const gitDiffHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'getGitDiff'
+        (call: IpcHandlerCall) => call[0] === 'getGitDiff'
       )?.[1]
 
       const result = await gitDiffHandler(
@@ -937,7 +998,7 @@ describe('IPC Module', () => {
 
       // Get the handler
       const minimizeHandler = mockCustomIpcMainInstance.on.mock.calls.find(
-        (call: unknown[]) => call[0] === 'minimizeWindow'
+        (call: IpcHandlerCall) => call[0] === 'minimizeWindow'
       )?.[1]
 
       // Execute the handler
@@ -950,7 +1011,7 @@ describe('IPC Module', () => {
       mockWindow.isMaximized.mockReturnValue(false)
 
       const maximizeHandler = mockCustomIpcMainInstance.on.mock.calls.find(
-        (call: unknown[]) => call[0] === 'maximizeWindow'
+        (call: IpcHandlerCall) => call[0] === 'maximizeWindow'
       )?.[1]
 
       maximizeHandler()
@@ -963,7 +1024,7 @@ describe('IPC Module', () => {
       mockWindow.isMaximized.mockReturnValue(true)
 
       const maximizeHandler = mockCustomIpcMainInstance.on.mock.calls.find(
-        (call: unknown[]) => call[0] === 'maximizeWindow'
+        (call: IpcHandlerCall) => call[0] === 'maximizeWindow'
       )?.[1]
 
       maximizeHandler()
@@ -974,7 +1035,7 @@ describe('IPC Module', () => {
 
     it('should handle closeWindow', async () => {
       const closeHandler = mockCustomIpcMainInstance.on.mock.calls.find(
-        (call: unknown[]) => call[0] === 'closeWindow'
+        (call: IpcHandlerCall) => call[0] === 'closeWindow'
       )?.[1]
 
       closeHandler()
@@ -986,7 +1047,7 @@ describe('IPC Module', () => {
       mockWindow.isMaximized.mockReturnValue(true)
 
       const isMaximizedHandler = mockCustomIpcMainInstance.on.mock.calls.find(
-        (call: unknown[]) => call[0] === 'isWindowMaximized'
+        (call: IpcHandlerCall) => call[0] === 'isWindowMaximized'
       )?.[1]
 
       const result = isMaximizedHandler()
@@ -997,7 +1058,7 @@ describe('IPC Module', () => {
 
     it('should handle getUsernameById', async () => {
       const userHandler = mockCustomIpcMainInstance.on.mock.calls.find(
-        (call: unknown[]) => call[0] === 'getUsernameById'
+        (call: IpcHandlerCall) => call[0] === 'getUsernameById'
       )?.[1]
 
       const result = userHandler('user123')
@@ -1013,7 +1074,7 @@ describe('IPC Module', () => {
       mockBrowserWindow.getFocusedWindow.mockReturnValue(null)
 
       const minimizeHandler = mockCustomIpcMainInstance.on.mock.calls.find(
-        (call: unknown[]) => call[0] === 'minimizeWindow'
+        (call: IpcHandlerCall) => call[0] === 'minimizeWindow'
       )?.[1]
 
       // Should not throw when no window is focused
@@ -1066,11 +1127,11 @@ describe('IPC Module', () => {
       mockStat.mockRejectedValue(new Error('Cannot stat file'))
 
       const scanDirHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'scanDirectory'
+        (call: IpcHandlerCall) => call[0] === 'scanDirectory'
       )?.[1]
 
       await expect(scanDirHandler(null, '/test/project')).rejects.toThrow(
-        /Failed to scan directory: ENOENT/
+        /Failed to scan directory:/
       )
     })
 
@@ -1078,11 +1139,11 @@ describe('IPC Module', () => {
       mockStat.mockRejectedValue('string error')
 
       const statFileHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'statFile'
+        (call: IpcHandlerCall) => call[0] === 'statFile'
       )?.[1]
 
       await expect(statFileHandler(null, '/test/file.txt')).rejects.toThrow(
-        /Failed to stat file: ENOENT/
+        /Failed to stat file:/
       )
     })
 
@@ -1090,11 +1151,11 @@ describe('IPC Module', () => {
       mockReadFile.mockRejectedValue(null)
 
       const readFileHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'readFile'
+        (call: IpcHandlerCall) => call[0] === 'readFile'
       )?.[1]
 
       await expect(readFileHandler(null, '/test/file.txt')).rejects.toThrow(
-        /Failed to read file: ENOENT/
+        /Failed to read file:/
       )
     })
 
@@ -1106,11 +1167,11 @@ describe('IPC Module', () => {
       mockReadFile.mockRejectedValue(new Error('File read failed'))
 
       const openProjectHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'openProjectDialog'
+        (call: IpcHandlerCall) => call[0] === 'openProjectDialog'
       )?.[1]
 
       await expect(openProjectHandler()).rejects.toThrow(
-        /Failed to read package\.json: ENOENT/
+        /Failed to read package\.json:/
       )
     })
 
@@ -1122,11 +1183,11 @@ describe('IPC Module', () => {
       mockReadFile.mockRejectedValue('string error')
 
       const openProjectHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'openProjectDialog'
+        (call: IpcHandlerCall) => call[0] === 'openProjectDialog'
       )?.[1]
 
       await expect(openProjectHandler()).rejects.toThrow(
-        /Failed to read package\.json: ENOENT/
+        /Failed to read package\.json:/
       )
     })
   })
@@ -1907,12 +1968,26 @@ describe('IPC Module', () => {
       mockStat.mockResolvedValue(mockFileStats)
 
       const scanDirHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'scanDirectory'
+        (call: IpcHandlerCall) => call[0] === 'scanDirectory'
       )?.[1]
 
-      await expect(scanDirHandler(null, '/test/project')).rejects.toThrow(
-        /Failed to scan directory: ENOENT/
-      )
+      const result = await scanDirHandler(null, '/test/project')
+      expect(result).toContainEqual({
+        path: 'src',
+        name: 'src',
+        type: 'directory',
+        extension: '',
+        isConfig: false,
+      })
+      expect(result).toContainEqual({
+        path: 'src/nested.js',
+        name: 'nested.js',
+        type: 'file',
+        extension: '.js',
+        size: 2048,
+        lastModified: new Date('2023-07-01'),
+        isConfig: false,
+      })
     })
 
     it('should handle files without extensions in scanDirectory', async () => {
@@ -1929,12 +2004,28 @@ describe('IPC Module', () => {
       mockStat.mockResolvedValue(mockFileStats)
 
       const scanDirHandler = electronIpcMain.handle.mock.calls.find(
-        (call: unknown[]) => call[0] === 'scanDirectory'
+        (call: IpcHandlerCall) => call[0] === 'scanDirectory'
       )?.[1]
 
-      await expect(scanDirHandler(null, '/test/project')).rejects.toThrow(
-        /Failed to scan directory: ENOENT/
-      )
+      const result = await scanDirHandler(null, '/test/project')
+      expect(result).toContainEqual({
+        path: 'README',
+        name: 'README',
+        type: 'file',
+        extension: '',
+        size: 512,
+        lastModified: new Date('2023-08-01'),
+        isConfig: false,
+      })
+      expect(result).toContainEqual({
+        path: 'Dockerfile',
+        name: 'Dockerfile',
+        type: 'file',
+        extension: '',
+        size: 512,
+        lastModified: new Date('2023-08-01'),
+        isConfig: false,
+      })
     })
   })
 })

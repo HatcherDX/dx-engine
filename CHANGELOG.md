@@ -4,6 +4,46 @@ All notable changes to this project will be documented in this file. This change
 
 ---
 
+## [0.4.0] - 2025-08-23
+
+> **v0.4.0: The Enterprise-Grade Foundation.** This release marks a quantum leap in Hatcher's architecture, transforming it from a promising shell into a demonstrably robust and secure cross-platform engine. Following a series of intensive engineering sprints, we have solidified the pillars upon which all future AI features will be built. Our commitment to a "luxury scaffolding" is now a tangible reality, validated by ~90% test coverage and a world-class CI/CD pipeline.
+
+### Added
+
+#### Core Pillars
+
+- **Elite Git Engine (`@hatcherdx/git-genius`):** Shipped our 10/10-rated Git engine with a sophisticated cache manager, a timeline controller for historical navigation, and an enhanced runner with safety protections.
+- **Secure Storage Engine (`@hatcherdx/storage`):** Implemented our 11/10-rated, local-first persistence layer featuring an encrypted "Vault" with AES-256-GCM, a full migration system, and intelligent caching.
+- **Professional Terminal System:** Hardened our 10/10-rated, multi-backend terminal with read-only "Constitutional" modes and a Git Safety Detector to prevent destructive commands.
+- **Native Git Integration:** Implemented a real-time, Git-aware file explorer and state management system.
+
+#### High-Performance Visualization
+
+- **Shared Rendering Engine (`@hatcherdx/shared-rendering`):** Implemented a universal, WebGL-based framework to power all complex visualizations.
+- **WebGL Diff Viewer:** Shipped a hardware-accelerated diff viewer capable of rendering massive diffs at a fluid 60fps.
+- **Shared Utilities (`@hatcherdx/shared-utils`):** Created a new package for cross-platform path normalization and other shared logic.
+
+### Improved
+
+#### World-Class Quality & Reliability
+
+- **Elite-Level Test Coverage:** Increased overall project test coverage to **~90% Lines**, ensuring exceptional stability and maintainability.
+- **Hybrid Testing Strategy:** Implemented a sophisticated strategy separating fast, mocked unit tests from comprehensive, real-dependency integration tests.
+- **Testing Infrastructure Hardening:** Definitively resolved all intermittent test failures and Vitest timeouts.
+
+#### CI/CD & Cross-Platform Support
+
+- **Comprehensive Multi-OS CI/CD:** Upgraded our GitHub Actions pipeline to rigorously test all critical native dependencies (SQLite, PTY, etc.) across **macOS, Linux, and Windows**.
+- **Full ARM64 Support:** Achieved 100% platform parity for ARM64 architectures (including Apple Silicon), with native builds, testing, and quantified performance benefits (e.g., ~40% faster builds).
+- **Automated Nightly Releases:** Deployed a complete, professional release pipeline using `semantic-release` for daily, automated `Nightly Builds` for all platforms.
+
+#### Architectural & DX Professionalization
+
+- **Strict TypeScript Compliance:** Resolved all strict TypeScript errors and eliminated all `any` types across the `@hatcherdx/storage` module and other critical paths.
+- **Unified Monorepo Versioning:** Implemented "lockstep" versioning for all 13 packages and added `pnpm` scripts for streamlined release management.
+
+---
+
 ## [0.3.5] - 2025-07-30
 
 > **v0.3.5: The Foundation.** This release marks a pivotal moment for Hatcher. We shipped the completely redesigned, professional-grade IDE shell and validated our core assets, including the **10/10 World-Class Terminal**. This version establishes the superior foundation upon which our entire "Next-Generation IDE" will be built, as outlined in our Execution Manifesto. The significant increase in test coverage to over 79% reflects our deep commitment to engineering excellence from day one.

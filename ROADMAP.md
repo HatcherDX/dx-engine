@@ -2,13 +2,19 @@
 
 This document outlines our strategic priorities to bring Hatcher to market, secure our first key partners, and build a sustainable business. Our development is currently laser-focused on the shortest path to commercial viability.
 
-_For our high-level vision and completed milestones, please see the [**Execution Manifesto in our main README →**](README.md#hatcher-manifesto-from-vision-to-execution)_
+_For a complete overview of our vision, core features, and current project status, please see our main [**README.md**](README.md)._
 
 ---
 
-### 🟡 **Current Priority: v0.4.0 "The Generative Core"**
+### ✅ **Completed Milestone: v0.4.0 "The Enterprise-Grade Foundation"**
 
-Our single most important objective is to deliver a functional and impressive **Generative Mode**. This milestone is designed to validate our core value proposition with our first anchor customer and secure our initial investment.
+- Validated our commitment to a "luxury scaffolding" by shipping the core architectural pillars upon which all future AI capabilities will be built.
+- Shipped the enterprise-grade Git Engine, Secure Storage Engine (with AES-256 vault), and Professional Terminal.
+- Achieved ~90% test coverage and a world-class, multi-platform/multi-architecture CI/CD pipeline, confirming our dedication to engineering excellence.
+
+### 🟡 **Current Priority: v0.5.0 "The Generative Core"**
+
+Our single most important objective is to deliver a functional and impressive **Generative Mode** on top of our validated foundation. This milestone is designed to validate our core value proposition with our first anchor customer and secure our initial investment.
 
 - **[In Progress] End-to-End Generative Workflow:**
   - Connect the UI to a powerful cloud-based AI engine (Anthropic's Claude).
@@ -21,7 +27,7 @@ Our single most important objective is to deliver a functional and impressive **
 - **[To Do] Stabilize and Polish:**
   - Aggressively hide or disable all other incomplete modes and features to present a focused, stable, and "magical" experience centered exclusively on the Generative Mode.
 
-### 🚀 **Next Milestone: v0.5.0 "Initial Market Launch" (Free Tier)**
+### 🚀 **Next Milestone: v0.6.0 "Initial Market Launch" (Free Tier)**
 
 Once the Generative Core is validated, our focus shifts immediately to a public launch to drive adoption and gather user feedback.
 
