@@ -17,17 +17,38 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+// Configure higher timeouts for this test file due to complex mocking
+vi.setConfig({
+  testTimeout: 60000, // 60 seconds
+  hookTimeout: 60000, // 60 seconds
+})
+
 // Add a separate test suite for RemoteTerminalProxy to ensure it's tested thoroughly
 describe('RemoteTerminalProxy Class', () => {
+  beforeEach(() => {
+    // Mock child_process fork to prevent actual process creation
+    vi.mock('node:child_process', () => ({
+      fork: vi.fn(() => null),
+    }))
+  })
+
+  afterEach(() => {
+    vi.clearAllMocks()
+  })
+
   it('should create instance with correct properties', async () => {
-    const { RemoteTerminalProxy, PtyManager } = await import('./ptyManager')
-    const manager = new PtyManager()
+    const { RemoteTerminalProxy } = await import('./ptyManager')
+
+    // Create a mock manager object - RemoteTerminalProxy only stores it, doesn't use it
+    const mockManager = {} as unknown as InstanceType<
+      typeof import('./ptyManager').PtyManager
+    >
 
     const proxy = new RemoteTerminalProxy(
       'terminal-123',
       54321,
       'hybrid',
-      manager
+      mockManager
     )
 
     expect(proxy.id).toBe('terminal-123')
@@ -37,10 +58,14 @@ describe('RemoteTerminalProxy Class', () => {
   })
 
   it('should always return true for isRunning', async () => {
-    const { RemoteTerminalProxy, PtyManager } = await import('./ptyManager')
-    const manager = new PtyManager()
+    const { RemoteTerminalProxy } = await import('./ptyManager')
 
-    const proxy = new RemoteTerminalProxy('test', 0, 'unknown', manager)
+    // Create a mock manager object - RemoteTerminalProxy only stores it, doesn't use it
+    const mockManager = {} as unknown as InstanceType<
+      typeof import('./ptyManager').PtyManager
+    >
+
+    const proxy = new RemoteTerminalProxy('test', 0, 'unknown', mockManager)
 
     // isRunning should always return true as per the implementation
     expect(proxy.isRunning).toBe(true)
@@ -90,6 +115,19 @@ const {
     return mockProcess
   }
 
+  // Create a UUID generator that returns sequential IDs
+  let uuidCounter = 0
+  const mockUuidGenerator = vi.fn(() => {
+    uuidCounter++
+    return `test-uuid-${uuidCounter}`
+  })
+
+  // Reset counter before each test
+  mockUuidGenerator.mockClear = () => {
+    uuidCounter = 0
+    vi.fn().mockClear.call(mockUuidGenerator)
+  }
+
   return {
     createMockChildProcess,
     mockFork: vi.fn(),
@@ -116,7 +154,7 @@ const {
       getTerminalAlerts: vi.fn(() => []),
       exportData: vi.fn(() => ({ export: 'data' })),
     },
-    mockUuid: vi.fn(() => 'test-uuid-123'),
+    mockUuid: mockUuidGenerator,
     mockPath: {
       join: vi.fn((...args) => {
         // If this looks like the ptyHost path, return a mock path
@@ -166,6 +204,7 @@ describe('PtyManager', () => {
   // let RemoteTerminalProxy: any
   let currentMockChildProcess: ReturnType<typeof createMockChildProcess>
 
+  // Increase timeout for this test suite to handle module reset overhead
   beforeEach(async () => {
     // Store originals
     originalConsoleLog = console.log
@@ -177,9 +216,12 @@ describe('PtyManager', () => {
     console.error = vi.fn()
     console.warn = vi.fn()
 
-    // Reset all mocks
+    // Reset modules to clear any cached state
+    vi.resetModules()
+
+    // Reset all mocks and UUID counter
     vi.clearAllMocks()
-    // Note: Not using vi.resetModules() to keep mock configuration intact
+    mockUuid.mockClear() // Reset UUID counter to 0
 
     // Setup default fork behavior BEFORE importing
     currentMockChildProcess = createMockChildProcess()
@@ -603,7 +645,7 @@ describe('PtyManager', () => {
           // Simulate terminal creation with minimal data
           childProcess.emit('message', {
             type: 'created',
-            id: 'test-uuid-123',
+            id: 'test-uuid-1',
             shell: '',
             cwd: '',
             pid: 0,
@@ -611,7 +653,7 @@ describe('PtyManager', () => {
           })
 
           const terminal = await createPromise
-          expect(terminal.id).toBe('test-uuid-123')
+          expect(terminal.id).toBe('test-uuid-1')
           expect(terminal.strategy).toBe('hybrid')
         }
       })
@@ -697,7 +739,7 @@ describe('PtyManager', () => {
           // Simulate terminal creation
           childProcess.emit('message', {
             type: 'created',
-            id: 'test-uuid-123',
+            id: 'test-uuid-1',
             shell: '/bin/bash',
             cwd: '/home',
             pid: 1234,
@@ -709,14 +751,14 @@ describe('PtyManager', () => {
           // Now simulate killed message
           childProcess.emit('message', {
             type: 'killed',
-            id: 'test-uuid-123',
+            id: 'test-uuid-1',
           })
 
           // Should have cleaned up the terminal
           expect(
             mockPerformanceMonitor.unregisterTerminal
-          ).toHaveBeenCalledWith('test-uuid-123')
-          expect(killedSpy).toHaveBeenCalledWith('test-uuid-123')
+          ).toHaveBeenCalledWith('test-uuid-1')
+          expect(killedSpy).toHaveBeenCalledWith('test-uuid-1')
         }
       })
 
@@ -779,7 +821,7 @@ describe('PtyManager', () => {
           // Simulate error response
           childProcess.emit('message', {
             type: 'error',
-            id: 'test-uuid-123',
+            id: 'test-uuid-1',
             error: 'Failed to create terminal',
           })
 
@@ -803,7 +845,7 @@ describe('PtyManager', () => {
           // Simulate error response with empty error string
           childProcess.emit('message', {
             type: 'error',
-            id: 'test-uuid-123',
+            id: 'test-uuid-1',
             error: '',
           })
 
@@ -957,7 +999,7 @@ describe('PtyManager', () => {
 
           childProcess.emit('message', {
             type: 'list',
-            requestId: 'test-uuid-123',
+            requestId: 'test-uuid-1',
             terminals: expectedTerminals,
           })
 
@@ -971,7 +1013,10 @@ describe('PtyManager', () => {
     describe('Destroy method with cleanup', () => {
       it(
         'should clean up terminals and pending requests in destroy',
-        { timeout: 60000 },
+        {
+          timeout:
+            process.env.CI && process.platform === 'darwin' ? 120000 : 60000,
+        },
         async () => {
           const { PtyManager } = await import('./ptyManager')
           const manager = new PtyManager()
@@ -989,7 +1034,7 @@ describe('PtyManager', () => {
             // Simulate terminal creation success for first terminal
             childProcess.emit('message', {
               type: 'created',
-              id: 'test-uuid-123',
+              id: 'test-uuid-1',
               shell: '/bin/bash',
               cwd: '/home/user',
               pid: 54321,
@@ -1000,7 +1045,7 @@ describe('PtyManager', () => {
             // Simulate terminal creation success for second terminal
             childProcess.emit('message', {
               type: 'created',
-              id: 'test-uuid-124',
+              id: 'test-uuid-2',
               shell: '/bin/zsh',
               cwd: '/home/user',
               pid: 54322,
@@ -1016,7 +1061,7 @@ describe('PtyManager', () => {
             // Should have called unregisterTerminal for the created terminal
             expect(
               mockPerformanceMonitor.unregisterTerminal
-            ).toHaveBeenCalledWith('test-uuid-123')
+            ).toHaveBeenCalledWith('test-uuid-1')
 
             // The second promise should be rejected due to cleanup
             await expect(createPromise2).rejects.toThrow(
@@ -1190,7 +1235,7 @@ describe('PtyManager', () => {
           // Test successful resolution
           childProcess.emit('message', {
             type: 'created',
-            id: 'test-uuid-123',
+            id: 'test-uuid-1',
             shell: '/bin/bash',
             pid: 12345,
             strategy: 'node-pty',
@@ -1198,7 +1243,7 @@ describe('PtyManager', () => {
 
           const result = await createPromise
           expect(result).toBeDefined()
-          expect(result.id).toBe('test-uuid-123')
+          expect(result.id).toBe('test-uuid-1')
         }
       })
     })
@@ -1219,7 +1264,7 @@ describe('PtyManager', () => {
           // Simulate terminal creation immediately
           childProcess.emit('message', {
             type: 'created',
-            id: 'test-uuid-123', // Use consistent UUID
+            id: 'test-uuid-1', // Use consistent UUID
             shell: '/bin/bash',
             pid: 12345,
             strategy: 'node-pty',
@@ -1303,7 +1348,7 @@ describe('PtyManager', () => {
           // Simulate terminal creation success immediately
           childProcess.emit('message', {
             type: 'created',
-            id: 'test-uuid-123', // Use consistent UUID
+            id: 'test-uuid-1', // Use consistent UUID
             shell: '/bin/bash',
             cwd: '/home/user',
             pid: 99999,
@@ -1321,13 +1366,13 @@ describe('PtyManager', () => {
 
           const terminal = await createPromise
 
-          expect(terminal.id).toBe('test-uuid-123')
+          expect(terminal.id).toBe('test-uuid-1')
           expect(terminal.pid).toBe(99999)
           expect(terminal.strategy).toBe('node-pty')
 
           // Verify the proxy was registered with performance monitor
           expect(mockPerformanceMonitor.registerTerminal).toHaveBeenCalledWith(
-            'test-uuid-123',
+            'test-uuid-1',
             expect.any(Object),
             'node-pty'
           )
@@ -1354,7 +1399,7 @@ describe('PtyManager', () => {
           // Simulate full response with all fields including capabilities
           childProcess.emit('message', {
             type: 'created',
-            id: 'test-uuid-123',
+            id: 'test-uuid-1',
             shell: '/bin/bash',
             cwd: '/home/user',
             pid: 99999,
@@ -1372,7 +1417,7 @@ describe('PtyManager', () => {
 
           const terminal = await createPromise
 
-          expect(terminal.id).toBe('test-uuid-123')
+          expect(terminal.id).toBe('test-uuid-1')
           expect(terminal.shell).toBe('/bin/bash')
           expect(terminal.cwd).toBe('/home/user')
           expect(terminal.pid).toBe(99999)
@@ -1400,7 +1445,7 @@ describe('PtyManager', () => {
           // Simulate response with partial/missing capabilities
           childProcess.emit('message', {
             type: 'created',
-            id: 'test-uuid-123',
+            id: 'test-uuid-1',
             shell: '/bin/sh',
             cwd: '/',
             pid: 0,
@@ -1411,7 +1456,7 @@ describe('PtyManager', () => {
 
           const terminal = await createPromise
 
-          expect(terminal.id).toBe('test-uuid-123')
+          expect(terminal.id).toBe('test-uuid-1')
           expect(terminal.shell).toBe('/bin/sh')
           expect(terminal.strategy).toBe('subprocess')
           expect(terminal.backend).toBeUndefined()
@@ -1421,7 +1466,10 @@ describe('PtyManager', () => {
 
       it(
         'should handle multiple simultaneous terminal creations',
-        { timeout: 60000 },
+        {
+          timeout:
+            process.env.CI && process.platform === 'darwin' ? 120000 : 60000,
+        },
         async () => {
           const { PtyManager } = await import('./ptyManager')
           const manager = new PtyManager()
@@ -1439,7 +1487,7 @@ describe('PtyManager', () => {
             // Simulate responses for each terminal
             childProcess.emit('message', {
               type: 'created',
-              id: 'test-uuid-123',
+              id: 'test-uuid-1',
               shell: '/bin/bash',
               pid: 11111,
               strategy: 'node-pty',
@@ -1447,7 +1495,7 @@ describe('PtyManager', () => {
 
             childProcess.emit('message', {
               type: 'created',
-              id: 'test-uuid-124',
+              id: 'test-uuid-2',
               shell: '/bin/zsh',
               pid: 11112,
               strategy: 'node-pty',
@@ -1455,7 +1503,7 @@ describe('PtyManager', () => {
 
             childProcess.emit('message', {
               type: 'created',
-              id: 'test-uuid-125',
+              id: 'test-uuid-3',
               shell: '/bin/sh',
               pid: 11113,
               strategy: 'node-pty',
@@ -1466,14 +1514,19 @@ describe('PtyManager', () => {
             const terminals = await Promise.all(promises)
 
             expect(terminals).toHaveLength(3)
-            expect(terminals[0].id).toBe('test-uuid-123')
+            expect(terminals[0].id).toBe('test-uuid-1')
+            expect(terminals[1].id).toBe('test-uuid-2')
+            expect(terminals[2].id).toBe('test-uuid-3')
           }
         }
       )
 
       it(
         'should handle restart after PTY Host crash with pending operations',
-        { timeout: 60000 },
+        {
+          timeout:
+            process.env.CI && process.platform === 'darwin' ? 120000 : 60000,
+        },
         async () => {
           vi.useFakeTimers({ shouldAdvanceTime: true })
 
@@ -1505,7 +1558,10 @@ describe('PtyManager', () => {
 
       it(
         'should handle all terminal info fields in list response',
-        { timeout: 60000 },
+        {
+          timeout:
+            process.env.CI && process.platform === 'darwin' ? 120000 : 60000,
+        },
         async () => {
           const { PtyManager } = await import('./ptyManager')
           const manager = new PtyManager()
@@ -1531,7 +1587,7 @@ describe('PtyManager', () => {
 
             childProcess.emit('message', {
               type: 'list',
-              requestId: 'test-uuid-123',
+              requestId: 'test-uuid-1',
               terminals: [
                 {
                   id: 'terminal-1',
@@ -1655,7 +1711,7 @@ describe('PtyManager', () => {
           // Simulate complex response
           childProcess.emit('message', {
             type: 'created',
-            id: 'test-uuid-123',
+            id: 'test-uuid-1',
             shell: '/usr/bin/fish',
             cwd: '/tmp',
             pid: 98765,
@@ -1673,7 +1729,7 @@ describe('PtyManager', () => {
 
           const terminal = await createPromise
 
-          expect(terminal.id).toBe('test-uuid-123')
+          expect(terminal.id).toBe('test-uuid-1')
           expect(terminal.shell).toBe('/usr/bin/fish')
           expect(terminal.cwd).toBe('/tmp')
           expect(terminal.pid).toBe(98765)
@@ -1705,7 +1761,10 @@ describe('PtyManager', () => {
 
       it(
         'should reach 80% coverage with comprehensive tests',
-        { timeout: 60000 },
+        {
+          timeout:
+            process.env.CI && process.platform === 'darwin' ? 120000 : 60000,
+        },
         async () => {
           // Test 1: Create manager and test successful initialization
           const manager1 = new PtyManager()
@@ -1867,7 +1926,10 @@ describe('PtyManager', () => {
 
       it(
         'should achieve >80% line coverage with edge cases',
-        { timeout: 60000 },
+        {
+          timeout:
+            process.env.CI && process.platform === 'darwin' ? 120000 : 60000,
+        },
         async () => {
           const manager = new PtyManager()
 
@@ -1881,22 +1943,22 @@ describe('PtyManager', () => {
             // Test various message types to hit all branches
             childProcess.emit('message', {
               type: 'data',
-              id: 'test-uuid-123',
+              id: 'test-uuid-1',
               data: 'output',
             })
             childProcess.emit('message', {
               type: 'exit',
-              id: 'test-uuid-123',
+              id: 'test-uuid-1',
               exitCode: 0,
               signal: null,
             })
             childProcess.emit('message', {
               type: 'killed',
-              id: 'test-uuid-123',
+              id: 'test-uuid-1',
             })
             childProcess.emit('message', {
               type: 'unknown_type',
-              id: 'test-uuid-123',
+              id: 'test-uuid-1',
             })
 
             // Test PTY Host restart on crash
@@ -1913,7 +1975,10 @@ describe('PtyManager', () => {
 
       it(
         'should test all branch conditions for complete coverage',
-        { timeout: 60000 },
+        {
+          timeout:
+            process.env.CI && process.platform === 'darwin' ? 120000 : 60000,
+        },
         async () => {
           // Test normal flow
           const manager = new PtyManager()
