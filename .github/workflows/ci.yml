@@ -34,8 +34,108 @@ jobs:
       - name: Run build
         run: pnpm run build
 
+  # Fast unit tests with mocks (runs on every push)
+  unit-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '10.6.1'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build packages
+        run: pnpm run build
+
+      - name: Run unit tests with coverage (mocked)
+        run: pnpm test:coverage:ci
+
+      - name: Upload unit test coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-coverage-reports
+          path: coverage/
+
+  # Integration tests with real dependencies (matrix across OS and Node versions)
+  integration-tests:
+    runs-on: ${{ matrix.os }}
+    needs: unit-tests # Only run if unit tests pass
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node-version: ['18', '20', '22']
+        # Reduce matrix for PRs to save resources
+        exclude:
+          - os: windows-latest
+            node-version: '18'
+          - os: windows-latest
+            node-version: '20'
+          - os: macos-latest
+            node-version: '18'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '10.6.1'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'pnpm'
+
+      # Windows-specific setup for native compilation
+      - name: Setup MSBuild (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: microsoft/setup-msbuild@v1
+
+      - name: Install Python (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build packages
+        run: pnpm run build
+
+      - name: Run integration tests (real dependencies)
+        run: pnpm test:integration
+        timeout-minutes: 15 # Longer timeout for real I/O operations
+
+      - name: Upload integration test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-results-${{ matrix.os }}-node${{ matrix.node-version }}
+          path: |
+            coverage/
+            test-integration-data/
+
+  # Combined coverage report (runs only on main branch)
   test-coverage:
     runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests]
+    if: github.ref == 'refs/heads/main'
     permissions:
       contents: write
 
@@ -60,26 +160,36 @@ jobs:
       - name: Build packages
         run: pnpm run build
 
-      - name: Run tests with coverage (CI mode)
-        run: pnpm test:coverage:ci
+      - name: Run all tests with coverage
+        run: pnpm test:coverage:all
 
-      - name: Verify coverage report exists
+      - name: Verify coverage reports exist
         run: |
-          if [ ! -f "coverage/coverage-summary.json" ]; then
-            echo "❌ Coverage summary not found"
-            exit 1
-          fi
-          echo "✅ Coverage summary found"
-          cat coverage/coverage-summary.json
+          echo "📊 Checking coverage reports..."
 
-      - name: Upload coverage reports
+          if [ -f "coverage/unit/coverage-summary.json" ]; then
+            echo "✅ Unit coverage found"
+            echo "Unit Coverage Summary:"
+            cat coverage/unit/coverage-summary.json | head -10
+          else
+            echo "❌ Unit coverage summary not found"
+          fi
+
+          if [ -f "coverage/integration/coverage-summary.json" ]; then
+            echo "✅ Integration coverage found" 
+            echo "Integration Coverage Summary:"
+            cat coverage/integration/coverage-summary.json | head -10
+          else
+            echo "❌ Integration coverage summary not found"
+          fi
+
+      - name: Upload combined coverage reports
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-reports
+          name: combined-coverage-reports
           path: coverage/
 
       - name: Upload coverage to repository
-        if: github.ref == 'refs/heads/main'
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
@@ -88,15 +198,20 @@ jobs:
           git checkout -B coverage-reports
 
           # Copy coverage files to root for easy access
-          cp coverage/coverage-summary.json coverage-summary.json
+          if [ -f "coverage/unit/coverage-summary.json" ]; then
+            cp coverage/unit/coverage-summary.json unit-coverage-summary.json
+          fi
+          if [ -f "coverage/integration/coverage-summary.json" ]; then
+            cp coverage/integration/coverage-summary.json integration-coverage-summary.json
+          fi
 
           # Add and commit coverage files (force add ignored files)
-          git add coverage-summary.json
           git add -f coverage/
+          git add *coverage-summary.json 2>/dev/null || true
 
           # Only commit if there are changes
           if ! git diff --cached --quiet; then
-            git commit -m "📊 Update coverage reports [skip ci]"
+            git commit -m "📊 Update coverage reports (unit + integration) [skip ci]"
             git push origin coverage-reports --force
           fi
 

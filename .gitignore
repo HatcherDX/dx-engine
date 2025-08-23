@@ -11,6 +11,12 @@ dist-vite/
 
 # testing
 coverage
+test-integration-data/
+
+# SQLite auxiliary files (WAL mode)
+*.db-shm
+*.db-wal
+*.db-journal
 
 # next.js
 .next/
