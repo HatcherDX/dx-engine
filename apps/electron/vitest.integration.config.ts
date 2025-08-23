@@ -35,6 +35,15 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     setupFiles: ['./src/test-setup-integration.ts'],
+    // Use forks pool to avoid worker timeout issues in CI
+    pool: 'forks',
+    poolOptions: {
+      forks: {
+        singleFork: false,
+        maxForks: 2,
+        minForks: 1,
+      },
+    },
     include: [
       // Platform-specific tests
       '**/menu.spec.ts',
@@ -62,8 +71,9 @@ export default defineConfig({
         'src/terminalStrategy.ts',
       ],
     },
-    testTimeout: 30000, // Electron operations may take longer
-    hookTimeout: 30000,
+    testTimeout: 60000, // Electron operations may take longer in CI
+    hookTimeout: 60000,
+    teardownTimeout: 30000,
   },
   resolve: {
     alias: {

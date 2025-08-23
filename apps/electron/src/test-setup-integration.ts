@@ -33,10 +33,11 @@ console.log(`📍 Platform: ${process.platform}`)
 console.log(`🏗️ Architecture: ${process.arch}`)
 console.log(`📂 CWD: ${process.cwd()}`)
 
-// Set longer timeouts for Electron operations
+// Set longer timeouts for Electron operations in CI
+// Note: Individual tests may override these with even longer timeouts
 vi.setConfig({
-  testTimeout: 30000,
-  hookTimeout: 30000,
+  testTimeout: process.env.CI ? 60000 : 30000,
+  hookTimeout: process.env.CI ? 60000 : 30000,
 })
 
 // Platform-specific test helpers

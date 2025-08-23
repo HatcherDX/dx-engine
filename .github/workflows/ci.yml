@@ -112,8 +112,11 @@ jobs:
           # Install without scripts to avoid node-pty compilation error on Windows
           # See apps/electron/KNOWN_ISSUES.md for details about node-pty Windows issue
           pnpm install --ignore-scripts
-          # Rebuild only compatible native modules (skip node-pty)
-          pnpm rebuild better-sqlite3 argon2 lz4 lzma-native || true
+          # Build the puppeteer-google-translate package that was skipped during install
+          pnpm --filter @hatcherdx/puppeteer-google-translate build
+          # Rebuild only compatible native modules (skip node-pty and lzma-native)
+          # lzma-native doesn't support Windows builds properly
+          pnpm rebuild better-sqlite3 argon2 lz4 || true
         env:
           MSVS_VERSION: 2022
           npm_config_msvs_version: 2022
@@ -128,8 +131,14 @@ jobs:
       - name: Build terminal-system
         run: pnpm --filter @hatcherdx/terminal-system build
 
-      - name: Run PTY integration tests
+      - name: Run PTY integration tests (Skip on Windows due to node-pty)
+        # Skip on Windows as node-pty cannot be compiled with --ignore-scripts
+        if: matrix.os != 'windows-latest'
         run: pnpm --filter @hatcherdx/terminal-system test:pty
+
+      - name: Skip PTY tests on Windows
+        if: matrix.os == 'windows-latest'
+        run: echo "⚠️ Skipping PTY tests on Windows due to node-pty compilation issues"
         env:
           VITEST_USE_REAL_PTY: 'true'
 
@@ -177,7 +186,23 @@ jobs:
           git config --global user.email "test@example.com"
           git config --global user.name "Test User"
 
-      - name: Install dependencies
+      - name: Install dependencies (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          # Install without scripts to avoid node-pty compilation error on Windows
+          # See apps/electron/KNOWN_ISSUES.md for details about node-pty Windows issue
+          pnpm install --ignore-scripts
+          # Build the puppeteer-google-translate package that was skipped during install
+          pnpm --filter @hatcherdx/puppeteer-google-translate build
+          # Rebuild only compatible native modules (skip node-pty and lzma-native)
+          # lzma-native doesn't support Windows builds properly
+          pnpm rebuild better-sqlite3 argon2 lz4 || true
+        env:
+          MSVS_VERSION: 2022
+          npm_config_msvs_version: 2022
+
+      - name: Install dependencies (Non-Windows)
+        if: matrix.os != 'windows-latest'
         run: pnpm install
 
       - name: Build all packages
@@ -236,8 +261,11 @@ jobs:
           # Install without scripts to avoid node-pty compilation error on Windows
           # See apps/electron/KNOWN_ISSUES.md for details about node-pty Windows issue
           pnpm install --ignore-scripts
-          # Rebuild only compatible native modules (skip node-pty)
-          pnpm rebuild better-sqlite3 argon2 lz4 lzma-native || true
+          # Build the puppeteer-google-translate package that was skipped during install
+          pnpm --filter @hatcherdx/puppeteer-google-translate build
+          # Rebuild only compatible native modules (skip node-pty and lzma-native)
+          # lzma-native doesn't support Windows builds properly
+          pnpm rebuild better-sqlite3 argon2 lz4 || true
         env:
           MSVS_VERSION: 2022
           npm_config_msvs_version: 2022
@@ -315,8 +343,11 @@ jobs:
           # Install without scripts to avoid node-pty compilation error on Windows
           # See apps/electron/KNOWN_ISSUES.md for details about node-pty Windows issue
           pnpm install --ignore-scripts
-          # Rebuild only compatible native modules (skip node-pty)
-          pnpm rebuild better-sqlite3 argon2 lz4 lzma-native || true
+          # Build the puppeteer-google-translate package that was skipped during install
+          pnpm --filter @hatcherdx/puppeteer-google-translate build
+          # Rebuild only compatible native modules (skip node-pty and lzma-native)
+          # lzma-native doesn't support Windows builds properly
+          pnpm rebuild better-sqlite3 argon2 lz4 || true
         env:
           MSVS_VERSION: 2022
           npm_config_msvs_version: 2022
@@ -378,8 +409,11 @@ jobs:
           # Install without scripts to avoid node-pty compilation error on Windows
           # See apps/electron/KNOWN_ISSUES.md for details about node-pty Windows issue
           pnpm install --ignore-scripts
-          # Rebuild only compatible native modules (skip node-pty)
-          pnpm rebuild better-sqlite3 argon2 lz4 lzma-native || true
+          # Build the puppeteer-google-translate package that was skipped during install
+          pnpm --filter @hatcherdx/puppeteer-google-translate build
+          # Rebuild only compatible native modules (skip node-pty and lzma-native)
+          # lzma-native doesn't support Windows builds properly
+          pnpm rebuild better-sqlite3 argon2 lz4 || true
         env:
           MSVS_VERSION: 2022
           npm_config_msvs_version: 2022
@@ -438,8 +472,11 @@ jobs:
           # Install without scripts to avoid node-pty compilation error on Windows
           # See apps/electron/KNOWN_ISSUES.md for details about node-pty Windows issue
           pnpm install --ignore-scripts
-          # Rebuild only compatible native modules (skip node-pty)
-          pnpm rebuild better-sqlite3 argon2 lz4 lzma-native || true
+          # Build the puppeteer-google-translate package that was skipped during install
+          pnpm --filter @hatcherdx/puppeteer-google-translate build
+          # Rebuild only compatible native modules (skip node-pty and lzma-native)
+          # lzma-native doesn't support Windows builds properly
+          pnpm rebuild better-sqlite3 argon2 lz4 || true
         env:
           MSVS_VERSION: 2022
           npm_config_msvs_version: 2022
@@ -522,8 +559,8 @@ jobs:
           # This prevents "Syntax error: Unterminated quoted string" when update-electron-vendors.cjs tries to run
           export ELECTRON_SKIP_BINARY_DOWNLOAD=1
 
-          # Rebuild only workspace packages (skip Electron-related scripts)
-          pnpm rebuild --filter '@hatcherdx/*' --config.arch=${{ matrix.arch }} --ignore-scripts
+          # Rebuild only workspace packages (no --ignore-scripts for rebuild command)
+          pnpm rebuild --filter '@hatcherdx/*' --config.arch=${{ matrix.arch }}
 
           # Rebuild specific native modules that are compatible with cross-compilation
           # Skip node-pty and electron-related modules that can't cross-compile
@@ -606,10 +643,11 @@ jobs:
           # CURRENT WORKAROUND: Skip node-pty compilation and only rebuild compatible native modules
           # This is acceptable for CI/CD cross-compilation testing since node-pty is not critical for ARM64 builds
 
-          Write-Host "Rebuilding native modules for ARM64 (skipping node-pty due to known bug)..."
+          Write-Host "Rebuilding native modules for ARM64 (skipping node-pty and lzma-native due to known bugs)..."
 
-          # Use pnpm rebuild with specific packages (skip node-pty)
-          pnpm rebuild better-sqlite3 argon2 lz4 lzma-native --config.arch=arm64
+          # Use pnpm rebuild with specific packages (skip node-pty and lzma-native)
+          # lzma-native doesn't have Windows ARM64 support and fails with LNK2001 errors
+          pnpm rebuild better-sqlite3 argon2 lz4 --config.arch=arm64
 
           # Note: When node-pty releases a stable fix, update package.json and remove --ignore-scripts
         env:

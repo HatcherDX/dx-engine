@@ -206,6 +206,10 @@ describe('PtyManager', () => {
 
   // Increase timeout for this test suite to handle module reset overhead
   beforeEach(async () => {
+    // Reset modules to clear any cached state
+    vi.resetModules()
+    vi.clearAllMocks()
+
     // Store originals
     originalConsoleLog = console.log
     originalConsoleError = console.error
@@ -215,9 +219,6 @@ describe('PtyManager', () => {
     console.log = vi.fn()
     console.error = vi.fn()
     console.warn = vi.fn()
-
-    // Reset modules to clear any cached state
-    vi.resetModules()
 
     // Reset all mocks and UUID counter
     vi.clearAllMocks()
@@ -1042,20 +1043,11 @@ describe('PtyManager', () => {
               backend: 'node-pty',
             })
 
-            // Simulate terminal creation success for second terminal
-            childProcess.emit('message', {
-              type: 'created',
-              id: 'test-uuid-2',
-              shell: '/bin/zsh',
-              cwd: '/home/user',
-              pid: 54322,
-              strategy: 'node-pty',
-              backend: 'node-pty',
-            })
-
+            // Wait for first terminal to be created
             await createPromise1
 
-            // Call destroy while we have terminals and pending requests
+            // Call destroy while the second terminal is still pending
+            // This should reject the second promise
             manager.destroy()
 
             // Should have called unregisterTerminal for the created terminal
