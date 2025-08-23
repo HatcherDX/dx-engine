@@ -39,6 +39,7 @@
     "test:ci": "VITEST_MOCK_SQLITE=true vitest run",
     "test:coverage": "vitest run --coverage",
     "test:coverage:ci": "vitest run --coverage --config vitest.config.ci.ts",
+    "test:integration": "pnpm -r --filter './universal/storage' test:integration",
     "coverage:check": "tsx scripts/coverage-check.ts",
     "lint": "eslint . --ext .ts,.js,.vue",
     "lint:fix": "eslint . --ext .ts,.js,.vue --fix",

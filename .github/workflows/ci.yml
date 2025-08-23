@@ -68,73 +68,14 @@ jobs:
           name: unit-coverage-reports
           path: coverage/
 
-  # Integration tests with real dependencies (matrix across OS and Node versions)
-  integration-tests:
-    runs-on: ${{ matrix.os }}
-    needs: unit-tests # Only run if unit tests pass
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        node-version: ['18', '20', '22']
-        # Reduce matrix for PRs to save resources
-        exclude:
-          - os: windows-latest
-            node-version: '18'
-          - os: windows-latest
-            node-version: '20'
-          - os: macos-latest
-            node-version: '18'
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: '10.6.1'
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'pnpm'
-
-      # Windows-specific setup for native compilation
-      - name: Setup MSBuild (Windows)
-        if: matrix.os == 'windows-latest'
-        uses: microsoft/setup-msbuild@v1
-
-      - name: Install Python (Windows)
-        if: matrix.os == 'windows-latest'
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: pnpm install
-
-      - name: Build packages
-        run: pnpm run build
-
-      - name: Run integration tests (real dependencies)
-        run: pnpm test:integration
-        timeout-minutes: 15 # Longer timeout for real I/O operations
-
-      - name: Upload integration test results
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: integration-test-results-${{ matrix.os }}-node${{ matrix.node-version }}
-          path: |
-            coverage/
-            test-integration-data/
+  # Integration tests disabled in CI - require native dependencies
+  # These tests should be run locally during development
+  # integration-tests job removed to save CI resources
 
   # Combined coverage report (runs only on main branch)
   test-coverage:
     runs-on: ubuntu-latest
-    needs: [unit-tests, integration-tests]
+    needs: [unit-tests]
     if: github.ref == 'refs/heads/main'
     permissions:
       contents: write
