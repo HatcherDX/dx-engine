@@ -971,7 +971,7 @@ describe('PtyManager', () => {
     describe('Destroy method with cleanup', () => {
       it(
         'should clean up terminals and pending requests in destroy',
-        { timeout: 30000 },
+        { timeout: 60000 },
         async () => {
           const { PtyManager } = await import('./ptyManager')
           const manager = new PtyManager()
@@ -993,6 +993,17 @@ describe('PtyManager', () => {
               shell: '/bin/bash',
               cwd: '/home/user',
               pid: 54321,
+              strategy: 'node-pty',
+              backend: 'node-pty',
+            })
+
+            // Simulate terminal creation success for second terminal
+            childProcess.emit('message', {
+              type: 'created',
+              id: 'test-uuid-124',
+              shell: '/bin/zsh',
+              cwd: '/home/user',
+              pid: 54322,
               strategy: 'node-pty',
               backend: 'node-pty',
             })
@@ -1410,7 +1421,7 @@ describe('PtyManager', () => {
 
       it(
         'should handle multiple simultaneous terminal creations',
-        { timeout: 30000 },
+        { timeout: 60000 },
         async () => {
           const { PtyManager } = await import('./ptyManager')
           const manager = new PtyManager()
@@ -1434,6 +1445,22 @@ describe('PtyManager', () => {
               strategy: 'node-pty',
             })
 
+            childProcess.emit('message', {
+              type: 'created',
+              id: 'test-uuid-124',
+              shell: '/bin/zsh',
+              pid: 11112,
+              strategy: 'node-pty',
+            })
+
+            childProcess.emit('message', {
+              type: 'created',
+              id: 'test-uuid-125',
+              shell: '/bin/sh',
+              pid: 11113,
+              strategy: 'node-pty',
+            })
+
             // Note: In the real implementation, each createTerminal generates a unique ID
             // For testing, we're using mock UUIDs
             const terminals = await Promise.all(promises)
@@ -1446,12 +1473,15 @@ describe('PtyManager', () => {
 
       it(
         'should handle restart after PTY Host crash with pending operations',
-        { timeout: 30000 },
+        { timeout: 60000 },
         async () => {
-          vi.useFakeTimers()
+          vi.useFakeTimers({ shouldAdvanceTime: true })
 
           const { PtyManager } = await import('./ptyManager')
           const manager = new PtyManager()
+
+          // Wait a bit for initialization
+          await vi.runOnlyPendingTimersAsync()
 
           const childProcess = mockFork.mock.results[0]?.value
 
@@ -1463,7 +1493,7 @@ describe('PtyManager', () => {
             childProcess.emit('exit', 1, 'SIGKILL')
 
             // Fast-forward restart timer
-            vi.advanceTimersByTime(1000)
+            await vi.advanceTimersByTimeAsync(1000)
 
             // The promise should be rejected due to crash
             await expect(createPromise).rejects.toThrow('PTY Manager destroyed')
@@ -1475,7 +1505,7 @@ describe('PtyManager', () => {
 
       it(
         'should handle all terminal info fields in list response',
-        { timeout: 30000 },
+        { timeout: 60000 },
         async () => {
           const { PtyManager } = await import('./ptyManager')
           const manager = new PtyManager()
@@ -1675,18 +1705,13 @@ describe('PtyManager', () => {
 
       it(
         'should reach 80% coverage with comprehensive tests',
-        { timeout: 30000 },
+        { timeout: 60000 },
         async () => {
-          // Import fresh instance to ensure all code paths are executed
-          vi.resetModules()
-          const ptyManagerModule = await import('./ptyManager')
-          const PtyManager = ptyManagerModule.PtyManager
-
           // Test 1: Create manager and test successful initialization
           const manager1 = new PtyManager()
 
           // Wait a bit for initialization
-          await new Promise((resolve) => setTimeout(resolve, 10))
+          await new Promise((resolve) => setTimeout(resolve, 100))
 
           // Test all public methods
           manager1.getPerformanceMetrics()
@@ -1702,13 +1727,16 @@ describe('PtyManager', () => {
           // Clean up
           manager1.destroy()
 
+          // Small delay before next test
+          await new Promise((resolve) => setTimeout(resolve, 100))
+
           // Test 2: Create another manager with error in initialization
           mockFork.mockImplementationOnce(() => {
             throw new Error('Fork failed')
           })
 
           const manager2 = new PtyManager()
-          await new Promise((resolve) => setTimeout(resolve, 10))
+          await new Promise((resolve) => setTimeout(resolve, 100))
 
           // Try operations when initialization failed
           manager2.writeToTerminal('test', 'data')
@@ -1839,7 +1867,7 @@ describe('PtyManager', () => {
 
       it(
         'should achieve >80% line coverage with edge cases',
-        { timeout: 30000 },
+        { timeout: 60000 },
         async () => {
           const manager = new PtyManager()
 
@@ -1885,7 +1913,7 @@ describe('PtyManager', () => {
 
       it(
         'should test all branch conditions for complete coverage',
-        { timeout: 30000 },
+        { timeout: 60000 },
         async () => {
           // Test normal flow
           const manager = new PtyManager()

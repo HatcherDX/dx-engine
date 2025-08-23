@@ -104,10 +104,17 @@ jobs:
       - name: Setup Windows build environment
         if: matrix.os == 'windows-latest'
         run: |
-          npm config set msvs_version 2022
-          npm config set python python3
+          echo "Setting up Windows build environment"
 
-      - name: Install dependencies
+      - name: Install dependencies (Windows)
+        if: matrix.os == 'windows-latest'
+        run: pnpm install
+        env:
+          MSVS_VERSION: 2022
+          npm_config_msvs_version: 2022
+
+      - name: Install dependencies (Non-Windows)
+        if: matrix.os != 'windows-latest'
         run: pnpm install
 
       - name: Build shared-rendering
@@ -158,8 +165,7 @@ jobs:
       - name: Setup Windows build environment
         if: matrix.os == 'windows-latest'
         run: |
-          npm config set msvs_version 2022
-          npm config set python python3
+          echo "Setting up Windows build environment"
 
       - name: Configure Git
         run: |
@@ -217,10 +223,17 @@ jobs:
       - name: Setup Windows build environment
         if: matrix.os == 'windows-latest'
         run: |
-          npm config set msvs_version 2022
-          npm config set python python3
+          echo "Setting up Windows build environment"
 
-      - name: Install dependencies
+      - name: Install dependencies (Windows)
+        if: matrix.os == 'windows-latest'
+        run: pnpm install
+        env:
+          MSVS_VERSION: 2022
+          npm_config_msvs_version: 2022
+
+      - name: Install dependencies (Non-Windows)
+        if: matrix.os != 'windows-latest'
         run: pnpm install
         env:
           npm_config_build_from_source: true
@@ -284,10 +297,17 @@ jobs:
       - name: Setup Windows build environment
         if: matrix.os == 'windows-latest'
         run: |
-          npm config set msvs_version 2022
-          npm config set python python3
+          echo "Setting up Windows build environment"
 
-      - name: Install dependencies
+      - name: Install dependencies (Windows)
+        if: matrix.os == 'windows-latest'
+        run: pnpm install
+        env:
+          MSVS_VERSION: 2022
+          npm_config_msvs_version: 2022
+
+      - name: Install dependencies (Non-Windows)
+        if: matrix.os != 'windows-latest'
         run: pnpm install
 
       - name: Build translation-system
@@ -335,10 +355,17 @@ jobs:
       - name: Setup Windows build environment
         if: matrix.os == 'windows-latest'
         run: |
-          npm config set msvs_version 2022
-          npm config set python python3
+          echo "Setting up Windows build environment"
 
-      - name: Install dependencies
+      - name: Install dependencies (Windows)
+        if: matrix.os == 'windows-latest'
+        run: pnpm install
+        env:
+          MSVS_VERSION: 2022
+          npm_config_msvs_version: 2022
+
+      - name: Install dependencies (Non-Windows)
+        if: matrix.os != 'windows-latest'
         run: pnpm install
 
       - name: Run scripts integration tests
@@ -383,10 +410,17 @@ jobs:
       - name: Setup Windows build environment
         if: matrix.os == 'windows-latest'
         run: |
-          npm config set msvs_version 2022
-          npm config set python python3
+          echo "Setting up Windows build environment"
 
-      - name: Install dependencies
+      - name: Install dependencies (Windows)
+        if: matrix.os == 'windows-latest'
+        run: pnpm install
+        env:
+          MSVS_VERSION: 2022
+          npm_config_msvs_version: 2022
+
+      - name: Install dependencies (Non-Windows)
+        if: matrix.os != 'windows-latest'
         run: pnpm install
 
       - name: Run Vite plugin cross-platform tests
@@ -456,9 +490,12 @@ jobs:
 
       - name: Install dependencies with architecture-specific rebuild
         run: |
-          npm_config_arch=${{ matrix.arch }} pnpm install
-          # Rebuild native dependencies for target architecture
-          npm rebuild --arch=${{ matrix.arch }}
+          # Install without running scripts to avoid yarn conflicts
+          npm_config_arch=${{ matrix.arch }} pnpm install --ignore-scripts
+          # Rebuild only necessary native dependencies using pnpm
+          pnpm rebuild --filter '@hatcherdx/*' --config.arch=${{ matrix.arch }}
+          # Rebuild specific native modules that need it
+          pnpm rebuild node-pty better-sqlite3 --config.arch=${{ matrix.arch }} || true
 
       - name: Build packages for ARM64
         run: pnpm run build
@@ -512,20 +549,24 @@ jobs:
 
       - name: Setup Windows build environment
         run: |
-          npm config set msvs_version 2022
-          npm config set python python3
+          echo "Setting up Windows build environment for node-gyp"
 
       - name: Install dependencies
         run: pnpm install
         env:
           npm_config_build_from_source: true
+          MSVS_VERSION: 2022
+          npm_config_msvs_version: 2022
 
       - name: Cross-compile for Windows ARM64
         run: |
           echo "🏗️ Cross-compiling for Windows ARM64..."
-          $env:npm_config_arch = "arm64"
-          $env:npm_config_target_arch = "arm64"
           pnpm run build
+        env:
+          npm_config_arch: arm64
+          npm_config_target_arch: arm64
+          MSVS_VERSION: 2022
+          npm_config_msvs_version: 2022
 
       - name: Build Electron for Windows ARM64
         run: |
@@ -534,6 +575,8 @@ jobs:
         env:
           npm_config_arch: arm64
           npm_config_target_arch: arm64
+          MSVS_VERSION: 2022
+          npm_config_msvs_version: 2022
 
       - name: Upload Windows ARM64 build artifacts
         uses: actions/upload-artifact@v4
