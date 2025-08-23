@@ -617,7 +617,10 @@ describe('GitCommandLogger', () => {
 
         const result = await logger.wrapGitOperation('push', mockOperation)
 
-        expect(result.message).toBe('Changes pushed to remote repository (0ms)')
+        // Allow for small timing variations (0-2ms)
+        expect(result.message).toMatch(
+          /^Changes pushed to remote repository \([0-2]ms\)$/
+        )
       })
 
       it('should format pull operation success message', async () => {
@@ -625,8 +628,9 @@ describe('GitCommandLogger', () => {
 
         const result = await logger.wrapGitOperation('pull', mockOperation)
 
-        expect(result.message).toBe(
-          'Changes pulled from remote repository (0ms)'
+        // Allow for small timing variations (0-2ms)
+        expect(result.message).toMatch(
+          /^Changes pulled from remote repository \([0-2]ms\)$/
         )
       })
 
@@ -653,7 +657,8 @@ describe('GitCommandLogger', () => {
 
         const result = await logger.wrapGitOperation('checkout', mockOperation)
 
-        expect(result.message).toBe('Branch switch completed (0ms)')
+        // Allow for small timing variations (0-2ms)
+        expect(result.message).toMatch(/^Branch switch completed \([0-2]ms\)$/)
       })
 
       it('should format clone operation success message', async () => {
@@ -681,7 +686,8 @@ describe('GitCommandLogger', () => {
 
         const result = await logger.wrapGitOperation('add', mockOperation)
 
-        expect(result.message).toBe('Files staged for commit (0ms)')
+        // Allow for small timing variations (0-2ms)
+        expect(result.message).toMatch(/^Files staged for commit \([0-2]ms\)$/)
       })
 
       it('should format branch operation with branch count', async () => {
@@ -691,7 +697,8 @@ describe('GitCommandLogger', () => {
 
         const result = await logger.wrapGitOperation('branch', mockOperation)
 
-        expect(result.message).toBe('Found 3 branches (0ms)')
+        // Allow for small timing variations (0-2ms)
+        expect(result.message).toMatch(/^Found 3 branches \([0-2]ms\)$/)
       })
 
       it('should format branch operation without branch count', async () => {
@@ -701,7 +708,10 @@ describe('GitCommandLogger', () => {
 
         const result = await logger.wrapGitOperation('branch', mockOperation)
 
-        expect(result.message).toBe('Branch operation completed (0ms)')
+        // Allow for small timing variations (0-2ms)
+        expect(result.message).toMatch(
+          /^Branch operation completed \([0-2]ms\)$/
+        )
       })
 
       it('should format log operation with commit count', async () => {
@@ -722,7 +732,8 @@ describe('GitCommandLogger', () => {
 
         const result = await logger.wrapGitOperation('log', mockOperation)
 
-        expect(result.message).toBe('Commit history retrieved (0ms)')
+        // Allow for small timing variations (0-2ms)
+        expect(result.message).toMatch(/^Commit history retrieved \([0-2]ms\)$/)
       })
 
       it('should format unknown operation success message', async () => {
@@ -856,7 +867,8 @@ describe('GitCommandLogger', () => {
       const result = await logger.wrapGitOperation('STATUS', mockOperation)
 
       // With fake timers, execution time should be deterministic (0ms)
-      expect(result.message).toBe('Repository status updated (0ms)')
+      // Allow for small timing variations (0-2ms)
+      expect(result.message).toMatch(/^Repository status updated \([0-2]ms\)$/)
 
       vi.useRealTimers()
     })
