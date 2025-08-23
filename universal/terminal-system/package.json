@@ -46,7 +46,7 @@
   "license": "MIT",
   "dependencies": {
     "@hatcherdx/shared-rendering": "workspace:^",
-    "node-pty": "^1.1.0-beta34",
+    "node-pty": "1.0.0",
     "tslog": "^4.9.3",
     "uuid": "^9.0.0"
   },

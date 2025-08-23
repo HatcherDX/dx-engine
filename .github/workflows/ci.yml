@@ -95,6 +95,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Build shared-rendering
+        run: pnpm --filter @hatcherdx/shared-rendering build
+
       - name: Build terminal-system
         run: pnpm --filter @hatcherdx/terminal-system build
 
@@ -142,6 +145,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Build all packages
+        run: pnpm run build
+
       - name: Build git-genius
         run: pnpm --filter @hatcherdx/git-genius build
 
@@ -187,6 +193,9 @@ jobs:
       - name: Install Electron dependencies (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: sudo apt-get install xvfb
+
+      - name: Build all packages
+        run: pnpm run build
 
       - name: Build Electron app
         run: pnpm --filter @hatcherdx/dx-engine-electron build:dev
@@ -341,11 +350,11 @@ jobs:
           - os: macos-latest
             arch: arm64
             node-arch: arm64
-          # Linux ARM64 via QEMU emulation
+          # Linux ARM64 cross-compilation (no QEMU needed)
           - os: ubuntu-latest
             arch: arm64
-            node-arch: arm64
-            use-qemu: true
+            node-arch: x64 # Use x64 Node.js for cross-compilation
+            use-qemu: false
           # Linux x64 for comparison
           - os: ubuntu-latest
             arch: x64
@@ -357,22 +366,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up QEMU for ARM64 emulation (Linux)
-        if: matrix.use-qemu == true
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: linux/arm64
+      # QEMU not needed for cross-compilation
+      # Native compilation happens on the host architecture
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
         with:
           version: '10.6.1'
 
-      - name: Set up Node.js for ARM64
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22.14.0'
-          architecture: ${{ matrix.node-arch }}
           cache: 'pnpm'
 
       - name: Verify architecture
@@ -388,7 +393,7 @@ jobs:
         run: |
           npm_config_arch=${{ matrix.arch }} pnpm install
           # Rebuild native dependencies for target architecture
-          pnpm rebuild --arch=${{ matrix.arch }}
+          npm rebuild --arch=${{ matrix.arch }}
 
       - name: Build packages for ARM64
         run: pnpm run build

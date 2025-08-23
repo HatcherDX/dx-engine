@@ -131,7 +131,7 @@
     ]
   },
   "dependencies": {
-    "node-pty": "1.1.0-beta34",
+    "node-pty": "1.0.0",
     "simple-git": "^3.28.0"
   }
 }

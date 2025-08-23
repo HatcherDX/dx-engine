@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       node-pty:
-        specifier: 1.1.0-beta34
-        version: 1.1.0-beta34
+        specifier: 1.0.0
+        version: 1.0.0
       simple-git:
         specifier: ^3.28.0
         version: 3.28.0
@@ -192,8 +192,8 @@ importers:
         specifier: 6.6.2
         version: 6.6.2
       node-pty:
-        specifier: ^1.1.0-beta34
-        version: 1.1.0-beta34
+        specifier: 1.0.0
+        version: 1.0.0
       terser-webpack-plugin:
         specifier: ^5.3.14
         version: 5.3.14(webpack@5.101.0(webpack-cli@6.0.1))
@@ -549,8 +549,8 @@ importers:
         specifier: '>=30.0.0'
         version: 35.1.4
       node-pty:
-        specifier: ^1.1.0-beta34
-        version: 1.1.0-beta34
+        specifier: 1.0.0
+        version: 1.0.0
       tslog:
         specifier: ^4.9.3
         version: 4.9.3
@@ -4793,8 +4793,8 @@ packages:
     engines: {node: ^12.13 || ^14.13 || >=16}
     hasBin: true
 
-  node-pty@1.1.0-beta34:
-    resolution: {integrity: sha512-RraDtX9RS1G1I5iO7e4YIOIA4arzd4ZVCD4mZr7+szaNupoTg9fxDCRr0EanqS0Qlzgm3PIdHNbPmblJguJuyg==}
+  node-pty@1.0.0:
+    resolution: {integrity: sha512-wtBMWWS7dFZm/VgqElrTvtfMq4GzJ6+edFI0Y0zyzygUSZMgZdraDUMUhCIvkjhJjme15qWmbyJbtAx4ot4uZA==}
 
   node-releases@2.0.19:
     resolution: {integrity: sha512-xxOWJsBKtzAq7DY0J+DTzuz58K8e7sJbdgwkbMWQe8UYB6ekmsQ45q0M/tJDsGaZmbC+l7n57UV8Hl5tHxO9uw==}
@@ -11460,9 +11460,9 @@ snapshots:
       - bluebird
       - supports-color
 
-  node-pty@1.1.0-beta34:
+  node-pty@1.0.0:
     dependencies:
-      node-addon-api: 7.1.1
+      nan: 2.23.0
 
   node-releases@2.0.19: {}
 

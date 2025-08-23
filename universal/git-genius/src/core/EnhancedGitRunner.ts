@@ -680,7 +680,7 @@ export class EnhancedGitRunner {
     const result = await this.execute('git branch')
     return result.stdout
       .split('\n')
-      .map((line) => line.replace(/^\*?\s*/, '').trim())
+      .map((line: string) => line.replace(/^\*?\s*/, '').trim())
       .filter(Boolean)
   }
 

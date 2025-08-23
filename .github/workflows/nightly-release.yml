@@ -149,7 +149,6 @@ jobs:
         if: matrix.arch == 'arm64'
         run: |
           npm rebuild --arch=${{ matrix.arch }}
-          pnpm --filter @hatcherdx/terminal-system rebuild --arch=${{ matrix.arch }} || true
 
       - name: Build application
         run: pnpm run build
