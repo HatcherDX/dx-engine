@@ -102,26 +102,19 @@ jobs:
         run: pnpm run build
 
       - name: Run all tests with coverage
-        run: pnpm test:coverage:all
+        run: pnpm test:coverage:ci
 
       - name: Verify coverage reports exist
         run: |
           echo "📊 Checking coverage reports..."
 
-          if [ -f "coverage/unit/coverage-summary.json" ]; then
-            echo "✅ Unit coverage found"
-            echo "Unit Coverage Summary:"
-            cat coverage/unit/coverage-summary.json | head -10
+          if [ -f "coverage/coverage-summary.json" ]; then
+            echo "✅ Coverage report found"
+            echo "Coverage Summary:"
+            cat coverage/coverage-summary.json | head -20
           else
-            echo "❌ Unit coverage summary not found"
-          fi
-
-          if [ -f "coverage/integration/coverage-summary.json" ]; then
-            echo "✅ Integration coverage found" 
-            echo "Integration Coverage Summary:"
-            cat coverage/integration/coverage-summary.json | head -10
-          else
-            echo "❌ Integration coverage summary not found"
+            echo "❌ Coverage summary not found"
+            ls -la coverage/ || echo "Coverage directory does not exist"
           fi
 
       - name: Upload combined coverage reports

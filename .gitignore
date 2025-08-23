@@ -13,7 +13,8 @@ dist-vite/
 coverage
 test-integration-data/
 
-# SQLite auxiliary files (WAL mode)
+# SQLite database and auxiliary files
+*.db
 *.db-shm
 *.db-wal
 *.db-journal
