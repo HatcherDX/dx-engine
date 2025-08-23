@@ -12,7 +12,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest'
 import { EncryptionService } from './EncryptionService'
-import type { EncryptionConfig } from '../types/encryption'
+import type { EncryptionConfig } from '../types/storage'
 
 // Import integration test utilities (NO MOCKS)
 import '../test-setup-real'

@@ -13,16 +13,19 @@
 import { vi } from 'vitest'
 
 // Check if we're in CI or if native bindings should be mocked
+// SQLiteAdapter tests set VITEST_USE_REAL_SQLITE=true to use real implementations
 const isCI = process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true'
 const forceUseMock = process.env.VITEST_MOCK_SQLITE === 'true'
+const useRealSQLite = process.env.VITEST_USE_REAL_SQLITE === 'true'
 
 // Use vi.hoisted to ensure these mocks are available during module resolution
 const mocks = vi.hoisted(() => {
   const isCI =
     process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true'
   const forceUseMock = process.env.VITEST_MOCK_SQLITE === 'true'
+  const useRealSQLite = process.env.VITEST_USE_REAL_SQLITE === 'true'
 
-  if (isCI || forceUseMock) {
+  if (!useRealSQLite && (isCI || forceUseMock)) {
     console.warn(
       '[HOISTED MOCK] Environment detected, preparing native dependency mocks'
     )
@@ -79,10 +82,20 @@ const mocks = vi.hoisted(() => {
         memory: true,
       },
       argon2Mock: {
-        hash: vi.fn().mockImplementation(async (passphrase: string) => {
-          const crypto = await import('crypto')
-          return crypto.createHash('sha256').update(passphrase).digest()
-        }),
+        hash: vi
+          .fn()
+          .mockImplementation(async (passphrase: string, options?: unknown) => {
+            const crypto = await import('crypto')
+            // Extract salt from options if provided
+            const opts = options as Record<string, unknown>
+            const salt = (opts?.salt as Buffer) || Buffer.from('default-salt')
+            // Return a 32-byte buffer that varies based on passphrase and salt
+            return crypto
+              .createHash('sha256')
+              .update(passphrase)
+              .update(salt)
+              .digest()
+          }),
         verify: vi
           .fn()
           .mockImplementation(
@@ -120,7 +133,7 @@ const mocks = vi.hoisted(() => {
   return {}
 })
 
-if (isCI || forceUseMock) {
+if (!useRealSQLite && (isCI || forceUseMock)) {
   // Mock better-sqlite3 using hoisted mocks
   vi.mock('better-sqlite3', () => {
     console.warn('[MOCK] Using better-sqlite3 mock for CI/CD environment')
@@ -170,7 +183,15 @@ if (isCI || forceUseMock) {
 
     // Fallback implementation
     return {
-      hash: vi.fn().mockResolvedValue(Buffer.from('mocked-hash', 'hex')),
+      hash: vi
+        .fn()
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        .mockImplementation(async (passphrase: string, options?: unknown) => {
+          // Return a 32-byte buffer (ignore params for simple mock)
+          const buffer = Buffer.alloc(32)
+          buffer.write('mocked-hash')
+          return buffer
+        }),
       verify: vi.fn().mockResolvedValue(true),
       argon2id: 2,
       argon2i: 1,

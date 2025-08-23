@@ -210,6 +210,8 @@ export default defineConfig({
         '**/registerServiceWorker.ts',
         '**/vite-env.d.ts',
         '**/style.css',
+        '**/test-mocks.ts',
+        '**/test-setup*.ts',
       ],
     },
   },

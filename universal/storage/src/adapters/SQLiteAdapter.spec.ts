@@ -15,8 +15,8 @@ import type { StorageConfig } from '../types/storage'
 import { existsSync, unlinkSync } from 'fs'
 import { join } from 'path'
 
-// Import test utilities
-import '../test-setup'
+// Import test utilities for real integration testing
+import '../test-setup-real'
 
 // Declare global test utilities
 declare global {

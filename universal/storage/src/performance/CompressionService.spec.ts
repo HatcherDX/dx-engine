@@ -259,7 +259,7 @@ describe('CompressionService', () => {
     })
   })
 
-  describe('brotli compression (with mocking)', () => {
+  describe('brotli compression', () => {
     beforeEach(() => {
       const config: CompressionConfig = {
         enabled: true,
@@ -269,13 +269,23 @@ describe('CompressionService', () => {
       compressionService = new CompressionService(config)
     })
 
-    it('should use mocked brotli compression', async () => {
+    it('should compress and decompress with brotli', async () => {
       const originalData = 'Test data for Brotli compression algorithm!'
 
       const compressed = await compressionService.compress(originalData)
       expect(compressed.compressed).toBe(true)
       expect(compressed.algorithm).toBe('brotli')
-      expect(compressed.data.toString('utf8')).toBe(`brotli:${originalData}`) // Mock implementation
+
+      // Check if we're using mocked brotli (in CI) or real brotli (locally)
+      const isMocked =
+        process.env.CI === 'true' || process.env.VITEST_MOCK_SQLITE === 'true'
+      if (isMocked) {
+        expect(compressed.data.toString('utf8')).toBe(`brotli:${originalData}`)
+      } else {
+        // Real brotli produces binary data
+        expect(compressed.data).toBeInstanceOf(Buffer)
+        expect(compressed.data.length).toBeGreaterThan(0)
+      }
 
       const decompressed = await compressionService.decompress(
         compressed.data,

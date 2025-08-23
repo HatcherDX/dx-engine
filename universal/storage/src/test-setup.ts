@@ -9,6 +9,10 @@
  * @since 1.0.0
  */
 
+// Import test mocks for native dependencies (must be first for proper hoisting)
+// Note: Mocks are conditionally applied based on CI environment or VITEST_MOCK_SQLITE env var
+import './test-mocks'
+
 // Import types for proper typing FIRST
 import type { StorageConfig } from './types/storage'
 import { beforeEach, afterEach, vi } from 'vitest'

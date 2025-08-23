@@ -23,6 +23,7 @@ export default defineConfig({
     // Only run .spec.ts files (unit tests)
     include: ['src/**/*.spec.ts'],
     exclude: [
+      'src/adapters/SQLiteAdapter.spec.ts', // SQLiteAdapter needs real SQLite
       'src/**/*.integration.ts',
       'src/**/*.e2e.ts',
       '**/node_modules/**',
