@@ -1,6 +1,17 @@
 import { config, RouterLinkStub } from '@vue/test-utils'
 import { vi } from 'vitest'
 
+// Apply storage mocks in CI environment before any other imports
+if (
+  process.env.CI ||
+  process.env.GITHUB_ACTIONS ||
+  process.env.VITEST_MOCK_SQLITE === 'true'
+) {
+  process.env.VITEST_MOCK_SQLITE = 'true'
+  // Import storage mocks for CI environment
+  import('./universal/storage/src/test-mocks')
+}
+
 // Mock básico de fetch
 global.fetch = vi.fn(() =>
   Promise.resolve({

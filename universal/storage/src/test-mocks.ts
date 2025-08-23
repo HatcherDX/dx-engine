@@ -14,14 +14,14 @@ import { vi } from 'vitest'
 
 // Check if we're in CI or if native bindings should be mocked
 // SQLiteAdapter tests set VITEST_USE_REAL_SQLITE=true to use real implementations
-const isCI = process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true'
+// GitHub Actions sets CI=true as a string, and GITHUB_ACTIONS is also set
+const isCI = !!process.env.CI || !!process.env.GITHUB_ACTIONS
 const forceUseMock = process.env.VITEST_MOCK_SQLITE === 'true'
 const useRealSQLite = process.env.VITEST_USE_REAL_SQLITE === 'true'
 
 // Use vi.hoisted to ensure these mocks are available during module resolution
 const mocks = vi.hoisted(() => {
-  const isCI =
-    process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true'
+  const isCI = !!process.env.CI || !!process.env.GITHUB_ACTIONS
   const forceUseMock = process.env.VITEST_MOCK_SQLITE === 'true'
   const useRealSQLite = process.env.VITEST_USE_REAL_SQLITE === 'true'
 
