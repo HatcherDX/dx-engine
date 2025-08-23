@@ -30,26 +30,92 @@ const mocks = vi.hoisted(() => {
       '[HOISTED MOCK] Environment detected, preparing native dependency mocks'
     )
 
+    // Create in-memory storage for the mock
+    const mockStorage = new Map<string, unknown>()
+    let idCounter = 1
+
     return {
       betterSqlite3Mock: {
-        exec: vi.fn().mockImplementation((sql: string) => {
-          if (sql.includes('CREATE TABLE')) {
-            return { changes: 0 }
-          }
+        exec: vi.fn().mockImplementation(() => {
+          // Handle CREATE TABLE and other DDL statements
           return { changes: 0 }
         }),
         prepare: vi.fn().mockImplementation((sql: string) => {
           return {
-            run: vi.fn().mockImplementation(() => {
-              return { changes: 1, lastInsertRowid: Date.now() }
-            }),
-            get: vi.fn().mockImplementation(() => {
-              if (sql.includes('SELECT') && sql.includes('migrations')) {
-                return { version: 1 }
-              }
-              return null
-            }),
-            all: vi.fn().mockReturnValue([]),
+            run: vi
+              .fn()
+              .mockImplementation((params: Record<string, unknown>) => {
+                // Handle INSERT/UPDATE/DELETE
+                if (sql.includes('INSERT')) {
+                  const key =
+                    params?.key || params?.$key || `key_${idCounter++}`
+                  const value = params?.value || params?.$value || '{}'
+                  mockStorage.set(key, value)
+                  return { changes: 1, lastInsertRowid: idCounter }
+                }
+                if (sql.includes('UPDATE')) {
+                  const key = params?.key || params?.$key
+                  if (key && mockStorage.has(key)) {
+                    const value = params?.value || params?.$value || '{}'
+                    mockStorage.set(key, value)
+                    return { changes: 1 }
+                  }
+                  return { changes: 0 }
+                }
+                if (sql.includes('DELETE')) {
+                  const key = params?.key || params?.$key
+                  if (key && mockStorage.has(key)) {
+                    mockStorage.delete(key)
+                    return { changes: 1 }
+                  }
+                  return { changes: 0 }
+                }
+                return { changes: 1, lastInsertRowid: idCounter++ }
+              }),
+            get: vi
+              .fn()
+              .mockImplementation((params: Record<string, unknown>) => {
+                // Handle SELECT ... LIMIT 1
+                if (sql.includes('SELECT') && sql.includes('storage_data')) {
+                  const key = params?.key || params?.$key
+                  if (key && mockStorage.has(key)) {
+                    return {
+                      key,
+                      value: mockStorage.get(key),
+                      namespace: 'default',
+                      created_at: Date.now(),
+                      updated_at: Date.now(),
+                    }
+                  }
+                }
+                if (sql.includes('COUNT')) {
+                  return { count: mockStorage.size }
+                }
+                return null
+              }),
+            all: vi
+              .fn()
+              .mockImplementation((params: Record<string, unknown>) => {
+                // Handle SELECT multiple rows
+                if (sql.includes('SELECT') && sql.includes('storage_data')) {
+                  const results: unknown[] = []
+                  for (const [key, value] of mockStorage.entries()) {
+                    // Apply basic filtering
+                    if (sql.includes('WHERE') && params?.prefix) {
+                      if (!key.startsWith(params.prefix)) continue
+                    }
+                    results.push({
+                      key,
+                      value,
+                      namespace: 'default',
+                      created_at: Date.now(),
+                      updated_at: Date.now(),
+                    })
+                  }
+                  return results
+                }
+                return []
+              }),
             iterate: vi.fn().mockReturnValue([]),
           }
         }),
@@ -101,9 +167,12 @@ const mocks = vi.hoisted(() => {
           .mockImplementation(
             async (hash: string | Buffer, passphrase: string) => {
               const crypto = await import('crypto')
+              // Need to use same salt as when hashing
+              const salt = Buffer.from('default-salt')
               const expectedHash = crypto
                 .createHash('sha256')
                 .update(passphrase)
+                .update(salt)
                 .digest()
               const hashBuffer = Buffer.isBuffer(hash)
                 ? hash
@@ -144,17 +213,75 @@ if (!useRealSQLite && (isCI || forceUseMock)) {
       }
     }
 
-    // Fallback if hoisted mocks aren't available
+    // Fallback if hoisted mocks aren't available - create in-memory storage
+    const fallbackStorage = new Map<string, unknown>()
+    let fallbackIdCounter = 1
+
     const mockDatabase = {
       exec: vi.fn().mockReturnValue({ changes: 0 }),
-      prepare: vi.fn().mockReturnValue({
-        run: vi
-          .fn()
-          .mockReturnValue({ changes: 1, lastInsertRowid: Date.now() }),
-        get: vi.fn().mockReturnValue(null),
-        all: vi.fn().mockReturnValue([]),
+      prepare: vi.fn().mockImplementation((sql: string) => ({
+        run: vi.fn().mockImplementation((params: Record<string, unknown>) => {
+          if (sql.includes('INSERT')) {
+            const key =
+              params?.key || params?.$key || `key_${fallbackIdCounter++}`
+            const value = params?.value || params?.$value || '{}'
+            fallbackStorage.set(key, value)
+            return { changes: 1, lastInsertRowid: fallbackIdCounter }
+          }
+          if (sql.includes('UPDATE')) {
+            const key = params?.key || params?.$key
+            if (key && fallbackStorage.has(key)) {
+              fallbackStorage.set(key, params?.value || params?.$value || '{}')
+              return { changes: 1 }
+            }
+            return { changes: 0 }
+          }
+          if (sql.includes('DELETE')) {
+            const key = params?.key || params?.$key
+            if (key) {
+              const deleted = fallbackStorage.delete(key)
+              return { changes: deleted ? 1 : 0 }
+            }
+            if (sql.includes('DELETE FROM storage_data')) {
+              const size = fallbackStorage.size
+              fallbackStorage.clear()
+              return { changes: size }
+            }
+            return { changes: 0 }
+          }
+          return { changes: 1, lastInsertRowid: fallbackIdCounter++ }
+        }),
+        get: vi.fn().mockImplementation((params: Record<string, unknown>) => {
+          if (sql.includes('COUNT')) {
+            return { count: fallbackStorage.size }
+          }
+          const key = params?.key || params?.$key
+          if (key && fallbackStorage.has(key)) {
+            return {
+              key,
+              value: fallbackStorage.get(key),
+              namespace: 'default',
+              created_at: Date.now(),
+              updated_at: Date.now(),
+            }
+          }
+          return null
+        }),
+        all: vi.fn().mockImplementation(() => {
+          const results: unknown[] = []
+          for (const [key, value] of fallbackStorage.entries()) {
+            results.push({
+              key,
+              value,
+              namespace: 'default',
+              created_at: Date.now(),
+              updated_at: Date.now(),
+            })
+          }
+          return results
+        }),
         iterate: vi.fn().mockReturnValue([]),
-      }),
+      })),
       pragma: vi.fn().mockReturnValue(null),
       transaction: vi.fn().mockImplementation((fn: () => unknown) => fn),
       function: vi.fn(),
@@ -185,14 +312,35 @@ if (!useRealSQLite && (isCI || forceUseMock)) {
     return {
       hash: vi
         .fn()
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         .mockImplementation(async (passphrase: string, options?: unknown) => {
-          // Return a 32-byte buffer (ignore params for simple mock)
-          const buffer = Buffer.alloc(32)
-          buffer.write('mocked-hash')
-          return buffer
+          const crypto = await import('crypto')
+          // Extract salt from options if provided
+          const opts = options as Record<string, unknown>
+          const salt = (opts?.salt as Buffer) || Buffer.from('default-salt')
+          // Return a 32-byte buffer that varies based on passphrase and salt
+          return crypto
+            .createHash('sha256')
+            .update(passphrase)
+            .update(salt)
+            .digest()
         }),
-      verify: vi.fn().mockResolvedValue(true),
+      verify: vi
+        .fn()
+        .mockImplementation(
+          async (hash: string | Buffer, passphrase: string) => {
+            const crypto = await import('crypto')
+            const salt = Buffer.from('default-salt')
+            const expectedHash = crypto
+              .createHash('sha256')
+              .update(passphrase)
+              .update(salt)
+              .digest()
+            const hashBuffer = Buffer.isBuffer(hash)
+              ? hash
+              : Buffer.from(hash, 'hex')
+            return hashBuffer.equals(expectedHash)
+          }
+        ),
       argon2id: 2,
       argon2i: 1,
       argon2d: 0,

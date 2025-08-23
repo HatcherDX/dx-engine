@@ -46,6 +46,7 @@
     "test:sqlite": "vitest run --config vitest.sqlite.config.ts",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:all": "pnpm test:unit && pnpm test:sqlite && pnpm test:integration",
+    "test:all:local": "pnpm test:unit && pnpm test:sqlite && pnpm test:integration",
     "test:ci": "VITEST_MOCK_SQLITE=true vitest run --config vitest.unit.config.ts",
     "test:coverage": "vitest run --coverage",
     "test:coverage:unit": "vitest run --coverage --config vitest.unit.config.ts",
