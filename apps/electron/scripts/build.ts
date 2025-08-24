@@ -186,7 +186,7 @@ const buildTargets = targetPlatform.createTarget(null, ...targetArchs)
 build({
   targets: buildTargets,
   config: config,
-  publish: process.env.CI ? 'always' : 'never',
+  publish: process.env.GH_TOKEN ? 'always' : 'never',
 })
   .then((result) => {
     console.log(JSON.stringify(result))

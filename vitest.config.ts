@@ -44,9 +44,9 @@ export default defineConfig({
 
     // Conservative parallelism to prevent worker communication overload
     fileParallelism: false, // Disable file parallelism to reduce worker pressure
-    maxWorkers: 2, // Reduce max workers to prevent timeout race conditions
+    maxWorkers: 1, // Single worker to completely avoid race conditions
     minWorkers: 1,
-    maxConcurrency: 3, // Reduce concurrency to prevent worker overload
+    maxConcurrency: 1, // Sequential test execution within files
 
     // Error handling configuration
     dangerouslyIgnoreUnhandledErrors: true, // Ignore all unhandled errors to prevent CI failures
@@ -82,7 +82,7 @@ export default defineConfig({
         singleFork: false, // Allow parallel forks for faster testing
 
         // Ultra-conservative worker limits to prevent timeout issues
-        maxForks: 2, // Limited parallelism to avoid overload
+        maxForks: 1, // Single fork to completely avoid race conditions
         minForks: 1,
 
         // Process cleanup and communication timeouts

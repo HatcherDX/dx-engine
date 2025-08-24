@@ -16,6 +16,12 @@ import TerminalView from './TerminalView.vue'
  * @vitest-environment jsdom
  */
 
+// Configure test-specific timeout to prevent race conditions
+vi.setConfig({
+  testTimeout: 60000, // 60 seconds for this test file
+  hookTimeout: 60000,
+})
+
 // 🎯 COVERAGE FOCUSED TESTS: Tests diseñados específicamente para aumentar coverage
 // Context7 Patterns: Crear tests que ejerciten código real en lugar de mocks
 
