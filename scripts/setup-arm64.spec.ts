@@ -28,7 +28,7 @@ import {
 } from './setup-arm64'
 
 // Setup the mocked functions
-vi.mocked(existsSync).mockReturnValue(false)
+// Don't set global defaults - let each test configure its own mocks
 vi.mocked(readFileSync).mockReturnValue('')
 vi.mocked(writeFileSync).mockImplementation(() => {})
 vi.mocked(execSync).mockImplementation(() => Buffer.from(''))
@@ -91,6 +91,7 @@ describe('ARM64 Setup Script', () => {
 
   describe('validateBinary', () => {
     it('should return false if module does not exist', () => {
+      vi.mocked(existsSync).mockReset()
       vi.mocked(existsSync).mockReturnValue(false)
 
       const result = validateBinary('node-pty')
@@ -100,6 +101,7 @@ describe('ARM64 Setup Script', () => {
     })
 
     it('should return true if build directory exists', () => {
+      vi.mocked(existsSync).mockReset()
       vi.mocked(existsSync).mockImplementation((path) => {
         const pathStr = path as string
         if (pathStr === 'node_modules/node-pty') return true
@@ -113,6 +115,7 @@ describe('ARM64 Setup Script', () => {
     })
 
     it('should return true if prebuilds directory exists', () => {
+      vi.mocked(existsSync).mockReset()
       vi.mocked(existsSync).mockImplementation((path) => {
         const pathStr = path as string
         if (pathStr === 'node_modules/node-pty') return true
@@ -127,6 +130,7 @@ describe('ARM64 Setup Script', () => {
     })
 
     it('should handle validation errors gracefully', () => {
+      vi.mocked(existsSync).mockReset()
       vi.mocked(existsSync).mockImplementation(() => {
         throw new Error('Permission denied')
       })
@@ -317,6 +321,7 @@ describe('ARM64 Setup Script', () => {
 
   describe('NPM configuration', () => {
     it('should create .npmrc with ARM64 settings', () => {
+      vi.mocked(existsSync).mockReset()
       vi.mocked(existsSync).mockReturnValue(false)
       vi.mocked(writeFileSync).mockImplementation()
 
@@ -356,6 +361,7 @@ prefer_binary=true
     })
 
     it('should append to existing .npmrc', () => {
+      vi.mocked(existsSync).mockReset()
       vi.mocked(existsSync).mockReturnValue(true)
       vi.mocked(readFileSync).mockReturnValue('existing=config\n')
       vi.mocked(writeFileSync).mockImplementation()
@@ -395,6 +401,7 @@ existing=config
 # ARM64 Architecture Configuration
 target_arch=arm64
 `
+      vi.mocked(existsSync).mockReset()
       vi.mocked(existsSync).mockReturnValue(true)
       vi.mocked(readFileSync).mockReturnValue(existingWithARM64)
 
