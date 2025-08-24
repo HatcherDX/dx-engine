@@ -21,6 +21,7 @@ vi.mock('os')
 import { existsSync, readFileSync, writeFileSync } from 'fs'
 import { execSync } from 'child_process'
 import { arch, platform } from 'os'
+import { join } from 'path'
 import {
   detectArchitecture,
   validateBinary,
@@ -97,15 +98,16 @@ describe('ARM64 Setup Script', () => {
       const result = validateBinary('node-pty')
 
       expect(result).toBe(false)
-      expect(existsSync).toHaveBeenCalledWith('node_modules/node-pty')
+      expect(existsSync).toHaveBeenCalledWith(join('node_modules', 'node-pty'))
     })
 
     it('should return true if build directory exists', () => {
       vi.mocked(existsSync).mockReset()
       vi.mocked(existsSync).mockImplementation((path) => {
         const pathStr = path as string
-        if (pathStr === 'node_modules/node-pty') return true
-        if (pathStr === 'node_modules/node-pty/build/Release') return true
+        if (pathStr === join('node_modules', 'node-pty')) return true
+        if (pathStr === join('node_modules', 'node-pty', 'build', 'Release'))
+          return true
         return false
       })
 
@@ -118,9 +120,11 @@ describe('ARM64 Setup Script', () => {
       vi.mocked(existsSync).mockReset()
       vi.mocked(existsSync).mockImplementation((path) => {
         const pathStr = path as string
-        if (pathStr === 'node_modules/node-pty') return true
-        if (pathStr === 'node_modules/node-pty/build/Release') return false
-        if (pathStr === 'node_modules/node-pty/prebuilds') return true
+        if (pathStr === join('node_modules', 'node-pty')) return true
+        if (pathStr === join('node_modules', 'node-pty', 'build', 'Release'))
+          return false
+        if (pathStr === join('node_modules', 'node-pty', 'prebuilds'))
+          return true
         return false
       })
 
