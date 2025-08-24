@@ -65,17 +65,11 @@ const config: Configuration = {
     buildResources: 'build',
   },
   files: [
+    'dist-vite/**/*',
     'dist/main.cjs',
     'dist/web/**/*',
     'dist/preload/**/*',
     'package.json',
-  ],
-  extraFiles: [
-    {
-      from: 'dist-vite/',
-      to: 'dist-vite/',
-      filter: ['**/*'],
-    },
   ],
   mac: {
     icon: 'build/icon.icns',
