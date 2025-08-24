@@ -39,10 +39,14 @@ export default defineConfig({
     pool: 'forks',
     poolOptions: {
       forks: {
-        singleFork: false,
-        maxForks: 2,
-        minForks: 1,
+        singleFork: true, // Run tests in a single fork to avoid fork conflicts
+        isolate: true, // Isolate each test file
       },
+    },
+    // Run tests sequentially to avoid race conditions
+    maxConcurrency: 1,
+    sequence: {
+      concurrent: false,
     },
     include: [
       // Platform-specific tests

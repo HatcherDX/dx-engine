@@ -1,13 +1,21 @@
 import type { Configuration } from 'electron-builder'
 import { build, Platform } from 'electron-builder'
 import type { CopySyncOptions } from 'node:fs'
-import { cpSync } from 'node:fs'
+import { cpSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import process, { exit, platform } from 'node:process'
 import { fileURLToPath } from 'node:url'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
+
+// Read electron version from package.json
+const electronPkgPath = path.join(
+  __dirname,
+  '../../node_modules/electron/package.json'
+)
+const electronPkg = JSON.parse(readFileSync(electronPkgPath, 'utf8'))
+const electronVersion = electronPkg.version
 
 const version = process.env.VITE_APP_VERSION
 const isDev = process.env.NODE_ENV === 'development'
@@ -141,7 +149,7 @@ const config: Configuration = {
   // Build for specific architecture if specified
   ...(isARM64Build && {
     electronDist: `node_modules/electron/dist`,
-    electronVersion: require('electron/package.json').version,
+    electronVersion: electronVersion,
   }),
 }
 

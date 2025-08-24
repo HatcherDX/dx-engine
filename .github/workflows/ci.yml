@@ -552,15 +552,21 @@ jobs:
 
       - name: Install dependencies with architecture-specific rebuild
         run: |
-          # Install without running scripts to avoid yarn conflicts and Electron binary issues
-          npm_config_arch=${{ matrix.arch }} pnpm install --ignore-scripts
-
-          # Skip Electron postinstall when cross-compiling (x64 Node.js can't run ARM64 Electron binary)
-          # This prevents "Syntax error: Unterminated quoted string" when update-electron-vendors.cjs tries to run
+          # Skip Electron binary download for ARM64 cross-compilation
           export ELECTRON_SKIP_BINARY_DOWNLOAD=1
 
+          # Install without running ANY scripts (including postinstall)
+          npm_config_arch=${{ matrix.arch }} ELECTRON_SKIP_BINARY_DOWNLOAD=1 pnpm install --ignore-scripts
+
+          # Manually run essential setup scripts only
+          pnpm tsx scripts/setup-env.ts
+
+          # Build only the puppeteer-google-translate package (needed by other packages)
+          pnpm --filter @hatcherdx/puppeteer-google-translate build
+
           # Rebuild only workspace packages (no --ignore-scripts for rebuild command)
-          pnpm rebuild --filter '@hatcherdx/*' --config.arch=${{ matrix.arch }}
+          # Skip electron package to avoid postinstall issues
+          pnpm rebuild --filter '@hatcherdx/*' --filter '!@hatcherdx/dx-engine-electron' --config.arch=${{ matrix.arch }}
 
           # Rebuild specific native modules that are compatible with cross-compilation
           # Skip node-pty and electron-related modules that can't cross-compile
@@ -571,7 +577,8 @@ jobs:
           # Skip Electron binary operations during cross-compilation
           export ELECTRON_SKIP_BINARY_DOWNLOAD=1
           # Build only non-Electron packages to avoid binary architecture conflicts
-          pnpm run build --ignore-scripts || echo "Build completed with some packages skipped"
+          # Skip electron and preload packages which require Electron
+          pnpm --filter '!@hatcherdx/dx-engine-electron' --filter '!@hatcherdx/dx-engine-preload' run build || echo "Build completed with some packages skipped"
         env:
           npm_config_arch: ${{ matrix.arch }}
           npm_config_target_arch: ${{ matrix.arch }}
