@@ -339,7 +339,8 @@ async function setupARM64(): Promise<void> {
 }
 
 // Run setup if called directly
-if (require.main === module) {
+// Check if this file is being run directly (not imported)
+if (import.meta.url === `file://${process.argv[1]}`) {
   setupARM64().catch((error) => {
     console.error('❌ ARM64 setup failed:', error)
     process.exit(1)

@@ -235,6 +235,8 @@ export default defineConfig({
         '**/style.css',
         '**/test-mocks.ts',
         '**/test-setup*.ts',
+        '**/test-global-setup.ts',
+        '**/test-global-teardown.ts',
         // Exclude SQLite adapter and integration tests
         'universal/storage/src/adapters/SQLiteAdapter.ts',
         'universal/storage/src/**/*.integration.ts',

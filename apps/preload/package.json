@@ -41,6 +41,7 @@
     "electron": "^35.1.4"
   },
   "devDependencies": {
+    "vite": "^6.2.6",
     "vite-plugin-dts": "^4.5.3"
   }
 }

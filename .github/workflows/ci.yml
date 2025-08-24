@@ -774,7 +774,12 @@ jobs:
           # Create coverage branch if it doesn't exist
           git checkout -B coverage-reports
 
-          # Copy coverage files to root for easy access
+          # Copy main coverage summary to root for badge access
+          if [ -f "coverage/coverage-summary.json" ]; then
+            cp coverage/coverage-summary.json coverage-summary.json
+          fi
+
+          # Also handle unit/integration if they exist (future proofing)
           if [ -f "coverage/unit/coverage-summary.json" ]; then
             cp coverage/unit/coverage-summary.json unit-coverage-summary.json
           fi
@@ -788,7 +793,7 @@ jobs:
 
           # Only commit if there are changes
           if ! git diff --cached --quiet; then
-            git commit -m "📊 Update coverage reports (unit + integration) [skip ci]"
+            git commit -m "📊 Update coverage reports [skip ci]"
             git push origin coverage-reports --force
           fi
 
