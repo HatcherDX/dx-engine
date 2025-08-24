@@ -114,17 +114,35 @@ In CI/CD pipeline (`.github/workflows/ci.yml`):
 
 ### Issue
 
-node-pty version 1.0.0 has a compilation error on Windows ARM64 with modern Visual Studio compilers.
+node-pty version 1.0.0 has multiple compilation errors on Windows ARM64 with modern Visual Studio compilers.
 
-**Error message:**
+**Error messages:**
 
 ```
 error C2664: 'HMODULE GetModuleHandleW(LPCWSTR)': cannot convert argument 1 from 'const char [12]' to 'LPCWSTR'
 ```
 
+```
+error C2362: initialization of 'marshal' is skipped by 'goto cleanup'
+error C2362: initialization of 'spawnSuccess' is skipped by 'goto cleanup'
+error C2362: initialization of 'handle' is skipped by 'goto cleanup'
+error C2362: initialization of 'config' is skipped by 'goto cleanup'
+error C2362: initialization of 'pc' is skipped by 'goto cleanup'
+error C2362: initialization of 'winpty_config' is skipped by 'goto cleanup'
+error C2362: initialization of 'error_ptr' is skipped by 'goto cleanup'
+error C2362: initialization of 'debug' is skipped by 'goto cleanup'
+error C2362: initialization of 'rows' is skipped by 'goto cleanup'
+error C2362: initialization of 'cols' is skipped by 'goto cleanup'
+```
+
 ### Root Cause
 
-The error occurs in `winpty.cc` where `GetModuleHandleW` expects a wide string (`LPCWSTR`) but receives a narrow string literal. This is a known bug in node-pty 1.0.0.
+The errors occur in `winpty.cc` due to:
+
+1. `GetModuleHandleW` expects a wide string (`LPCWSTR`) but receives a narrow string literal
+2. C++ goto statements jumping over variable initializations, which is not allowed in modern C++ compilers
+
+These are known bugs in node-pty 1.0.0 that prevent compilation on Windows ARM64.
 
 ### Tracking
 
@@ -136,7 +154,7 @@ The error occurs in `winpty.cc` where `GetModuleHandleW` expects a wide string (
 In CI/CD pipeline (`.github/workflows/ci.yml`):
 
 - Skip node-pty compilation using `pnpm install --ignore-scripts`
-- Only rebuild compatible native modules (better-sqlite3, argon2, lz4, lzma-native)
+- Explicitly exclude node-pty from rebuild: `pnpm rebuild better-sqlite3 argon2 lz4 --filter '!node-pty' --config.arch=arm64`
 - This is acceptable for cross-compilation testing since node-pty is not critical for ARM64 builds
 
 ### TODO

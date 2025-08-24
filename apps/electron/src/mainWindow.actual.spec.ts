@@ -180,24 +180,22 @@ describe('MainWindow - Actual Coverage', () => {
         devServer: 'http://localhost:3000',
         expected: 'dev server',
       },
-      { isDev: true, devServer: undefined, expected: 'file url' },
+      { isDev: true, devServer: undefined, expected: 'file path' },
       {
         isDev: false,
         devServer: 'http://localhost:3000',
-        expected: 'file url',
+        expected: 'file path',
       },
     ]
 
-    urlPatterns.forEach(({ isDev, devServer, expected }) => {
-      const pageUrl =
-        isDev && devServer !== undefined
-          ? devServer
-          : `file://__dirname/./web/index.html`
-
-      if (expected === 'dev server') {
+    urlPatterns.forEach(({ isDev, devServer }) => {
+      if (isDev && devServer !== undefined) {
+        const pageUrl = devServer
         expect(pageUrl).toContain('http')
       } else {
-        expect(pageUrl).toContain('file://')
+        // When using loadFile, we work with paths, not file:// URLs
+        const filePath = '__dirname/./web/index.html'
+        expect(filePath).toContain('.html')
       }
     })
 

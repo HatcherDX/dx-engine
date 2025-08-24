@@ -654,7 +654,8 @@ jobs:
 
           # Use pnpm rebuild with specific packages (skip node-pty and lzma-native)
           # lzma-native doesn't have Windows ARM64 support and fails with LNK2001 errors
-          pnpm rebuild better-sqlite3 argon2 lz4 --config.arch=arm64
+          # Explicitly exclude node-pty from rebuild to avoid C2362 compilation errors
+          pnpm rebuild better-sqlite3 argon2 lz4 --filter '!node-pty' --config.arch=arm64
 
           # Note: When node-pty releases a stable fix, update package.json and remove --ignore-scripts
         env:

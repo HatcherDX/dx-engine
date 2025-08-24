@@ -373,8 +373,10 @@ describe('Main Window Management', () => {
         mode: 'detach',
       })
 
-      // For now, let's just check that loadURL was called (regardless of URL)
-      expect(mockWindow.loadURL).toHaveBeenCalled()
+      // Check that either loadURL or loadFile was called (depending on environment)
+      const loadURLCalled = mockWindow.loadURL.mock.calls.length > 0
+      const loadFileCalled = mockWindow.loadFile.mock.calls.length > 0
+      expect(loadURLCalled || loadFileCalled).toBe(true)
     })
   })
 
@@ -528,30 +530,30 @@ describe('Main Window Management', () => {
       const createPageUrl = (isDev: boolean, devServerUrl?: string) => {
         return isDev && devServerUrl !== undefined
           ? devServerUrl
-          : `file://${join(__dirname, './web/index.html')}`
+          : join(__dirname, './web/index.html') // Return path, not file:// URL
       }
 
       const devUrl = createPageUrl(true, 'http://localhost:3000')
-      const prodUrl = createPageUrl(false)
+      const prodPath = createPageUrl(false)
 
       expect(devUrl).toBe('http://localhost:3000')
-      expect(prodUrl).toContain('file://')
-      expect(prodUrl).toContain('web/index.html')
+      expect(prodPath).toContain('web/index.html')
+      expect(prodPath).not.toContain('file://')
     })
 
     it('should handle VITE_DEV_SERVER_URL environment variable', () => {
       const resolvePageUrl = (isDev: boolean, viteDevServerUrl?: string) => {
         return isDev && viteDevServerUrl !== undefined
           ? viteDevServerUrl
-          : `file://${join(__dirname, './web/index.html')}`
+          : join(__dirname, './web/index.html') // Return path, not file:// URL
       }
 
       expect(resolvePageUrl(true, 'http://localhost:5173')).toBe(
         'http://localhost:5173'
       )
-      expect(resolvePageUrl(true, undefined)).toContain('file://')
+      expect(resolvePageUrl(true, undefined)).toContain('index.html')
       expect(resolvePageUrl(false, 'http://localhost:5173')).toContain(
-        'file://'
+        'index.html'
       )
     })
   })

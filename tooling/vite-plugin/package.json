@@ -1,6 +1,6 @@
 {
   "name": "@hatcherdx/dx-engine-vite-plugin",
-  "version": "1.0.0",
+  "version": "0.4.0",
   "description": "Vite plugins for DX Engine",
   "author": {
     "name": "Chriss Mejia",

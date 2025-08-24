@@ -1,6 +1,6 @@
 {
   "name": "@hatcherdx/shared-utils",
-  "version": "1.0.0",
+  "version": "0.4.0",
   "type": "module",
   "description": "Shared utilities for cross-platform development in Hatcher DX Engine",
   "author": {
