@@ -6,10 +6,27 @@
  * errors on Windows.
  */
 export const createPathJoinMock = () => {
+  const sep = process.platform === 'win32' ? '\\' : '/'
   return (...args: string[]) => {
-    // Use backslashes on Windows, forward slashes elsewhere
-    const separator = process.platform === 'win32' ? '\\' : '/'
-    return args.join(separator)
+    // Filter out undefined/null args
+    const validArgs = args.filter((arg) => arg != null)
+
+    // Join with platform-specific separator
+    const joined = validArgs.join(sep)
+
+    // Handle absolute paths on Windows
+    if (process.platform === 'win32') {
+      // If it starts with a drive letter, it's already absolute
+      if (/^[A-Za-z]:/.test(joined)) {
+        return joined
+      }
+      // If it starts with a separator, make it absolute with C: drive
+      if (joined.startsWith(sep)) {
+        return `C:${joined}`
+      }
+    }
+
+    return joined
   }
 }
 
@@ -18,4 +35,5 @@ export const createPathJoinMock = () => {
  */
 export const pathMock = {
   join: createPathJoinMock(),
+  sep: process.platform === 'win32' ? '\\' : '/',
 }

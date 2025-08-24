@@ -148,11 +148,8 @@ const config: Configuration = {
   // Architecture-specific node modules rebuild
   // Skip rebuild for Windows ARM64 to avoid node-pty C2362 compilation errors
   npmRebuild: process.env.SKIP_NODE_PTY_REBUILD !== 'true',
-  // Build for specific architecture if specified
-  ...(isARM64Build && {
-    electronDist: `node_modules/electron/dist`,
-    electronVersion: electronVersion,
-  }),
+  // Don't specify electronDist for cross-compilation
+  // Let electron-builder download the correct binary for the target architecture
 }
 
 // Target platform to package
@@ -162,8 +159,35 @@ const targetPlatform: Platform = {
   linux: Platform.LINUX,
 }[platform]
 
+// Parse command line arguments for platform and architecture
+const args = process.argv.slice(2)
+const isWin = args.includes('--win')
+const isMac = args.includes('--mac')
+const isLinux = args.includes('--linux')
+const isArm64 = args.includes('--arm64')
+const isUniversal = args.includes('--universal')
+
+// Determine target architecture(s)
+let targetArchs: string[] = []
+if (isArm64) {
+  targetArchs = ['arm64']
+} else if (isUniversal && isMac) {
+  targetArchs = ['universal']
+} else if (targetArch === 'arm64') {
+  targetArchs = ['arm64']
+} else {
+  targetArchs = ['x64'] // Default to x64
+}
+
+console.log('Building for architecture(s):', targetArchs)
+console.log('Platform:', platform)
+console.log('Target platform:', targetPlatform)
+
+// Create specific targets with architecture
+const buildTargets = targetPlatform.createTarget(null, ...targetArchs)
+
 build({
-  targets: targetPlatform.createTarget(),
+  targets: buildTargets,
   config: config,
   publish: process.env.CI ? 'always' : 'never',
 })

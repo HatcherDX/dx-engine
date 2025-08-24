@@ -21,16 +21,31 @@ vi.mock('node:fs', () => ({
   existsSync: vi.fn(() => true),
 }))
 
-vi.mock('node:path', () => ({
-  join: vi.fn((...args) => {
-    // Use backslashes on Windows, forward slashes elsewhere
-    const separator = process.platform === 'win32' ? '\\' : '/'
-    return args.join(separator)
-  }),
-}))
+vi.mock('node:path', () => {
+  const sep = process.platform === 'win32' ? '\\' : '/'
+  return {
+    join: vi.fn((...args) => {
+      // Filter out undefined/null args and join with platform-specific separator
+      const validArgs = args.filter((arg) => arg != null)
+      // Handle absolute paths on Windows
+      const joined = validArgs.join(sep)
+      // Ensure Windows paths are absolute if they start with a drive letter
+      if (
+        process.platform === 'win32' &&
+        validArgs[0] &&
+        /^[A-Za-z]:/.test(validArgs[0])
+      ) {
+        return joined
+      }
+      // For relative paths, ensure proper format
+      return joined
+    }),
+    sep: sep,
+  }
+})
 
 vi.mock('/@/utils/', () => ({
-  isDev: true,
+  isDev: false, // Set to false to use loadFile instead of loadURL
   isPackaged: false,
 }))
 
@@ -45,6 +60,15 @@ describe('MainWindow - Actual Coverage', () => {
 
     // Mock process
     process.cwd = vi.fn().mockReturnValue('/test/project')
+
+    // Ensure import.meta.env is undefined to trigger production path
+    vi.stubGlobal('import', {
+      meta: {
+        env: {
+          VITE_DEV_SERVER_URL: undefined,
+        },
+      },
+    })
   })
 
   afterEach(() => {
