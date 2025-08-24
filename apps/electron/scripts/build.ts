@@ -1,5 +1,5 @@
 import type { Configuration } from 'electron-builder'
-import { build, Platform } from 'electron-builder'
+import { Arch, build, Platform } from 'electron-builder'
 import type { CopySyncOptions } from 'node:fs'
 import { cpSync, readFileSync } from 'node:fs'
 import path from 'node:path'
@@ -168,18 +168,21 @@ const isArm64 = args.includes('--arm64')
 const isUniversal = args.includes('--universal')
 
 // Determine target architecture(s)
-let targetArchs: string[] = []
+let targetArchs: Arch[] = []
 if (isArm64) {
-  targetArchs = ['arm64']
+  targetArchs = [Arch.arm64]
 } else if (isUniversal && isMac) {
-  targetArchs = ['universal']
+  targetArchs = [Arch.universal]
 } else if (targetArch === 'arm64') {
-  targetArchs = ['arm64']
+  targetArchs = [Arch.arm64]
 } else {
-  targetArchs = ['x64'] // Default to x64
+  targetArchs = [Arch.x64] // Default to x64
 }
 
-console.log('Building for architecture(s):', targetArchs)
+console.log(
+  'Building for architecture(s):',
+  targetArchs.map((a) => Arch[a])
+)
 console.log('Platform:', platform)
 console.log('Target platform:', targetPlatform)
 

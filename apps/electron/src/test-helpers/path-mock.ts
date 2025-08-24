@@ -11,8 +11,19 @@ export const createPathJoinMock = () => {
     // Filter out undefined/null args
     const validArgs = args.filter((arg) => arg != null)
 
+    // Handle special __dirname case
+    const processedArgs = validArgs.map((arg) => {
+      if (arg === '__dirname' && process.platform === 'win32') {
+        return 'C:\\test\\electron'
+      }
+      if (arg === '__dirname') {
+        return '/test/electron'
+      }
+      return arg
+    })
+
     // Join with platform-specific separator
-    const joined = validArgs.join(sep)
+    const joined = processedArgs.join(sep)
 
     // Handle absolute paths on Windows
     if (process.platform === 'win32') {
@@ -23,6 +34,10 @@ export const createPathJoinMock = () => {
       // If it starts with a separator, make it absolute with C: drive
       if (joined.startsWith(sep)) {
         return `C:${joined}`
+      }
+      // If it's a relative path, make it absolute
+      if (!joined.startsWith('C:')) {
+        return `C:\\test\\electron\\${joined}`
       }
     }
 
