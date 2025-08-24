@@ -14,8 +14,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Enable Corepack
-        run: corepack enable
+      # Skip corepack to avoid HTTP 429 errors from npm registry
+      # pnpm is already installed via pnpm/action-setup
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
@@ -45,8 +45,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Enable Corepack
-        run: corepack enable
+      # Skip corepack to avoid HTTP 429 errors from npm registry
+      # pnpm is already installed via pnpm/action-setup
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
@@ -87,8 +87,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Enable Corepack
-        run: corepack enable
+      # Skip corepack to avoid HTTP 429 errors from npm registry
+      # pnpm is already installed via pnpm/action-setup
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
@@ -162,8 +162,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Enable Corepack
-        run: corepack enable
+      # Skip corepack to avoid HTTP 429 errors from npm registry
+      # pnpm is already installed via pnpm/action-setup
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
@@ -247,8 +247,8 @@ jobs:
           node-version: '22.14.0'
           cache: 'pnpm'
 
-      - name: Enable Corepack
-        run: corepack enable
+      # Skip corepack to avoid HTTP 429 errors from npm registry
+      # pnpm is already installed via pnpm/action-setup
 
       - name: Setup Windows build environment
         if: matrix.os == 'windows-latest'
@@ -329,8 +329,8 @@ jobs:
           node-version: '22.14.0'
           cache: 'pnpm'
 
-      - name: Enable Corepack
-        run: corepack enable
+      # Skip corepack to avoid HTTP 429 errors from npm registry
+      # pnpm is already installed via pnpm/action-setup
 
       - name: Setup Windows build environment
         if: matrix.os == 'windows-latest'
@@ -395,8 +395,8 @@ jobs:
           node-version: '22.14.0'
           cache: 'pnpm'
 
-      - name: Enable Corepack
-        run: corepack enable
+      # Skip corepack to avoid HTTP 429 errors from npm registry
+      # pnpm is already installed via pnpm/action-setup
 
       - name: Setup Windows build environment
         if: matrix.os == 'windows-latest'
@@ -458,8 +458,8 @@ jobs:
           node-version: '22.14.0'
           cache: 'pnpm'
 
-      - name: Enable Corepack
-        run: corepack enable
+      # Skip corepack to avoid HTTP 429 errors from npm registry
+      # pnpm is already installed via pnpm/action-setup
 
       - name: Setup Windows build environment
         if: matrix.os == 'windows-latest'
@@ -538,8 +538,8 @@ jobs:
           node-version: '22.14.0'
           cache: 'pnpm'
 
-      - name: Enable Corepack
-        run: corepack enable
+      # Skip corepack to avoid HTTP 429 errors from npm registry
+      # pnpm is already installed via pnpm/action-setup
 
       - name: Verify architecture
         run: |
@@ -625,8 +625,8 @@ jobs:
           node-version: '22.14.0'
           cache: 'pnpm'
 
-      - name: Enable Corepack
-        run: corepack enable
+      # Skip corepack to avoid HTTP 429 errors from npm registry
+      # pnpm is already installed via pnpm/action-setup
 
       - name: Setup Windows build environment
         run: |
@@ -720,8 +720,8 @@ jobs:
           node-version: '22.14.0'
           cache: 'pnpm'
 
-      - name: Enable Corepack
-        run: corepack enable
+      # Skip corepack to avoid HTTP 429 errors from npm registry
+      # pnpm is already installed via pnpm/action-setup
 
       - name: Install dependencies
         run: pnpm install
@@ -795,8 +795,8 @@ jobs:
           node-version: '22.14.0'
           cache: 'pnpm'
 
-      - name: Enable Corepack
-        run: corepack enable
+      # Skip corepack to avoid HTTP 429 errors from npm registry
+      # pnpm is already installed via pnpm/action-setup
 
       - name: Install dependencies
         run: pnpm install

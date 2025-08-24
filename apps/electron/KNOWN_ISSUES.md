@@ -322,6 +322,57 @@ expect(consoleErrorSpy).toHaveBeenCalledWith(
 
 ---
 
+## Windows Electron Integration Tests File URL Error
+
+### Issue
+
+Electron integration tests on Windows fail with "File URL path must be absolute" error when trying to load local HTML files.
+
+**Error message:**
+
+```
+TypeError: File URL path must be absolute
+```
+
+### Root Cause
+
+The `loadURL` method with `file://` URLs doesn't handle Windows paths correctly, especially when paths contain backslashes or drive letters. This causes the URL parser to fail on Windows systems.
+
+### Solution
+
+Use `loadFile` instead of `loadURL` for loading local files. The `loadFile` method is specifically designed for local files and handles path normalization across all platforms.
+
+### Implementation
+
+```typescript
+// mainWindow.ts
+// ❌ INCORRECT - Fails on Windows
+const pageUrl = `file://${join(__dirname, './web/index.html')}`
+await browserWindow.loadURL(pageUrl)
+
+// ✅ CORRECT - Works on all platforms
+await browserWindow.loadFile(join(__dirname, './web/index.html'))
+```
+
+Also update all test mocks to include the `loadFile` method:
+
+```typescript
+// Test files
+BrowserWindow: vi.fn(() => ({
+  loadURL: vi.fn(() => Promise.resolve()),
+  loadFile: vi.fn(() => Promise.resolve()), // Add this
+  // ... other methods
+}))
+```
+
+### TODO
+
+- [x] Fix mainWindow.ts to use loadFile for local files
+- [x] Update all test mocks to include loadFile method
+- [ ] Monitor CI/CD stability on Windows after fix
+
+---
+
 ## Vitest Worker Timeout onTaskUpdate Error
 
 ### Issue
@@ -441,33 +492,34 @@ try {
 
 ---
 
-## Windows ARM64 Build Script ES Module Issue
+## Windows ARM64 Build Script Path Resolution Issue
 
 ### Issue
 
-The build script fails on Windows ARM64 with ES module error when using `require`.
+The build script fails on Windows ARM64 with ENOENT error when trying to locate electron package.json.
 
 **Error message:**
 
 ```
-ReferenceError: require is not defined in ES module scope, you can use import instead
+Error: ENOENT: no such file or directory, open 'D:\a\dx-engine\dx-engine\apps\node_modules\electron\package.json'
 ```
 
 ### Root Cause
 
-The build script was using CommonJS `require()` to import the electron version from package.json, but the project is configured as an ES module.
+The build script was using incorrect path resolution for the monorepo structure. It was looking for `../../node_modules/electron/package.json` (two levels up) when it should be `../../../node_modules/electron/package.json` (three levels up to reach the root node_modules).
 
 ### Solution
 
-Replace `require('electron/package.json').version` with proper ES module imports using `readFileSync` and `JSON.parse`.
+Fixed the path to correctly navigate from `apps/electron/scripts/` to the root `node_modules` directory.
 
 ### Implementation
 
 ```typescript
 // Read electron version from package.json
+// In monorepo structure, node_modules is at the root, three levels up from scripts/
 const electronPkgPath = path.join(
   __dirname,
-  '../../node_modules/electron/package.json'
+  '../../../node_modules/electron/package.json'
 )
 const electronPkg = JSON.parse(readFileSync(electronPkgPath, 'utf8'))
 const electronVersion = electronPkg.version
@@ -475,8 +527,46 @@ const electronVersion = electronPkg.version
 
 ### TODO
 
-- [x] Fix require statement in build.ts
+- [x] Fix path resolution in build.ts
 - [ ] Monitor Windows ARM64 builds after fix
+
+---
+
+## Corepack HTTP 429 Error in CI
+
+### Issue
+
+GitHub Actions CI jobs fail with HTTP 429 (Too Many Requests) errors when corepack tries to fetch pnpm from npm registry.
+
+**Error message:**
+
+```
+Error: Server answered with HTTP 429 when performing the request to https://registry.npmjs.org/pnpm/latest
+```
+
+### Root Cause
+
+Corepack makes requests to npm registry to fetch package manager versions, which can trigger rate limiting (HTTP 429) in CI environments with concurrent jobs.
+
+### Solution
+
+Remove `corepack enable` from CI workflows since `pnpm/action-setup` already handles pnpm installation correctly. The packageManager field in package.json ensures version consistency.
+
+### Implementation
+
+```yaml
+# Before (causes HTTP 429 errors):
+- name: Enable Corepack
+  run: corepack enable
+# After (uses pnpm/action-setup instead):
+# Skip corepack to avoid HTTP 429 errors from npm registry
+# pnpm is already installed via pnpm/action-setup
+```
+
+### TODO
+
+- [x] Remove corepack enable from all CI jobs
+- [ ] Monitor CI stability after removal
 
 ---
 

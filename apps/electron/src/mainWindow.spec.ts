@@ -24,6 +24,7 @@ const { mockBrowserWindow, mockSession } = vi.hoisted(() => ({
     getAllWindows: vi.fn(),
     prototype: {
       loadURL: vi.fn(),
+      loadFile: vi.fn(),
       on: vi.fn(),
       isDestroyed: vi.fn(),
       isMinimized: vi.fn(),
@@ -141,6 +142,7 @@ describe('Main Window Management', () => {
         restore: vi.fn(),
         focus: vi.fn(),
         loadURL: vi.fn().mockResolvedValue(undefined),
+        loadFile: vi.fn().mockResolvedValue(undefined),
         on: vi.fn().mockImplementation((event, callback) => {
           // Immediately trigger ready-to-show event for development mode testing
           if (event === 'ready-to-show') {
@@ -293,6 +295,7 @@ describe('Main Window Management', () => {
         restore: vi.fn(),
         focus: vi.fn(),
         loadURL: vi.fn().mockResolvedValue(undefined),
+        loadFile: vi.fn().mockResolvedValue(undefined),
         on: vi.fn().mockImplementation((event, callback) => {
           // Immediately trigger ready-to-show event for development mode testing
           if (event === 'ready-to-show') {
@@ -876,6 +879,7 @@ describe('Main Window Management', () => {
         createBrowserWindow: vi.fn().mockReturnValue({
           on: vi.fn(),
           loadURL: vi.fn().mockResolvedValue(undefined),
+          loadFile: vi.fn().mockResolvedValue(undefined),
           show: vi.fn(),
           webContents: { openDevTools: vi.fn() },
         }),

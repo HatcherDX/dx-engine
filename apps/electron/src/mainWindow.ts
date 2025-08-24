@@ -88,12 +88,13 @@ async function createWindow() {
     }
   })
 
-  const pageUrl =
-    isDev && import.meta.env.VITE_DEV_SERVER_URL !== undefined
-      ? import.meta.env.VITE_DEV_SERVER_URL
-      : `file://${join(__dirname, './web/index.html')}`
-
-  await browserWindow.loadURL(pageUrl)
+  // For production, use loadFile which handles paths correctly on all platforms
+  if (isDev && import.meta.env.VITE_DEV_SERVER_URL !== undefined) {
+    await browserWindow.loadURL(import.meta.env.VITE_DEV_SERVER_URL)
+  } else {
+    // Use loadFile for local files - it handles Windows paths correctly
+    await browserWindow.loadFile(join(__dirname, './web/index.html'))
+  }
 
   return browserWindow
 }

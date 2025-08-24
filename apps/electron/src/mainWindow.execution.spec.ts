@@ -5,6 +5,7 @@ vi.mock('electron', () => ({
   BrowserWindow: vi.fn(() => ({
     show: vi.fn(),
     loadURL: vi.fn(() => Promise.resolve()),
+    loadFile: vi.fn(() => Promise.resolve()),
     on: vi.fn(),
     webContents: {
       openDevTools: vi.fn(),

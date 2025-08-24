@@ -10,9 +10,10 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 // Read electron version from package.json
+// In monorepo structure, node_modules is at the root, three levels up from scripts/
 const electronPkgPath = path.join(
   __dirname,
-  '../../node_modules/electron/package.json'
+  '../../../node_modules/electron/package.json'
 )
 const electronPkg = JSON.parse(readFileSync(electronPkgPath, 'utf8'))
 const electronVersion = electronPkg.version
