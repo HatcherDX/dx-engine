@@ -140,7 +140,7 @@ error C2362: initialization of 'cols' is skipped by 'goto cleanup'
 The errors occur in `winpty.cc` due to:
 
 1. `GetModuleHandleW` expects a wide string (`LPCWSTR`) but receives a narrow string literal
-2. C++ goto statements jumping over variable initializations, which is not allowed in modern C++ compilers
+2. C++ goto statements jumping over variable initializations, which is not allowed in modern C++ compilers with `/Zc:gotoScope` enabled (default in Visual Studio 2022 17.4+)
 
 These are known bugs in node-pty 1.0.0 that prevent compilation on Windows ARM64.
 
@@ -148,14 +148,44 @@ These are known bugs in node-pty 1.0.0 that prevent compilation on Windows ARM64
 
 - GitHub Issue: https://github.com/microsoft/node-pty/issues/683
 - Beta versions 1.1.0-beta34 may have the fix but are not stable for production use
+- C2362 error is due to stricter C++ compliance in Visual Studio 2022
 
 ### Current Workaround
 
 In CI/CD pipeline (`.github/workflows/ci.yml`):
 
-- Skip node-pty compilation using `pnpm install --ignore-scripts`
-- Explicitly exclude node-pty from rebuild: `pnpm rebuild better-sqlite3 argon2 lz4 --filter '!node-pty' --config.arch=arm64`
-- This is acceptable for cross-compilation testing since node-pty is not critical for ARM64 builds
+1. **Build without native module rebuild**:
+   - Build TypeScript and webpack bundle separately: `pnpm run build:prod`
+   - Package with unresolved dependencies allowed: `ELECTRON_BUILDER_ALLOW_UNRESOLVED_DEPENDENCIES=true`
+   - Run packaging without triggering native module rebuild
+
+2. **Implementation**:
+
+   ```powershell
+   # Build TypeScript and bundle with webpack
+   pnpm run build:prod
+
+   # Package the app without rebuilding native modules
+   $env:ELECTRON_BUILDER_ALLOW_UNRESOLVED_DEPENDENCIES = "true"
+   npx tsx scripts/build.ts --win --arm64
+   ```
+
+3. **Why this works**:
+   - The app builds successfully without node-pty support on Windows ARM64
+   - Other native modules (better-sqlite3, argon2, lz4) are already rebuilt during dependency installation
+   - node-pty is optional for the terminal system (falls back to subprocess backend)
+
+### Alternative Solutions (Not Currently Used)
+
+1. **Compiler Flag Solution** (requires modifying node-pty build):
+   - Add `/Zc:gotoScope-` to relax goto scope checking
+   - Would require patching node-pty's binding.gyp or using custom gypi files
+   - Complex to implement reliably in CI/CD
+
+2. **Skip Installation**:
+   - Use `pnpm install --ignore-scripts` to skip all native compilation
+   - Explicitly exclude node-pty from rebuild
+   - More restrictive as it skips all postinstall scripts
 
 ### TODO
 

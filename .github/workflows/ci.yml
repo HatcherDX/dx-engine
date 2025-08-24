@@ -681,12 +681,24 @@ jobs:
       - name: Build Electron for Windows ARM64
         run: |
           cd apps/electron
-          pnpm run build:win-arm64
+
+          # Build TypeScript and bundle with webpack
+          Write-Host "Building TypeScript and bundling..."
+          pnpm run build:prod
+
+          # Package the app without rebuilding native modules
+          # node-pty will fail to compile due to C2362 errors on Windows ARM64
+          # See: https://github.com/microsoft/node-pty/issues/683
+          Write-Host "Packaging Electron app for Windows ARM64..."
+          $env:ELECTRON_BUILDER_ALLOW_UNRESOLVED_DEPENDENCIES = "true"
+          npx tsx scripts/build.ts --win --arm64
         env:
           npm_config_arch: arm64
           npm_config_target_arch: arm64
+          TARGET_ARCH: arm64
           MSVS_VERSION: 2022
           npm_config_msvs_version: 2022
+          ELECTRON_BUILDER_ALLOW_UNRESOLVED_DEPENDENCIES: true
 
       - name: Upload Windows ARM64 build artifacts
         uses: actions/upload-artifact@v4
