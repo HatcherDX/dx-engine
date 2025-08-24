@@ -31,7 +31,11 @@ vi.mock('node:fs', () => ({
 }))
 
 vi.mock('node:path', () => ({
-  join: vi.fn((...args) => args.join('/')),
+  join: vi.fn((...args) => {
+    // Use backslashes on Windows, forward slashes elsewhere
+    const separator = process.platform === 'win32' ? '\\' : '/'
+    return args.join(separator)
+  }),
 }))
 
 // Mock the utils module that's causing issues

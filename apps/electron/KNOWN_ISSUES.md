@@ -156,8 +156,8 @@ In CI/CD pipeline (`.github/workflows/ci.yml`):
 
 1. **Build without native module rebuild**:
    - Build TypeScript and webpack bundle separately: `pnpm run build:prod`
+   - Set `SKIP_NODE_PTY_REBUILD=true` to disable npmRebuild in Electron Builder
    - Package with unresolved dependencies allowed: `ELECTRON_BUILDER_ALLOW_UNRESOLVED_DEPENDENCIES=true`
-   - Run packaging without triggering native module rebuild
 
 2. **Implementation**:
 
@@ -167,10 +167,20 @@ In CI/CD pipeline (`.github/workflows/ci.yml`):
 
    # Package the app without rebuilding native modules
    $env:ELECTRON_BUILDER_ALLOW_UNRESOLVED_DEPENDENCIES = "true"
+   $env:SKIP_NODE_PTY_REBUILD = "true"
    npx tsx scripts/build.ts --win --arm64
    ```
 
-3. **Why this works**:
+3. **Code changes**:
+   - Modified `scripts/build.ts` to check for `SKIP_NODE_PTY_REBUILD` environment variable:
+
+   ```typescript
+   // Skip rebuild for Windows ARM64 to avoid node-pty C2362 compilation errors
+   npmRebuild: process.env.SKIP_NODE_PTY_REBUILD !== 'true',
+   ```
+
+4. **Why this works**:
+   - Prevents Electron Builder from triggering native module rebuild during packaging
    - The app builds successfully without node-pty support on Windows ARM64
    - Other native modules (better-sqlite3, argon2, lz4) are already rebuilt during dependency installation
    - node-pty is optional for the terminal system (falls back to subprocess backend)
@@ -402,15 +412,34 @@ await browserWindow.loadURL(pageUrl)
 await browserWindow.loadFile(join(__dirname, './web/index.html'))
 ```
 
-Also update all test mocks to include the `loadFile` method:
+Also update all test mocks to include the `loadFile` method and use platform-aware path separators:
 
 ```typescript
-// Test files
+// Test files - Path mock must use correct separator for Windows
+vi.mock('node:path', () => ({
+  join: vi.fn((...args) => {
+    // Use backslashes on Windows, forward slashes elsewhere
+    const separator = process.platform === 'win32' ? '\\' : '/'
+    return args.join(separator)
+  }),
+}))
+
+// BrowserWindow mock must include loadFile
 BrowserWindow: vi.fn(() => ({
   loadURL: vi.fn(() => Promise.resolve()),
   loadFile: vi.fn(() => Promise.resolve()), // Add this
   // ... other methods
 }))
+```
+
+### Test Helper
+
+A reusable helper is available in `src/test-helpers/path-mock.ts`:
+
+```typescript
+import { pathMock } from './test-helpers/path-mock'
+
+vi.mock('node:path', () => pathMock)
 ```
 
 ### TODO

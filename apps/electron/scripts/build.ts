@@ -146,7 +146,8 @@ const config: Configuration = {
     artifactName: '${productName}-${version}-${arch}.${ext}',
   },
   // Architecture-specific node modules rebuild
-  npmRebuild: true,
+  // Skip rebuild for Windows ARM64 to avoid node-pty C2362 compilation errors
+  npmRebuild: process.env.SKIP_NODE_PTY_REBUILD !== 'true',
   // Build for specific architecture if specified
   ...(isARM64Build && {
     electronDist: `node_modules/electron/dist`,

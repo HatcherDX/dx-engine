@@ -691,6 +691,7 @@ jobs:
           # See: https://github.com/microsoft/node-pty/issues/683
           Write-Host "Packaging Electron app for Windows ARM64..."
           $env:ELECTRON_BUILDER_ALLOW_UNRESOLVED_DEPENDENCIES = "true"
+          $env:SKIP_NODE_PTY_REBUILD = "true"
           npx tsx scripts/build.ts --win --arm64
         env:
           npm_config_arch: arm64
@@ -699,6 +700,7 @@ jobs:
           MSVS_VERSION: 2022
           npm_config_msvs_version: 2022
           ELECTRON_BUILDER_ALLOW_UNRESOLVED_DEPENDENCIES: true
+          SKIP_NODE_PTY_REBUILD: true
 
       - name: Upload Windows ARM64 build artifacts
         uses: actions/upload-artifact@v4
