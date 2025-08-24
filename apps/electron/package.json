@@ -1,7 +1,7 @@
 {
   "name": "@hatcherdx/dx-engine-electron",
   "type": "module",
-  "version": "0.3.5",
+  "version": "1.0.0",
   "private": false,
   "description": "DX Engine - Electron main process",
   "author": {

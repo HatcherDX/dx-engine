@@ -1,6 +1,6 @@
 {
   "name": "@hatcherdx/git-genius",
-  "version": "0.3.5",
+  "version": "1.0.0",
   "type": "module",
   "description": "Advanced Git operations with Timeline mode support and intelligent caching for Hatcher DX Engine",
   "author": {

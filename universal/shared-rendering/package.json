@@ -1,6 +1,6 @@
 {
   "name": "@hatcherdx/shared-rendering",
-  "version": "0.3.5",
+  "version": "1.0.0",
   "type": "module",
   "description": "Shared WebGL rendering engine for terminal and Git UI components",
   "author": {

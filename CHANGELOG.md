@@ -1,3 +1,16 @@
+# 1.0.0 (2025-08-24)
+
+
+### Features
+
+* add GitHub issue and PR templates for community management ([51e984d](https://github.com/hatcherdx/dx-engine/commit/51e984d94d54c0e298b6efbd309af4c593f8858f))
+* **core:** Architect and implement foundational IDE systems ([6565e25](https://github.com/hatcherdx/dx-engine/commit/6565e255b1fb682ef7b375131e5a7d6d179b5950))
+* **git-genius:** Launch Git Genius - Core Engine & Enterprise Optimizations ([20108cf](https://github.com/hatcherdx/dx-engine/commit/20108cf5af706651f06ade51168cbc6f47887669))
+* **onboarding:** task selection UI ([0963abf](https://github.com/hatcherdx/dx-engine/commit/0963abfb6f756483b364651350a3c912dcb65587))
+* **storage:** Implement and stabilize enterprise-grade storage module ([dcad8ad](https://github.com/hatcherdx/dx-engine/commit/dcad8ad4be7f07f57a9cc81be4cf7f9fe77464e8))
+* **terminal:** Implement professional-grade terminal ([27f4e7d](https://github.com/hatcherdx/dx-engine/commit/27f4e7d7dbbb2a70f511536c2048c416006787ed))
+* **ui:** Foundational UI Overhaul & Theming ([8310e6a](https://github.com/hatcherdx/dx-engine/commit/8310e6a8312d8fd13b815e780abdaa349fec3175))
+
 # Changelog
 
 All notable changes to this project will be documented in this file. This changelog is a testament to our journey of building the future of development, one milestone at a time.

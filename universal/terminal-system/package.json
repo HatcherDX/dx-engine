@@ -1,6 +1,6 @@
 {
   "name": "@hatcherdx/terminal-system",
-  "version": "0.3.5",
+  "version": "1.0.0",
   "description": "Robust terminal system based on VSCode architecture for DX Engine",
   "type": "module",
   "main": "dist/index.js",
