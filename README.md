@@ -152,6 +152,15 @@ pnpm pack:dev
 pnpm pack:prod
 ```
 
+## Development & Branches
+
+We use a dual-branch strategy:
+
+- **`nightly`**: Active development branch with daily updates and experimental features
+- **`main`**: Stable releases only, promoted from `nightly` after thorough testing
+
+All development and pull requests should target the `nightly` branch.
+
 ## Contributing
 
 We believe the future of development tools will be built by the community. If you are passionate about developer experience and the future of AI, we would love your help.

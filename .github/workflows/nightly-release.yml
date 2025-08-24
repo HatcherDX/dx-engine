@@ -79,11 +79,14 @@ jobs:
           git config --global user.email "noreply@hatche.rs"
           git config --global user.name "Hatcher Release Bot"
 
-      - name: Switch to nightly branch
+      - name: Checkout nightly branch
         run: |
-          # Create or update nightly branch
-          git checkout -B nightly
-          git merge main --no-ff -m "Merge main into nightly for release"
+          # Fetch and checkout the persistent nightly branch
+          git fetch origin nightly:nightly
+          git checkout nightly
+
+          # Merge latest changes from main if needed
+          git merge origin/main --no-ff -m "Merge main into nightly for release" || true
 
       - name: Run semantic-release (dry run)
         env:

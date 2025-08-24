@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: ['main']
+    branches: ['main', 'nightly']
   pull_request:
-    branches: ['main']
+    branches: ['main', 'nightly']
 
 jobs:
   build:
@@ -77,7 +77,7 @@ jobs:
   # Terminal PTY tests with OS matrix (runs on main branch)
   terminal-pty-tests:
     runs-on: ${{ matrix.os }}
-    if: github.ref == 'refs/heads/main' || contains(github.event.pull_request.labels.*.name, 'test-terminal')
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/nightly' || contains(github.event.pull_request.labels.*.name, 'test-terminal')
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
@@ -152,7 +152,7 @@ jobs:
   # Git integration tests with OS matrix (runs on main branch)
   git-integration-tests:
     runs-on: ${{ matrix.os }}
-    if: github.ref == 'refs/heads/main' || contains(github.event.pull_request.labels.*.name, 'test-git')
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/nightly' || contains(github.event.pull_request.labels.*.name, 'test-git')
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
@@ -226,7 +226,7 @@ jobs:
   # Electron integration tests with OS matrix (runs on main branch)
   electron-integration-tests:
     runs-on: ${{ matrix.os }}
-    if: github.ref == 'refs/heads/main' || contains(github.event.pull_request.labels.*.name, 'test-electron')
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/nightly' || contains(github.event.pull_request.labels.*.name, 'test-electron')
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
@@ -308,7 +308,7 @@ jobs:
   # Translation system cross-platform tests (runs on main branch)
   translation-crossplatform-tests:
     runs-on: ${{ matrix.os }}
-    if: github.ref == 'refs/heads/main' || contains(github.event.pull_request.labels.*.name, 'test-translation')
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/nightly' || contains(github.event.pull_request.labels.*.name, 'test-translation')
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
@@ -374,7 +374,7 @@ jobs:
   # Build scripts integration tests (runs on main branch)
   scripts-integration-tests:
     runs-on: ${{ matrix.os }}
-    if: github.ref == 'refs/heads/main' || contains(github.event.pull_request.labels.*.name, 'test-scripts')
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/nightly' || contains(github.event.pull_request.labels.*.name, 'test-scripts')
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
@@ -437,7 +437,7 @@ jobs:
   # Vite plugin cross-platform tests (runs on main branch)
   vite-plugin-crossplatform-tests:
     runs-on: ${{ matrix.os }}
-    if: github.ref == 'refs/heads/main' || contains(github.event.pull_request.labels.*.name, 'test-vite-plugin')
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/nightly' || contains(github.event.pull_request.labels.*.name, 'test-vite-plugin')
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
@@ -500,7 +500,7 @@ jobs:
   # ARM64 Architecture Tests - Native ARM64 support validation
   arm64-native-tests:
     runs-on: ${{ matrix.os }}
-    if: github.ref == 'refs/heads/main' || contains(github.event.pull_request.labels.*.name, 'test-arm64')
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/nightly' || contains(github.event.pull_request.labels.*.name, 'test-arm64')
     strategy:
       matrix:
         include:
@@ -608,7 +608,7 @@ jobs:
   # Windows ARM64 Tests via Cross-compilation
   windows-arm64-build:
     runs-on: windows-latest
-    if: github.ref == 'refs/heads/main' || contains(github.event.pull_request.labels.*.name, 'test-arm64')
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/nightly' || contains(github.event.pull_request.labels.*.name, 'test-arm64')
 
     steps:
       - name: Checkout repository
@@ -716,7 +716,7 @@ jobs:
   test-coverage:
     runs-on: ubuntu-latest
     needs: [unit-tests]
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/nightly'
     permissions:
       contents: write
 

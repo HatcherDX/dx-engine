@@ -25,6 +25,13 @@ When creating a new issue, please use our provided templates for bug reports or 
 - Please do not use the issue tracker for personal support requests.
 - Keep the discussion on topic and respect the opinions of others.
 
+## Branch Strategy
+
+We use a dual-branch development strategy:
+
+- **`nightly` branch**: All daily development happens here. This branch receives frequent updates and experimental features.
+- **`main` branch**: Stable releases only. Code is promoted from `nightly` to `main` when ready for production.
+
 ### Submitting a Pull Request
 
 We love pull requests! If you want to contribute code, please follow the instructions below:
@@ -35,8 +42,13 @@ We love pull requests! If you want to contribute code, please follow the instruc
 2.  **Navigate to the project directory.**
     `cd dx-engine`
 
-3.  **Create a new feature branch** from the `main` branch. Please give it a descriptive name (e.g., `feature/add-new-button` or `fix/fix-login-bug`).
-    `git checkout -b <your-branch-name>`
+3.  **Create a new feature branch** from the `nightly` branch (not `main`). Please give it a descriptive name (e.g., `feature/add-new-button` or `fix/fix-login-bug`).
+
+    ```bash
+    git checkout nightly
+    git pull origin nightly
+    git checkout -b <your-branch-name>
+    ```
 
 4.  **Make your changes.** Write clean, readable code. If you add a new feature, please ensure it is covered by unit tests.
 
@@ -48,7 +60,9 @@ We love pull requests! If you want to contribute code, please follow the instruc
 7.  **Push your branch** up to your fork on GitHub.
     `git push origin <your-branch-name>`
 
-8.  **Open a Pull Request (PR)** against our `main` branch. Provide a clear title and a detailed description of the changes you've made.
+8.  **Open a Pull Request (PR)** against our `nightly` branch (not `main`). Provide a clear title and a detailed description of the changes you've made.
+
+**Important:** All PRs should target the `nightly` branch for initial review and testing. Code will be promoted to `main` through scheduled releases.
 
 **Note:** By submitting a pull request, you agree to allow the project owners to license your work under the terms of the **[MIT License](LICENSE.md)**.
 
