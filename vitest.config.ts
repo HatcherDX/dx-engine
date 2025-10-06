@@ -228,6 +228,7 @@ export default defineConfig({
         '**/*.integration.ts',
         '**/demo/electron-preload.js',
         '**/demo/electron-main*.js',
+        '**/demo/**/*.spec.js',
       ],
     },
   },

@@ -28,6 +28,9 @@ import * as os from 'node:os'
 import simpleGit from 'simple-git'
 import type { SimpleGit } from 'simple-git'
 
+// Dynamically determine IDE root directory (works in both local and CI environments)
+const IDE_ROOT = path.resolve(__dirname, '../../..')
+
 /**
  * Security validation function from ipc.ts.
  *
@@ -54,11 +57,7 @@ const validateNotIDEDirectory = async (projectPath: string): Promise<void> => {
     .toLowerCase()
 
   // List of paths that indicate the IDE directory
-  const idePaths = [
-    '/Users/chrissmejia/Sites/dx-engine',
-    'dx-engine',
-    'Sites/dx-engine',
-  ]
+  const idePaths = [IDE_ROOT, 'dx-engine', 'Sites/dx-engine']
 
   // Check if the project path matches any IDE path
   for (const idePath of idePaths) {
@@ -160,7 +159,7 @@ describe('Git Security Integration Tests - Real Commands', () => {
 
   describe('Security Validation - Block IDE Modifications', () => {
     it('should BLOCK Git operations on the actual IDE directory', async () => {
-      const ideDirectory = '/Users/chrissmejia/Sites/dx-engine'
+      const ideDirectory = IDE_ROOT
 
       // Attempt to perform Git status on IDE directory
       await expect(
@@ -173,7 +172,7 @@ describe('Git Security Integration Tests - Real Commands', () => {
     })
 
     it('should BLOCK Git operations on IDE subdirectories', async () => {
-      const ideSubDir = '/Users/chrissmejia/Sites/dx-engine/apps/electron'
+      const ideSubDir = path.join(IDE_ROOT, 'apps/electron')
 
       await expect(
         secureGitOperation(ideSubDir, async (git) => {
@@ -186,11 +185,7 @@ describe('Git Security Integration Tests - Real Commands', () => {
 
     it('should BLOCK Git operations with different path formats', async () => {
       // Only test paths that actually exist or absolute paths
-      const pathVariations = [
-        '/Users/chrissmejia/Sites/dx-engine/',
-        '/Users/chrissmejia/Sites/dx-engine/.',
-        '/Users/chrissmejia/Sites/dx-engine',
-      ]
+      const pathVariations = [IDE_ROOT + '/', IDE_ROOT + '/.', IDE_ROOT]
 
       for (const path of pathVariations) {
         await expect(validateNotIDEDirectory(path)).rejects.toThrow(
@@ -210,7 +205,7 @@ describe('Git Security Integration Tests - Real Commands', () => {
     })
 
     it('should BLOCK Git stash operations on IDE directory', async () => {
-      const ideDirectory = '/Users/chrissmejia/Sites/dx-engine'
+      const ideDirectory = IDE_ROOT
 
       await expect(
         secureGitOperation(ideDirectory, async (git) => {
@@ -222,7 +217,7 @@ describe('Git Security Integration Tests - Real Commands', () => {
     })
 
     it('should BLOCK Git checkout operations on IDE directory', async () => {
-      const ideDirectory = '/Users/chrissmejia/Sites/dx-engine'
+      const ideDirectory = IDE_ROOT
 
       await expect(
         secureGitOperation(ideDirectory, async (git) => {
@@ -442,11 +437,7 @@ describe('Frontend Composable Security Validation', () => {
     }
 
     // List of paths that indicate the IDE directory
-    const idePaths = [
-      '/Users/chrissmejia/Sites/dx-engine',
-      'dx-engine',
-      'Sites/dx-engine',
-    ]
+    const idePaths = [IDE_ROOT, 'dx-engine', 'Sites/dx-engine']
 
     const normalizedPath = projectPath.replace(/\\/g, '/').toLowerCase()
 
@@ -474,8 +465,8 @@ describe('Frontend Composable Security Validation', () => {
 
   it('should block IDE directory in frontend validation', () => {
     const idePaths = [
-      '/Users/chrissmejia/Sites/dx-engine',
-      '/Users/chrissmejia/Sites/dx-engine/apps/web',
+      IDE_ROOT,
+      path.join(IDE_ROOT, 'apps/web'),
       'dx-engine',
       'Sites/dx-engine',
     ]
