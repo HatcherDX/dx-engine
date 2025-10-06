@@ -1,6 +1,8 @@
-import { reactive, watch, computed } from 'vue'
+import { reactive, watch, computed, ref } from 'vue'
 import type { ModeType } from '../components/molecules/ModeSelector.vue'
 import { useProjectContext } from './useProjectContext'
+import { useGitIntegration } from './useGitIntegration'
+import { useFileWatcher } from './useFileWatcher'
 
 interface BreadcrumbContext {
   generative: {
@@ -23,13 +25,32 @@ const STORAGE_KEY = 'hatcher-breadcrumb-context'
 
 export function useBreadcrumbContext() {
   // Get project context for real data
-  const { openedProject, isProjectLoaded } = useProjectContext()
+  const { openedProject, isProjectLoaded, refreshFiles } = useProjectContext()
+
+  // Get Git integration for branch information
+  const { getGitBranches } = useGitIntegration()
+
+  // Current Git branch
+  const currentGitBranch = ref<string>('main')
+
+  // Flag to track if we've already triggered onboarding for missing project
+  const hasTriggeredOnboarding = ref(false)
+
+  // Throttle timer for file refresh to prevent performance issues
+  let fileRefreshTimer: NodeJS.Timeout | null = null
+  const FILE_REFRESH_THROTTLE = 5000 // Only refresh files every 5 seconds max
 
   // Computed project display name from package.json
   const projectDisplayName = computed(() => {
     if (!isProjectLoaded.value || !openedProject.value) {
+      // Don't trigger onboarding immediately - the onboarding composable
+      // will handle checking for workspace and activating if needed
+      // This prevents the flash of onboarding on startup
       return 'no-project'
     }
+
+    // Reset flag when project is loaded
+    hasTriggeredOnboarding.value = false
 
     const packageJson = openedProject.value.packageJson
     if (packageJson && packageJson.name) {
@@ -87,6 +108,114 @@ export function useBreadcrumbContext() {
   // Watch for changes and save automatically
   watch(context, saveContext, { deep: true })
 
+  // Function to update Git branch
+  const updateGitBranch = async () => {
+    if (!isProjectLoaded.value || !openedProject.value?.rootPath) {
+      currentGitBranch.value = 'main'
+      return
+    }
+
+    try {
+      const branches = await getGitBranches(openedProject.value.rootPath)
+      if (branches && branches.current) {
+        currentGitBranch.value = branches.current
+        console.log('[BreadcrumbContext] Current Git branch:', branches.current)
+      } else {
+        currentGitBranch.value = 'main'
+      }
+    } catch (error) {
+      console.warn('[BreadcrumbContext] Failed to get Git branch:', error)
+      currentGitBranch.value = 'main'
+    }
+  }
+
+  // Set up file watcher for Git changes instead of polling
+  const { startWatching, onFileChange } = useFileWatcher()
+
+  // Watch for project changes, update Git branch and start file watcher
+  watch(
+    [isProjectLoaded, openedProject],
+    async ([loaded, project]) => {
+      // Always update git branch when project changes
+      await updateGitBranch()
+
+      // Set up file watcher if project is loaded
+      if (loaded && project?.rootPath) {
+        try {
+          await startWatching(project.rootPath)
+
+          // Listen for Git-related file changes
+          onFileChange('git', async () => {
+            console.log(
+              '[BreadcrumbContext] Git file change detected, updating branch'
+            )
+            await updateGitBranch()
+          })
+
+          // Listen for source file changes to refresh file tree (throttled)
+          onFileChange('source', async () => {
+            // Clear existing timer if any
+            if (fileRefreshTimer) {
+              clearTimeout(fileRefreshTimer)
+            }
+
+            // Set new throttled refresh
+            fileRefreshTimer = setTimeout(async () => {
+              console.log(
+                '[BreadcrumbContext] Source file changes detected (throttled), refreshing files'
+              )
+              try {
+                await refreshFiles()
+                fileRefreshTimer = null
+              } catch (error) {
+                console.warn(
+                  '[BreadcrumbContext] Failed to refresh files:',
+                  error
+                )
+              }
+            }, FILE_REFRESH_THROTTLE)
+          })
+
+          // Listen for config file changes to refresh file tree (throttled)
+          onFileChange('config', async () => {
+            // Clear existing timer if any
+            if (fileRefreshTimer) {
+              clearTimeout(fileRefreshTimer)
+            }
+
+            // Set new throttled refresh
+            fileRefreshTimer = setTimeout(async () => {
+              console.log(
+                '[BreadcrumbContext] Config file changes detected (throttled), refreshing files'
+              )
+              try {
+                await refreshFiles()
+                fileRefreshTimer = null
+              } catch (error) {
+                console.warn(
+                  '[BreadcrumbContext] Failed to refresh files:',
+                  error
+                )
+              }
+            }, FILE_REFRESH_THROTTLE)
+          })
+
+          console.log(
+            '[BreadcrumbContext] File watcher started for:',
+            project.rootPath
+          )
+        } catch (error) {
+          console.warn(
+            '[BreadcrumbContext] Failed to start file watcher:',
+            error
+          )
+          // Fallback to manual updates if file watching fails
+        }
+      }
+    },
+    { immediate: true }
+  )
+
   // Methods to update specific mode contexts
   const updateGenerativePath = (projectPath: string) => {
     context.generative.projectPath = projectPath
@@ -117,23 +246,29 @@ export function useBreadcrumbContext() {
           projectPath: isProjectLoaded.value
             ? openedProject.value?.rootPath
             : context.generative.projectPath,
+          gitBranch: currentGitBranch.value,
         }
       case 'visual':
         return {
           currentUrl: context.visual.currentUrl,
+          gitBranch: currentGitBranch.value,
         }
       case 'code':
         return {
           projectName: projectDisplayName.value,
           filePath: context.code.filePath,
+          gitBranch: currentGitBranch.value,
         }
       case 'timeline':
         return {
           projectName: projectDisplayName.value,
+          gitBranch: currentGitBranch.value,
           currentPeriod: context.timeline.currentPeriod,
         }
       default:
-        return {}
+        return {
+          gitBranch: currentGitBranch.value,
+        }
     }
   }
 
@@ -194,5 +329,7 @@ export function useBreadcrumbContext() {
     updateTimelineContext,
     simulateFileChange,
     projectDisplayName,
+    currentGitBranch,
+    updateGitBranch,
   }
 }

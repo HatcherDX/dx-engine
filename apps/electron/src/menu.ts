@@ -1,11 +1,31 @@
-import { Menu, MenuItemConstructorOptions } from 'electron'
+import { Menu, MenuItemConstructorOptions, BrowserWindow } from 'electron'
 import { isDev } from './utils'
 import { ipcMain } from './ipc'
+
+// Store reference to main window
+let mainWindow: BrowserWindow | null = null
+
+/**
+ * Open Settings view in the renderer
+ */
+function openSettings() {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    console.log('[Menu] Sending open-settings event to renderer')
+    mainWindow.webContents.send('open-settings')
+  } else {
+    console.warn('[Menu] Cannot open settings: Main window not available')
+  }
+}
 
 /**
  * Setup application menu with custom Development menu in dev mode
  */
-export function setupApplicationMenu() {
+export function setupApplicationMenu(window?: BrowserWindow) {
+  // Store the window reference if provided
+  if (window) {
+    mainWindow = window
+    console.log('[Menu] Main window reference stored for menu commands')
+  }
   const isMac = process.platform === 'darwin'
 
   const template: MenuItemConstructorOptions[] = [
@@ -19,10 +39,10 @@ export function setupApplicationMenu() {
               { type: 'separator' as const },
               {
                 label: 'Settings...',
-                enabled: false,
+                enabled: true,
                 accelerator: 'Cmd+,',
                 click: () => {
-                  // TODO: Open settings dialog
+                  openSettings()
                 },
               },
               { type: 'separator' as const },
@@ -31,6 +51,14 @@ export function setupApplicationMenu() {
               { role: 'hide' as const },
               { role: 'hideothers' as const },
               { role: 'unhide' as const },
+              { type: 'separator' as const },
+              {
+                label: 'Close Task',
+                accelerator: 'Cmd+W',
+                click: () => {
+                  closeTask()
+                },
+              },
               { type: 'separator' as const },
               { role: 'quit' as const },
             ],
@@ -41,10 +69,19 @@ export function setupApplicationMenu() {
             label: 'File',
             submenu: [
               {
-                label: 'Settings...',
-                enabled: false,
+                label: 'Close Task',
+                accelerator: 'CmdOrCtrl+W',
                 click: () => {
-                  // TODO: Open settings dialog
+                  closeTask()
+                },
+              },
+              { type: 'separator' as const },
+              {
+                label: 'Settings...',
+                enabled: true,
+                accelerator: 'CmdOrCtrl+,',
+                click: () => {
+                  openSettings()
                 },
               },
               { type: 'separator' as const },
@@ -214,6 +251,23 @@ function simulatePlatform(platform: 'macos' | 'windows' | 'linux') {
 }
 
 /**
+ * Close current task and return to onboarding
+ */
+function closeTask() {
+  console.log('[Menu] Close Task menu item clicked')
+
+  // Try to use the stored main window first, then fall back to focused window
+  const targetWindow = mainWindow || BrowserWindow.getFocusedWindow()
+
+  if (targetWindow && !targetWindow.isDestroyed()) {
+    console.log('[Menu] Sending close-task message to renderer')
+    targetWindow.webContents.send('close-task')
+  } else {
+    console.warn('[Menu] No valid window found to send close-task message')
+  }
+}
+
+/**
  * Reset to the native platform
  */
 function resetToNativePlatform() {
@@ -225,6 +279,7 @@ function resetToNativePlatform() {
   } else {
     nativePlatform = 'linux'
   }
+
   // Use the custom IPC system
   ipcMain.send('simulate-platform', nativePlatform)
 }

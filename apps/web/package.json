@@ -26,8 +26,11 @@
     "@xterm/addon-unicode11": "^0.8.0",
     "@xterm/addon-web-links": "^0.11.0",
     "@xterm/addon-webgl": "^0.18.0",
+    "focus-trap": "^7",
     "prismjs": "^1.30.0",
+    "tippy.js": "^6.3.7",
     "vue": "^3.5.13",
+    "vue-tippy": "v6",
     "xterm": "^5.3.0"
   },
   "devDependencies": {

@@ -103,8 +103,8 @@ describe('Sidebar', () => {
           isResizing: false,
         },
         slots: {
-          default:
-            '<div>Navigation<br/>Sidebar content goes here<br/>Ready</div>',
+          'sidebar-header': '<div>Navigation</div>',
+          'sidebar-content': '<div>Sidebar content goes here<br/>Ready</div>',
         },
       })
 
@@ -122,13 +122,11 @@ describe('Sidebar', () => {
         slots: {
           'sidebar-header': '<div>Custom Header</div>',
           'sidebar-content': '<div>Custom Content</div>',
-          'sidebar-footer': '<div>Custom Footer</div>',
         },
       })
 
       expect(wrapper.text()).toContain('Custom Header')
       expect(wrapper.text()).toContain('Custom Content')
-      expect(wrapper.text()).toContain('Custom Footer')
     })
   })
 

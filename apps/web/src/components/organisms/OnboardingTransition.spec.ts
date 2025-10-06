@@ -20,10 +20,9 @@ interface OnboardingTransitionInstance
   extends InstanceType<typeof OnboardingTransition> {
   isLoading: boolean
   progress: number
-  currentMessage: string
+  currentMessageIndex: number
   selectedTask: { id: string; name: string } | null
   completeTask: () => void
-  skipTask: () => void
   [key: string]: unknown
 }
 
@@ -66,6 +65,7 @@ interface TransitionTask {
 // Mock useOnboarding composable
 const mockOnboarding = {
   getSelectedTask: ref<TransitionTask | null>(null),
+  getSelectedBranch: ref<{ name: string; ref: string } | null>(null),
   completeOnboarding: vi.fn(),
 }
 
@@ -96,6 +96,7 @@ beforeEach(() => {
 
   // Reset onboarding mock state
   mockOnboarding.getSelectedTask.value = null
+  mockOnboarding.getSelectedBranch.value = null
   mockOnboarding.completeOnboarding.mockClear()
 })
 
@@ -169,19 +170,18 @@ describe('OnboardingTransition', () => {
     })
 
     /**
-     * Tests skip button presence.
+     * Tests that component auto-completes.
      *
      * @returns void
-     * Should show skip animation button
+     * Should auto-complete after showing all messages
      *
      * @public
      */
-    it('should render skip button', () => {
+    it('should render progress messages', () => {
       wrapper = mount(OnboardingTransition)
 
-      const skipButton = wrapper.find('[data-testid="base-button"]')
-      expect(skipButton.exists()).toBe(true)
-      expect(skipButton.text()).toBe('Skip animation')
+      const progressMessages = wrapper.find('.progress-messages')
+      expect(progressMessages.exists()).toBe(true)
     })
   })
 
@@ -495,79 +495,88 @@ describe('OnboardingTransition', () => {
 
   describe('User Interactions', () => {
     /**
-     * Tests skip button click functionality.
+     * Tests auto-completion functionality.
      *
      * @returns Promise<void>
-     * Should complete onboarding when skip button is clicked
+     * Should complete onboarding automatically after timeout
      *
      * @public
      */
-    it('should complete onboarding when skip button is clicked', async () => {
+    it('should complete onboarding automatically after timeout', async () => {
       wrapper = mount(OnboardingTransition)
 
-      const skipButton = wrapper.find('[data-testid="base-button"]')
-
-      // Trigger the click event and check component behavior
-      await skipButton.trigger('click')
+      // The component should auto-complete after its internal timer
+      vi.advanceTimersByTime(5000)
       await nextTick()
 
-      // The component should call completeOnboarding through the mock
-      // Note: The mock might be called through component methods
-      expect(skipButton.exists()).toBe(true)
+      // The component should exist and be valid
+      expect(wrapper.exists()).toBe(true)
     })
 
     /**
-     * Tests skip button stops animation.
+     * Tests progress animation continues automatically.
      *
      * @returns Promise<void>
-     * Should clear interval when skip button is clicked
+     * Should progress through messages automatically
      *
      * @public
      */
-    it('should stop progress animation when skip button is clicked', async () => {
+    it('should progress through messages automatically', async () => {
       wrapper = mount(OnboardingTransition)
 
       const vm = wrapper.vm as OnboardingTransitionInstance
       expect(vm.currentMessageIndex).toBe(0)
 
-      const skipButton = wrapper.find('[data-testid="base-button"]')
-      await skipButton.trigger('click')
+      // Advance time to see progress
+      vi.advanceTimersByTime(1000)
       await nextTick()
+      expect(vm.currentMessageIndex).toBe(1)
 
-      // Component should handle skip button click
-      expect(skipButton.exists()).toBe(true)
-
-      // Advance time to ensure animation is stopped
-      vi.advanceTimersByTime(2000)
+      // Advance more time
+      vi.advanceTimersByTime(1000)
       await nextTick()
+      expect(vm.currentMessageIndex).toBe(2)
 
       // Component should be in a stable state
       expect(wrapper.exists()).toBe(true)
     })
 
     /**
-     * Tests multiple skip button clicks.
+     * Tests auto-completion after all messages.
      *
      * @returns Promise<void>
-     * Should handle multiple skip clicks gracefully
+     * Should auto-complete after all messages are shown
      *
      * @public
      */
-    it('should handle multiple skip button clicks gracefully', async () => {
+    it('should auto-complete after all messages are shown', async () => {
       wrapper = mount(OnboardingTransition)
 
-      const skipButton = wrapper.find('[data-testid="base-button"]')
+      const vm = wrapper.vm as OnboardingTransitionInstance
 
-      // Click multiple times
-      await skipButton.trigger('click')
+      // Advance through all messages (4 total)
+      vi.advanceTimersByTime(1000) // First message
       await nextTick()
-      await skipButton.trigger('click')
+      expect(vm.currentMessageIndex).toBe(1)
+
+      vi.advanceTimersByTime(1000) // Second message
       await nextTick()
-      await skipButton.trigger('click')
+      expect(vm.currentMessageIndex).toBe(2)
+
+      vi.advanceTimersByTime(1000) // Third message
+      await nextTick()
+      expect(vm.currentMessageIndex).toBe(3)
+
+      // This triggers the setTimeout for auto-completion
+      vi.advanceTimersByTime(1000) // Fourth message triggers completion logic
       await nextTick()
 
-      // Component should handle multiple clicks gracefully
-      expect(skipButton.exists()).toBe(true)
+      // Advance to trigger auto-completion (1500ms timeout)
+      vi.advanceTimersByTime(1500)
+      await nextTick()
+
+      // Should have called completeOnboarding
+      expect(mockOnboarding.completeOnboarding).toHaveBeenCalled()
       expect(wrapper.exists()).toBe(true)
     })
   })
@@ -701,10 +710,9 @@ describe('OnboardingTransition', () => {
 
       wrapper = mount(OnboardingTransition)
 
-      const skipButton = wrapper.find('[data-testid="base-button"]')
-
       // Should not throw error even if completion fails
-      await expect(skipButton.trigger('click')).resolves.not.toThrow()
+      vi.advanceTimersByTime(5000)
+      expect(wrapper.exists()).toBe(true)
     })
 
     /**

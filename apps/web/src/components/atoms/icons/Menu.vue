@@ -1,20 +1,16 @@
 <template>
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    stroke-width="2"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-  >
-    <line x1="4" x2="20" y1="6" y2="6" />
-    <line x1="4" x2="20" y1="12" y2="12" />
-    <line x1="4" x2="20" y1="18" y2="18" />
-  </svg>
+  <IconBase v-bind="$attrs" :stroke-width="1.5">
+    <line x1="5" x2="19" y1="7" y2="7" />
+    <line x1="5" x2="19" y1="12" y2="12" />
+    <line x1="5" x2="19" y1="17" y2="17" />
+  </IconBase>
 </template>
 
 <script setup lang="ts">
+import IconBase from './IconBase.vue'
+
 defineOptions({
   name: 'MenuIcon',
+  inheritAttrs: false,
 })
 </script>

@@ -119,7 +119,7 @@ describe('BaseButton', () => {
 
     expect(wrapper.attributes('disabled')).toBeDefined()
     expect(wrapper.classes()).toContain('disabled:opacity-50')
-    expect(wrapper.classes()).toContain('disabled:cursor-not-allowed')
+    expect(wrapper.classes()).toContain('disabled:cursor-default')
   })
 
   it('should handle fullWidth prop', () => {

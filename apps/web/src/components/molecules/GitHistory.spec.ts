@@ -287,9 +287,9 @@ describe('GitHistory', () => {
           shortHash: 'test1',
           message: 'Test commit',
           author: {
-            name: 'Direct String Author',
-            email: 'direct@example.com',
-            date: new Date(),
+            name: 'String Author Name',
+            email: 'string@example.com',
+            date: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
           },
           parents: [],
           branch: 'main',
@@ -307,11 +307,21 @@ describe('GitHistory', () => {
       })
 
       const vm = stringWrapper.vm as unknown as {
-        getAuthorName: (name: string) => string
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Test requires flexible typing for validation testing
+        getAuthorName: (author: any) => string
       }
+
+      // Test both string and object author formats
       expect(vm.getAuthorName('Direct String Author')).toBe(
         'Direct String Author'
       )
+      expect(
+        vm.getAuthorName({ name: 'Object Author', email: 'test@example.com' })
+      ).toBe('Object Author')
+
+      // Verify rendering in DOM
+      const authorElement = stringWrapper.find('.commit-author')
+      expect(authorElement.text()).toBe('String Author Name')
 
       stringWrapper.unmount()
     })
@@ -370,6 +380,32 @@ describe('GitHistory', () => {
       // Test 15 minutes ago (should be "Just now")
       const fifteenMinutesAgo = new Date(now.getTime() - 15 * 60 * 1000)
       expect(vm.formatDate(fifteenMinutesAgo)).toBe('Just now')
+
+      // Test 29 days ago (should be "29d ago" - just under 30 day threshold)
+      const twentyNineDaysAgo = new Date(
+        now.getTime() - 29 * 24 * 60 * 60 * 1000
+      )
+      expect(vm.formatDate(twentyNineDaysAgo)).toBe('29d ago')
+
+      // Test exactly 30 days ago (should be formatted date, not relative)
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+      const thirtyDaysResult = vm.formatDate(thirtyDaysAgo)
+      expect(thirtyDaysResult).toBe(thirtyDaysAgo.toLocaleDateString())
+      expect(thirtyDaysResult).not.toContain('ago')
+
+      // Test more than 30 days ago (should be formatted date)
+      const veryOldDate = new Date(now.getTime() - 40 * 24 * 60 * 60 * 1000)
+      const formattedResult = vm.formatDate(veryOldDate)
+      expect(formattedResult).toBe(veryOldDate.toLocaleDateString())
+      expect(formattedResult).not.toContain('ago')
+
+      // Test exactly 23 hours ago (should be "23h ago")
+      const twentyThreeHours = new Date(now.getTime() - 23 * 60 * 60 * 1000)
+      expect(vm.formatDate(twentyThreeHours)).toBe('23h ago')
+
+      // Test exactly 28 days ago (should be "28d ago")
+      const twentyEightDays = new Date(now.getTime() - 28 * 24 * 60 * 60 * 1000)
+      expect(vm.formatDate(twentyEightDays)).toBe('28d ago')
     })
   })
 
@@ -630,6 +666,52 @@ describe('GitHistory', () => {
 
       expect(wrapper.exists()).toBe(true)
       expect(wrapper.find('.commit-row').exists()).toBe(true)
+    })
+
+    it('should handle commits with undefined tags property', () => {
+      const commitsWithUndefinedTags: GitCommitData[] = [
+        {
+          hash: 'undef-tags',
+          shortHash: 'undef-t',
+          message: 'Commit with undefined tags',
+          author: {
+            name: 'Test Author',
+            email: 'test@example.com',
+            date: new Date(),
+          },
+          parents: [],
+          branch: 'main',
+          filesChanged: 1,
+          linesAdded: 5,
+          linesDeleted: 0,
+          tags: undefined, // Explicitly undefined
+        },
+      ]
+
+      wrapper = mount(GitHistory, {
+        props: {
+          commits: commitsWithUndefinedTags,
+        },
+      })
+
+      expect(wrapper.find('.commit-tags').exists()).toBe(false)
+      expect(wrapper.find('.commit-row').exists()).toBe(true)
+    })
+
+    it('should handle commit click events correctly', async () => {
+      wrapper = mount(GitHistory, {
+        props: {
+          commits: mockCommits,
+        },
+      })
+
+      const firstCommitRow = wrapper.find('.commit-row')
+      await firstCommitRow.trigger('click')
+
+      expect(wrapper.emitted('commitSelected')).toBeTruthy()
+      expect(wrapper.emitted('commitSelected')[0]).toEqual([
+        mockCommits[0].hash,
+      ])
     })
   })
 

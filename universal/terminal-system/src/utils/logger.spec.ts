@@ -19,7 +19,24 @@ describe('Logger', () => {
   }
 
   beforeEach(() => {
-    // Spy on console methods
+    // Clear any existing mocks and restore real console methods
+    vi.restoreAllMocks()
+
+    // Ensure console methods are real functions before spying
+    const originalConsole = {
+      debug: console.debug.bind(console),
+      info: console.info.bind(console),
+      warn: console.warn.bind(console),
+      error: console.error.bind(console),
+    }
+
+    // Restore real console methods
+    console.debug = originalConsole.debug
+    console.info = originalConsole.info
+    console.warn = originalConsole.warn
+    console.error = originalConsole.error
+
+    // Now spy on the real console methods
     consoleSpies = {
       debug: vi.spyOn(console, 'debug').mockImplementation(() => {}),
       info: vi.spyOn(console, 'info').mockImplementation(() => {}),

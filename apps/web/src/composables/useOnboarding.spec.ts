@@ -1,7 +1,16 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { nextTick } from 'vue'
-import { useOnboarding, ONBOARDING_TASKS } from './useOnboarding'
-import type { OnboardingTask, ProjectInfo } from './useOnboarding'
+import type { OnboardingTask, ProjectInfo, BranchConfig } from './useOnboarding'
+
+// Create mock functions that can be controlled per test
+const mockOpenProject = vi.fn()
+
+// Mock useTaskManager at module level
+vi.mock('./useTaskManager', () => ({
+  useTaskManager: vi.fn(() => ({
+    openProject: mockOpenProject,
+  })),
+}))
 
 // Mock ProjectInfo for testing
 const mockProjectInfo: ProjectInfo = {
@@ -13,423 +22,933 @@ const mockProjectInfo: ProjectInfo = {
   scripts: { build: 'vite build', dev: 'vite dev' },
   dependencies: { vue: '^3.0.0' },
   devDependencies: { vite: '^4.0.0' },
+  framework: 'Vue',
+  packageManager: 'npm',
 }
 
-// Mock localStorage
+// Mock BranchConfig
+const mockBranchConfig: BranchConfig = {
+  name: 'feature/test-branch',
+  base: 'main',
+  agent: 'test-agent',
+}
+
+// Mock localStorage for this test file
 const localStorageMock = {
   getItem: vi.fn(),
   setItem: vi.fn(),
   removeItem: vi.fn(),
   clear: vi.fn(),
+  length: 0,
+  key: vi.fn(),
 }
 
-Object.defineProperty(window, 'localStorage', {
-  value: localStorageMock,
-  writable: true,
-})
+// Mock window APIs
+const mockWindowAPIs = {
+  storageAPI: {
+    getWorkspace: vi.fn(),
+  },
+  electronAPI: {
+    sendMessage: vi.fn(),
+  },
+  location: {
+    search: '',
+  },
+}
 
 describe('useOnboarding', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    // Reset all mocks
     vi.clearAllMocks()
-    localStorageMock.getItem.mockReturnValue(null)
-    // Reset onboarding state for clean tests
-    const onboarding = useOnboarding()
-    onboarding.resetOnboarding()
-  })
+    vi.clearAllTimers()
 
-  it('should initialize with default state', () => {
-    const {
-      currentStep,
-      selectedTask,
-      isFirstTime,
-      completedAt,
-      isOnboardingActive,
-      canProceedToNext,
-    } = useOnboarding()
+    // Reset modules to clear singleton state
+    vi.resetModules()
 
-    expect(currentStep.value).toBe('welcome')
-    expect(selectedTask.value).toBe(null)
-    expect(isFirstTime.value).toBe(true)
-    expect(completedAt.value).toBe(null)
-    expect(isOnboardingActive.value).toBe(true)
-    expect(canProceedToNext.value).toBe(true)
-  })
+    // Mock openProject for each test
+    mockOpenProject.mockResolvedValue(undefined)
 
-  it('should load state from localStorage', async () => {
-    // This test verifies localStorage loading behavior
-    // Note: The composable loads state on initialization, so we test the save/load cycle
-    vi.clearAllMocks()
+    // Set up mocks
+    Object.defineProperty(global, 'localStorage', {
+      value: localStorageMock,
+      writable: true,
+      configurable: true,
+    })
+
+    Object.defineProperty(global, 'window', {
+      value: {
+        ...mockWindowAPIs,
+        location: { search: '' },
+      },
+      writable: true,
+      configurable: true,
+    })
+
+    // Reset localStorage mock
     localStorageMock.getItem.mockReturnValue(null)
     localStorageMock.setItem.mockClear()
+    localStorageMock.removeItem.mockClear()
 
-    const { completeOnboarding, currentStep, isFirstTime, completedAt } =
-      useOnboarding()
-
-    // Trigger a state change to test localStorage saving
-    completeOnboarding()
-
-    // Wait for Vue watchers to run
-    await nextTick()
-
-    // Verify the state was saved
-    expect(localStorageMock.setItem).toHaveBeenCalled()
-    expect(currentStep.value).toBe('completed')
-    expect(isFirstTime.value).toBe(false)
-    expect(completedAt.value).toBeTruthy()
+    // Reset window mocks
+    mockWindowAPIs.storageAPI.getWorkspace.mockResolvedValue(null)
+    mockWindowAPIs.electronAPI.sendMessage.mockClear()
   })
 
-  it('should handle malformed localStorage data gracefully', () => {
-    localStorageMock.getItem.mockReturnValue('invalid-json')
-
-    const { currentStep, isFirstTime } = useOnboarding()
-
-    expect(currentStep.value).toBe('welcome')
-    expect(isFirstTime.value).toBe(true)
-  })
-
-  it('should progress through onboarding steps', () => {
-    const { currentStep, nextStep, canProceedToNext, selectProject } =
-      useOnboarding()
-
-    expect(currentStep.value).toBe('welcome')
-    expect(canProceedToNext.value).toBe(true)
-
-    nextStep()
-    expect(currentStep.value).toBe('project-selection')
-    expect(canProceedToNext.value).toBe(false) // No project selected yet
-
-    // Select a project to proceed
-    selectProject(mockProjectInfo)
-    expect(canProceedToNext.value).toBe(true)
-
-    nextStep()
-    expect(currentStep.value).toBe('task-selection')
-    expect(canProceedToNext.value).toBe(false) // No task selected yet
-  })
-
-  it('should not proceed to next step if requirements not met', () => {
-    const { currentStep, nextStep, canProceedToNext, selectProject } =
-      useOnboarding()
-
-    nextStep() // Move to project-selection
-
-    // Try to proceed without selecting a project
-    nextStep() // Should not proceed
-    expect(currentStep.value).toBe('project-selection')
-    expect(canProceedToNext.value).toBe(false)
-
-    // Select a project to proceed
-    selectProject(mockProjectInfo)
-
-    nextStep() // Move to task-selection
-    expect(currentStep.value).toBe('task-selection')
-    expect(canProceedToNext.value).toBe(false)
-
-    nextStep() // Should not proceed without task selection
-    expect(currentStep.value).toBe('task-selection')
-  })
-
-  it('should proceed to task-detail after task selection', () => {
-    const { currentStep, nextStep, selectTask, selectProject } = useOnboarding()
-
-    nextStep() // Move to project-selection
-
-    // Select a project to proceed
-    selectProject(mockProjectInfo)
-
-    nextStep() // Move to task-selection
-    selectTask('create-feature')
-    nextStep() // Should now proceed to task-detail
-    expect(currentStep.value).toBe('task-detail')
-  })
-
-  it('should complete onboarding from transition step', () => {
-    const {
-      currentStep,
-      nextStep,
-      selectTask,
-      selectProject,
-      isFirstTime,
-      completedAt,
-    } = useOnboarding()
-
-    nextStep() // Move to project-selection
-
-    // Select a project to proceed
-    selectProject(mockProjectInfo)
-
-    nextStep() // Move to task-selection
-    selectTask('create-feature')
-    nextStep() // Move to task-detail
-    nextStep() // Move to transition
-    nextStep() // Complete onboarding
-
-    expect(currentStep.value).toBe('completed')
-    expect(isFirstTime.value).toBe(false)
-    expect(completedAt.value).toBeTruthy()
-    expect(typeof completedAt.value).toBe('string')
-  })
-
-  it('should handle previous step navigation', () => {
-    const { currentStep, nextStep, previousStep } = useOnboarding()
-
-    nextStep() // Move to project-selection
-    expect(currentStep.value).toBe('project-selection')
-
-    previousStep() // Go back to welcome
-    expect(currentStep.value).toBe('welcome')
-  })
-
-  it('should handle task selection', () => {
-    const { selectedTask, selectTask, getSelectedTask, resetOnboarding } =
-      useOnboarding()
-
-    // Ensure clean state
-    resetOnboarding()
-
-    expect(selectedTask.value).toBe(null)
-    expect(getSelectedTask.value).toBeUndefined()
-
-    selectTask('improve-documentation')
-    expect(selectedTask.value).toBe('improve-documentation')
-    expect(getSelectedTask.value?.id).toBe('improve-documentation')
-    expect(getSelectedTask.value?.title).toBe('📖 Improve Documentation')
-  })
-
-  it('should reset onboarding state', () => {
-    const {
-      currentStep,
-      selectedTask,
-      isFirstTime,
-      completedAt,
-      selectTask,
-      completeOnboarding,
-      resetOnboarding,
-    } = useOnboarding()
-
-    // Modify state
-    selectTask('create-feature')
-    completeOnboarding()
-
-    expect(currentStep.value).toBe('completed')
-    expect(isFirstTime.value).toBe(false)
-    expect(completedAt.value).toBeTruthy()
-
-    // Reset
-    resetOnboarding()
-
-    expect(currentStep.value).toBe('welcome')
-    expect(selectedTask.value).toBe(null)
-    expect(isFirstTime.value).toBe(true)
-    expect(completedAt.value).toBe(null)
-  })
-
-  it('should generate appropriate AI context based on selected task', () => {
-    const { selectTask, getInitialAIContext } = useOnboarding()
-
-    selectTask('create-feature')
-    const context = getInitialAIContext()
-    expect(context).toContain('create new features')
-    expect(context).toContain(
-      'Add a new user authentication system with OAuth integration'
-    )
-
-    selectTask('improve-documentation')
-    const docContext = getInitialAIContext()
-    expect(docContext).toContain('improve documentation')
-    expect(docContext).toContain(
-      'Update the CONTRIBUTING.md with the new release process'
-    )
-
-    selectTask('fix-bug')
-    const bugContext = getInitialAIContext()
-    expect(bugContext).toContain('fix bugs')
-    expect(bugContext).toContain(
-      'The login button is not working on Safari mobile'
-    )
-  })
-
-  it('should provide empty AI context when no task selected', () => {
-    const { getInitialAIContext, resetOnboarding } = useOnboarding()
-    resetOnboarding()
-    const context = getInitialAIContext()
-    expect(context).toBe('')
-  })
-
-  it('should find task by ID', () => {
-    const { getTaskById } = useOnboarding()
-
-    const featureTask = getTaskById('create-feature')
-    expect(featureTask?.title).toBe('✨ Create a new Feature')
-    expect(featureTask?.icon).toBe('Code')
-
-    const nonExistent = getTaskById('non-existent' as OnboardingTask)
-    expect(nonExistent).toBeUndefined()
-  })
-
-  it('should save state to localStorage on changes', async () => {
-    // Start fresh for this test
+  afterEach(() => {
+    vi.clearAllTimers()
     vi.clearAllMocks()
-    localStorageMock.getItem.mockReturnValue(null)
-    localStorageMock.setItem.mockClear()
-
-    const { selectTask } = useOnboarding()
-
-    selectTask('create-feature')
-
-    // Wait for Vue watchers to run
-    await nextTick()
-
-    expect(localStorageMock.setItem).toHaveBeenCalled()
-    const savedData = JSON.parse(
-      localStorageMock.setItem.mock.calls.slice(-1)[0][1]
-    )
-    expect(savedData.selectedTask).toBe('create-feature')
   })
 
-  it('should handle localStorage save errors gracefully', () => {
-    localStorageMock.setItem.mockImplementation(() => {
-      throw new Error('Storage error')
+  describe('initialization', () => {
+    it('should initialize with default state when no localStorage or workspace', async () => {
+      // Import after mocks are set
+      const { useOnboarding } = await import('./useOnboarding')
+      const onboarding = useOnboarding()
+
+      // Wait for async initialization
+      await new Promise((resolve) => setTimeout(resolve, 500))
+
+      expect(onboarding.currentStep.value).toBe('welcome')
+      expect(onboarding.selectedTask.value).toBe(null)
+      expect(onboarding.selectedProject.value).toBe(null)
+      expect(onboarding.isFirstTime.value).toBe(true)
     })
 
-    const { selectTask } = useOnboarding()
+    it('should load state from localStorage when available', async () => {
+      const storedState = {
+        isFirstTime: false,
+        completedAt: '2024-01-01T00:00:00Z',
+        currentStep: 'completed',
+        selectedTask: null,
+        selectedProject: null,
+        selectedBranch: null,
+      }
 
-    // Should not throw error when localStorage fails
-    expect(() => selectTask('create-feature')).not.toThrow()
-  })
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(storedState))
 
-  it('should provide correct onboarding tasks constant', () => {
-    expect(ONBOARDING_TASKS).toHaveLength(5)
-    expect(ONBOARDING_TASKS[0].id).toBe('create-feature')
-    expect(ONBOARDING_TASKS[1].id).toBe('fix-bug')
-    expect(ONBOARDING_TASKS[2].id).toBe('improve-documentation')
-    expect(ONBOARDING_TASKS[3].id).toBe('perform-maintenance')
-    expect(ONBOARDING_TASKS[4].id).toBe('refactor-code')
+      const { useOnboarding } = await import('./useOnboarding')
+      const onboarding = useOnboarding()
+      await new Promise((resolve) => setTimeout(resolve, 500))
 
-    ONBOARDING_TASKS.forEach((task) => {
-      expect(task).toHaveProperty('title')
-      expect(task).toHaveProperty('description')
-      expect(task).toHaveProperty('icon')
-      expect(task).toHaveProperty('example')
-      expect(task).toHaveProperty('tooltipDetails')
+      expect(onboarding.currentStep.value).toBe('completed')
+      expect(onboarding.completedAt.value).toBe('2024-01-01T00:00:00Z')
+    })
+
+    it('should activate onboarding when forceOnboarding query param is set', async () => {
+      window.location.search = '?forceOnboarding=true'
+
+      const { useOnboarding } = await import('./useOnboarding')
+      const onboarding = useOnboarding()
+      await new Promise((resolve) => setTimeout(resolve, 500))
+
+      expect(onboarding.currentStep.value).toBe('welcome')
+      expect(onboarding.isFirstTime.value).toBe(true)
+    })
+
+    it('should handle localStorage errors gracefully', async () => {
+      localStorageMock.getItem.mockImplementation(() => {
+        throw new Error('localStorage error')
+      })
+
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+      const { useOnboarding } = await import('./useOnboarding')
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Testing initialization side effects
+      const _onboarding = useOnboarding()
+      await new Promise((resolve) => setTimeout(resolve, 500))
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to load onboarding state'),
+        expect.any(Error)
+      )
+      consoleSpy.mockRestore()
+    })
+
+    it('should handle missing localStorage gracefully', async () => {
+      Object.defineProperty(global, 'localStorage', {
+        value: undefined,
+        writable: true,
+        configurable: true,
+      })
+
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+      const { useOnboarding } = await import('./useOnboarding')
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Testing initialization side effects
+      const _onboarding = useOnboarding()
+      await new Promise((resolve) => setTimeout(resolve, 500))
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('localStorage not available')
+      )
+      consoleSpy.mockRestore()
+    })
+
+    it('should keep IDE view when existing workspace found', async () => {
+      mockWindowAPIs.storageAPI.getWorkspace.mockResolvedValue({
+        project: mockProjectInfo,
+      })
+
+      const { useOnboarding } = await import('./useOnboarding')
+      const onboarding = useOnboarding()
+      await new Promise((resolve) => setTimeout(resolve, 500))
+
+      expect(onboarding.currentStep.value).toBe('completed')
+      expect(onboarding.completedAt.value).toBeTruthy()
+    })
+
+    it('should handle storageAPI errors gracefully', async () => {
+      mockWindowAPIs.storageAPI.getWorkspace.mockRejectedValue(
+        new Error('Storage error')
+      )
+
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+      const { useOnboarding } = await import('./useOnboarding')
+      const onboarding = useOnboarding()
+      await new Promise((resolve) => setTimeout(resolve, 500))
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to check workspace'),
+        expect.any(Error)
+      )
+      expect(onboarding.currentStep.value).toBe('welcome')
+      consoleSpy.mockRestore()
+    })
+
+    it('should activate onboarding when no storage API available', async () => {
+      window.storageAPI = undefined
+
+      const { useOnboarding } = await import('./useOnboarding')
+      const onboarding = useOnboarding()
+      await new Promise((resolve) => setTimeout(resolve, 500))
+
+      expect(onboarding.currentStep.value).toBe('welcome')
+      expect(onboarding.isFirstTime.value).toBe(true)
     })
   })
 
-  it('should have correct onboarding active state based on completion', () => {
-    const { isOnboardingActive, completeOnboarding } = useOnboarding()
+  describe('step navigation', () => {
+    it('should navigate through all steps correctly', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Imported for type validation
+      const { useOnboarding, ONBOARDING_TASKS: _ONBOARDING_TASKS } =
+        await import('./useOnboarding')
+      const onboarding = useOnboarding()
 
-    expect(isOnboardingActive.value).toBe(true)
+      // Wait for initialization then reset
+      await new Promise((resolve) => setTimeout(resolve, 500))
+      onboarding.resetOnboarding()
+      await nextTick()
 
-    completeOnboarding()
-    expect(isOnboardingActive.value).toBe(false)
-  })
+      // Welcome -> Project Selection
+      expect(onboarding.currentStep.value).toBe('welcome')
+      onboarding.nextStep()
+      expect(onboarding.currentStep.value).toBe('project-selection')
 
-  it('should trigger onboarding correctly', () => {
-    const {
-      triggerOnboarding,
-      completeOnboarding,
-      currentStep,
-      isFirstTime,
-      completedAt,
-      selectedTask,
-    } = useOnboarding()
+      // Project Selection -> Task Selector (requires project)
+      onboarding.selectProject(mockProjectInfo)
+      onboarding.nextStep()
+      expect(onboarding.currentStep.value).toBe('task-selector')
 
-    // Complete onboarding first
-    completeOnboarding()
-    expect(isFirstTime.value).toBe(false)
-    expect(completedAt.value).toBeTruthy()
+      // Task Selector -> Task Selection (creating new task)
+      onboarding.nextStep()
+      expect(onboarding.currentStep.value).toBe('task-selection')
+      expect(onboarding.isCreatingNewTask.value).toBe(true)
 
-    // Trigger onboarding
-    triggerOnboarding()
-    expect(currentStep.value).toBe('welcome')
-    expect(isFirstTime.value).toBe(true)
-    expect(completedAt.value).toBe(null)
-    expect(selectedTask.value).toBe(null)
-  })
+      // Task Selection -> Task Detail (requires task)
+      onboarding.selectTask('create-feature')
+      onboarding.nextStep()
+      expect(onboarding.currentStep.value).toBe('task-detail')
 
-  it('should provide selectedProject reactive property', () => {
-    const { selectedProject, selectProject } = useOnboarding()
+      // Task Detail -> Branch Creation
+      onboarding.nextStep()
+      expect(onboarding.currentStep.value).toBe('branch-creation')
 
-    // Initial value should be null
-    expect(selectedProject.value).toBe(null)
+      // Branch Creation -> Transition
+      onboarding.selectBranch(mockBranchConfig)
+      onboarding.nextStep()
+      expect(onboarding.currentStep.value).toBe('transition')
 
-    // Test setting a project
-    const mockProject = mockProjectInfo
+      // Transition -> Complete
+      await onboarding.completeOnboarding()
+      expect(onboarding.currentStep.value).toBe('completed')
+    })
 
-    selectProject(mockProject)
-    expect(selectedProject.value).toEqual(mockProject)
-  })
+    it('should handle existing branch workflow', async () => {
+      const { useOnboarding } = await import('./useOnboarding')
+      const onboarding = useOnboarding()
 
-  it('should provide showWelcomeTutorial reactive property', () => {
-    const { showWelcomeTutorial, nextStep } = useOnboarding()
+      // Wait for initialization then reset
+      await new Promise((resolve) => setTimeout(resolve, 500))
+      onboarding.resetOnboarding()
 
-    // Should be reactive and computed
-    expect(typeof showWelcomeTutorial.value).toBe('boolean')
+      onboarding.nextStep() // to project-selection
+      onboarding.selectProject(mockProjectInfo)
+      onboarding.nextStep() // to task-selector
 
-    // Test reactivity by changing step
-    nextStep() // Move from welcome to project-selection
-    expect(typeof showWelcomeTutorial.value).toBe('boolean')
-  })
+      // Select existing branch instead of creating new task
+      onboarding.selectBranch(mockBranchConfig)
+      onboarding.nextStep()
 
-  it('should handle project selection and related operations', () => {
-    const { selectedProject, selectProject, resetOnboarding } = useOnboarding()
+      expect(onboarding.currentStep.value).toBe('transition')
+      expect(onboarding.isCreatingNewTask.value).toBe(false)
+    })
 
-    // Test project selection
-    const mockProject = {
-      ...mockProjectInfo,
-      name: 'test-project-2',
-      path: '/test/path/2',
-    }
+    it('should navigate backwards correctly', async () => {
+      const { useOnboarding } = await import('./useOnboarding')
+      const onboarding = useOnboarding()
 
-    selectProject(mockProject)
-    expect(selectedProject.value).toEqual(mockProject)
+      // Wait for initialization then reset
+      await new Promise((resolve) => setTimeout(resolve, 500))
+      onboarding.resetOnboarding()
 
-    // Reset should clear the project
-    resetOnboarding()
-    expect(selectedProject.value).toBe(null)
-  })
+      // Go forward
+      onboarding.nextStep() // to project-selection
+      onboarding.selectProject(mockProjectInfo)
+      onboarding.nextStep() // to task-selector
+      onboarding.nextStep() // to task-selection
+      onboarding.selectTask('create-feature')
+      onboarding.nextStep() // to task-detail
+      onboarding.nextStep() // to branch-creation
+      onboarding.selectBranch(mockBranchConfig)
+      onboarding.nextStep() // to transition
 
-  it('should properly handle AI context generation for all task types', () => {
-    const { getInitialAIContext, selectTask, ONBOARDING_TASKS } =
-      useOnboarding()
+      // Go backward
+      onboarding.previousStep()
+      expect(onboarding.currentStep.value).toBe('branch-creation')
 
-    // Test each task type to ensure all branches are covered
-    ONBOARDING_TASKS.forEach((task) => {
-      selectTask(task.id) // Select the task first
-      const context = getInitialAIContext()
-      expect(context).toBeTruthy()
-      expect(context).toContain(task.example)
+      onboarding.previousStep()
+      expect(onboarding.currentStep.value).toBe('task-detail')
+
+      onboarding.previousStep()
+      expect(onboarding.currentStep.value).toBe('task-selection')
+
+      onboarding.previousStep()
+      expect(onboarding.currentStep.value).toBe('task-selector')
+      expect(onboarding.selectedTask.value).toBe(null)
+
+      onboarding.previousStep()
+      expect(onboarding.currentStep.value).toBe('project-selection')
+
+      onboarding.previousStep()
+      expect(onboarding.currentStep.value).toBe('welcome')
+    })
+
+    it('should not proceed when canProceedToNext is false', async () => {
+      const { useOnboarding } = await import('./useOnboarding')
+      const onboarding = useOnboarding()
+
+      // Wait for initialization then reset
+      await new Promise((resolve) => setTimeout(resolve, 500))
+      onboarding.resetOnboarding()
+
+      // Go to project-selection
+      onboarding.nextStep()
+      expect(onboarding.currentStep.value).toBe('project-selection')
+
+      // Try to proceed without selecting project
+      expect(onboarding.canProceedToNext.value).toBe(false)
+      onboarding.nextStep()
+      expect(onboarding.currentStep.value).toBe('project-selection') // Should not move
+    })
+
+    it('should handle goToStep navigation', async () => {
+      const { useOnboarding } = await import('./useOnboarding')
+      const onboarding = useOnboarding()
+
+      // Wait for initialization then reset
+      await new Promise((resolve) => setTimeout(resolve, 500))
+      onboarding.resetOnboarding()
+
+      // Navigate forward first
+      onboarding.nextStep() // to project-selection
+      onboarding.selectProject(mockProjectInfo)
+      onboarding.nextStep() // to task-selector
+      onboarding.nextStep() // to task-selection
+      onboarding.selectTask('create-feature')
+      onboarding.nextStep() // to task-detail
+
+      // Go back to earlier step
+      onboarding.goToStep('project-selection')
+      expect(onboarding.currentStep.value).toBe('project-selection')
+
+      // Data after this step should be cleared
+      expect(onboarding.selectedTask.value).toBe(null)
+      expect(onboarding.isCreatingNewTask.value).toBe(false)
+
+      // Cannot go forward to a step we haven't reached
+      onboarding.goToStep('branch-creation')
+      expect(onboarding.currentStep.value).toBe('project-selection') // Should not move
     })
   })
 
-  it('should handle getInitialAIContext when no task is selected', () => {
-    const { getInitialAIContext, resetOnboarding } = useOnboarding()
+  describe('data selection', () => {
+    it('should select and get task correctly', async () => {
+      const { useOnboarding } = await import('./useOnboarding')
+      const onboarding = useOnboarding()
 
-    // Reset to ensure no task is selected
-    resetOnboarding()
+      // Wait for initialization
+      await new Promise((resolve) => setTimeout(resolve, 500))
 
-    // Test when no task is selected
-    const context = getInitialAIContext()
+      onboarding.selectTask('create-feature')
+      expect(onboarding.selectedTask.value).toBe('create-feature')
+      expect(onboarding.isCreatingNewTask.value).toBe(true)
 
-    // When no task is selected, should return empty string
-    expect(context).toBe('')
+      const selectedTaskOption = onboarding.getSelectedTask.value
+      expect(selectedTaskOption?.id).toBe('create-feature')
+      expect(selectedTaskOption?.title).toBe('Create a new Feature')
+    })
+
+    it('should select project correctly', async () => {
+      const { useOnboarding } = await import('./useOnboarding')
+      const onboarding = useOnboarding()
+
+      // Wait for initialization
+      await new Promise((resolve) => setTimeout(resolve, 500))
+
+      onboarding.selectProject(mockProjectInfo)
+      expect(onboarding.selectedProject.value).toEqual(mockProjectInfo)
+    })
+
+    it('should select branch correctly', async () => {
+      const { useOnboarding } = await import('./useOnboarding')
+      const onboarding = useOnboarding()
+
+      // Wait for initialization
+      await new Promise((resolve) => setTimeout(resolve, 500))
+
+      onboarding.selectBranch(mockBranchConfig)
+      expect(onboarding.selectedBranch.value).toEqual(mockBranchConfig)
+      expect(onboarding.isCreatingNewTask.value).toBe(false)
+    })
+
+    it('should get task by ID correctly', async () => {
+      const { useOnboarding } = await import('./useOnboarding')
+      const onboarding = useOnboarding()
+
+      // Wait for initialization
+      await new Promise((resolve) => setTimeout(resolve, 500))
+
+      const task = onboarding.getTaskById('fix-bug')
+      expect(task?.id).toBe('fix-bug')
+      expect(task?.title).toBe('Fix a Bug')
+
+      const notFound = onboarding.getTaskById('non-existent' as OnboardingTask)
+      expect(notFound).toBeUndefined()
+    })
   })
 
-  it('should handle getInitialAIContext default case coverage', () => {
-    const { getInitialAIContext, ONBOARDING_TASKS } = useOnboarding()
+  describe('completion and reset', () => {
+    it('should complete onboarding with task and save workspace', async () => {
+      mockOpenProject.mockResolvedValue(undefined)
 
-    // Test coverage for lines 291 (selectedProject) and 294 (showWelcomeTutorial)
-    // These are just accessed when the composable is used, ensuring they're covered
+      const { useOnboarding } = await import('./useOnboarding')
+      const onboarding = useOnboarding()
 
-    // We also need to ensure we get good coverage of the AI context generation
-    // Each task already covers its specific case, so all switch cases are covered
+      // Wait for initialization
+      await new Promise((resolve) => setTimeout(resolve, 500))
+      onboarding.selectProject(mockProjectInfo)
+      onboarding.selectTask('fix-bug')
+      onboarding.selectBranch(mockBranchConfig)
 
-    // The default case (line 283) is actually unreachable in normal execution
-    // because all valid task IDs are handled in the switch cases,
-    // and invalid IDs result in getSelectedTask.value being undefined (returns '' at line 269)
+      await onboarding.completeOnboarding()
 
-    // Let's ensure we get full coverage by testing all existing functionality
-    expect(ONBOARDING_TASKS.length).toBeGreaterThan(0)
-    expect(typeof getInitialAIContext).toBe('function')
+      expect(mockOpenProject).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: mockProjectInfo.path,
+          name: mockProjectInfo.name,
+        }),
+        expect.objectContaining({
+          branchName: mockBranchConfig.name,
+          taskType: 'bug',
+        })
+      )
+
+      expect(onboarding.currentStep.value).toBe('completed')
+      expect(onboarding.completedAt.value).toBeTruthy()
+      expect(onboarding.isFirstTime.value).toBe(false)
+    })
+
+    it('should handle different task types in completion', async () => {
+      mockOpenProject.mockResolvedValue(undefined)
+
+      const { useOnboarding } = await import('./useOnboarding')
+      const onboarding = useOnboarding()
+
+      // Wait for initialization
+      await new Promise((resolve) => setTimeout(resolve, 500))
+
+      const testCases = [
+        { task: 'create-feature', expectedType: 'feature' },
+        { task: 'improve-documentation', expectedType: 'docs' },
+        { task: 'perform-maintenance', expectedType: 'maintenance' },
+        { task: 'refactor-code', expectedType: 'refactor' },
+      ]
+
+      for (const { task, expectedType } of testCases) {
+        mockOpenProject.mockClear()
+        onboarding.resetOnboarding()
+        onboarding.selectProject(mockProjectInfo)
+        onboarding.selectTask(task as OnboardingTask)
+        onboarding.selectBranch(mockBranchConfig)
+
+        await onboarding.completeOnboarding()
+
+        expect(mockOpenProject).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            taskType: expectedType,
+          })
+        )
+      }
+    })
+
+    it('should handle completion errors gracefully', async () => {
+      mockOpenProject.mockRejectedValue(new Error('Save failed'))
+
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+      const { useOnboarding } = await import('./useOnboarding')
+      const onboarding = useOnboarding()
+
+      // Wait for initialization
+      await new Promise((resolve) => setTimeout(resolve, 500))
+      onboarding.selectProject(mockProjectInfo)
+      onboarding.selectTask('create-feature')
+      onboarding.selectBranch(mockBranchConfig)
+
+      await onboarding.completeOnboarding()
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to save workspace'),
+        expect.any(Error)
+      )
+
+      // Should still complete onboarding despite error
+      expect(onboarding.currentStep.value).toBe('completed')
+      consoleSpy.mockRestore()
+    })
+
+    it('should reset onboarding correctly', async () => {
+      const { useOnboarding } = await import('./useOnboarding')
+      const onboarding = useOnboarding()
+
+      // Wait for initialization
+      await new Promise((resolve) => setTimeout(resolve, 500))
+
+      // Set some state
+      onboarding.selectProject(mockProjectInfo)
+      onboarding.selectTask('create-feature')
+      onboarding.selectBranch(mockBranchConfig)
+
+      // Reset
+      onboarding.resetOnboarding()
+
+      expect(onboarding.currentStep.value).toBe('welcome')
+      expect(onboarding.selectedTask.value).toBe(null)
+      expect(onboarding.selectedProject.value).toBe(null)
+      expect(onboarding.selectedBranch.value).toBe(null)
+      expect(onboarding.isFirstTime.value).toBe(true)
+      expect(onboarding.completedAt.value).toBe(null)
+      expect(onboarding.isCreatingNewTask.value).toBe(false)
+    })
+
+    it('should trigger onboarding correctly', async () => {
+      const { useOnboarding } = await import('./useOnboarding')
+      const onboarding = useOnboarding()
+
+      // Wait for initialization
+      await new Promise((resolve) => setTimeout(resolve, 500))
+
+      // Complete first
+      onboarding.currentStep.value = 'completed'
+
+      // Trigger
+      onboarding.triggerOnboarding()
+
+      expect(onboarding.currentStep.value).toBe('welcome')
+      expect(onboarding.isFirstTime.value).toBe(true)
+    })
+
+    it('should clear localStorage correctly', async () => {
+      const { useOnboarding } = await import('./useOnboarding')
+      const onboarding = useOnboarding()
+
+      // Wait for initialization
+      await new Promise((resolve) => setTimeout(resolve, 500))
+
+      onboarding.clearOnboardingStorage()
+
+      expect(localStorageMock.removeItem).toHaveBeenCalledWith(
+        'hatcher-onboarding'
+      )
+      expect(onboarding.currentStep.value).toBe('welcome')
+    })
+
+    it('should handle localStorage removal errors', async () => {
+      localStorageMock.removeItem.mockImplementation(() => {
+        throw new Error('Remove failed')
+      })
+
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+      const { useOnboarding } = await import('./useOnboarding')
+      const onboarding = useOnboarding()
+
+      // Wait for initialization
+      await new Promise((resolve) => setTimeout(resolve, 500))
+      onboarding.clearOnboardingStorage()
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to clear onboarding localStorage'),
+        expect.any(Error)
+      )
+      consoleSpy.mockRestore()
+    })
+  })
+
+  describe('computed properties', () => {
+    it('should compute isOnboardingActive correctly', async () => {
+      const { useOnboarding } = await import('./useOnboarding')
+      const onboarding = useOnboarding()
+
+      // Wait for initialization
+      await new Promise((resolve) => setTimeout(resolve, 500))
+
+      // The onboarding should start in 'welcome' state since no workspace is found
+      expect(onboarding.currentStep.value).toBe('welcome')
+      expect(onboarding.isOnboardingActive.value).toBe(true)
+
+      // Test: completed step should not be active
+      await onboarding.completeOnboarding()
+      await nextTick()
+      expect(onboarding.currentStep.value).toBe('completed')
+      expect(onboarding.isOnboardingActive.value).toBe(false)
+
+      // Test: resetting should make it active again
+      onboarding.resetOnboarding()
+      await nextTick()
+      expect(onboarding.currentStep.value).toBe('welcome')
+      expect(onboarding.isOnboardingActive.value).toBe(true)
+
+      // Test: transition step should also be active
+      onboarding.currentStep.value = 'transition'
+      await nextTick()
+      expect(onboarding.isOnboardingActive.value).toBe(true)
+    })
+
+    it('should compute canProceedToNext for all steps', async () => {
+      const { useOnboarding } = await import('./useOnboarding')
+      const onboarding = useOnboarding()
+
+      // Wait for initialization then reset
+      await new Promise((resolve) => setTimeout(resolve, 500))
+      onboarding.resetOnboarding()
+
+      // Welcome
+      expect(onboarding.canProceedToNext.value).toBe(true)
+
+      // Project Selection (needs project)
+      onboarding.nextStep()
+      expect(onboarding.canProceedToNext.value).toBe(false)
+      onboarding.selectProject(mockProjectInfo)
+      expect(onboarding.canProceedToNext.value).toBe(true)
+
+      // Task Selector
+      onboarding.nextStep()
+      expect(onboarding.canProceedToNext.value).toBe(true)
+
+      // Task Selection (needs task)
+      onboarding.nextStep()
+      expect(onboarding.canProceedToNext.value).toBe(false)
+      onboarding.selectTask('create-feature')
+      expect(onboarding.canProceedToNext.value).toBe(true)
+
+      // Task Detail
+      onboarding.nextStep()
+      expect(onboarding.canProceedToNext.value).toBe(true)
+
+      // Branch Creation
+      onboarding.nextStep()
+      expect(onboarding.canProceedToNext.value).toBe(true)
+
+      // Transition
+      onboarding.nextStep()
+      expect(onboarding.canProceedToNext.value).toBe(true)
+    })
+
+    it('should compute showWelcomeTutorial correctly', async () => {
+      const { useOnboarding } = await import('./useOnboarding')
+      const onboarding = useOnboarding()
+
+      // Wait for initialization
+      await new Promise((resolve) => setTimeout(resolve, 500))
+
+      onboarding.resetOnboarding()
+      expect(onboarding.showWelcomeTutorial.value).toBe(true)
+
+      onboarding.nextStep()
+      expect(onboarding.showWelcomeTutorial.value).toBe(false)
+    })
+
+    it('should compute recent projects', async () => {
+      const { useOnboarding } = await import('./useOnboarding')
+      const onboarding = useOnboarding()
+
+      // Wait for initialization
+      await new Promise((resolve) => setTimeout(resolve, 500))
+
+      const projects = onboarding.recentProjects.value
+      expect(projects.length).toBeGreaterThan(0)
+      expect(projects[0]).toHaveProperty('name')
+      expect(projects[0]).toHaveProperty('path')
+    })
+  })
+
+  describe('AI context', () => {
+    it('should generate correct AI context for all task types', async () => {
+      const { useOnboarding } = await import('./useOnboarding')
+      const onboarding = useOnboarding()
+
+      // Wait for initialization
+      await new Promise((resolve) => setTimeout(resolve, 500))
+
+      const testCases = [
+        {
+          task: 'create-feature',
+          expectedText: 'create new features',
+        },
+        {
+          task: 'fix-bug',
+          expectedText: 'fix bugs',
+        },
+        {
+          task: 'improve-documentation',
+          expectedText: 'improve documentation',
+        },
+        {
+          task: 'perform-maintenance',
+          expectedText: 'maintenance tasks',
+        },
+        {
+          task: 'refactor-code',
+          expectedText: 'refactor code',
+        },
+      ]
+
+      for (const { task, expectedText } of testCases) {
+        onboarding.selectTask(task as OnboardingTask)
+        const context = onboarding.getInitialAIContext()
+        expect(context).toContain(expectedText)
+      }
+    })
+
+    it('should return empty context when no task selected', async () => {
+      const { useOnboarding } = await import('./useOnboarding')
+      const onboarding = useOnboarding()
+
+      // Wait for initialization
+      await new Promise((resolve) => setTimeout(resolve, 500))
+
+      const context = onboarding.getInitialAIContext()
+      expect(context).toBe('')
+    })
+  })
+
+  describe('state persistence', () => {
+    it('should save state to localStorage on changes', async () => {
+      const { useOnboarding } = await import('./useOnboarding')
+      const onboarding = useOnboarding()
+
+      // Wait for initialization
+      await new Promise((resolve) => setTimeout(resolve, 500))
+
+      onboarding.selectProject(mockProjectInfo)
+      await nextTick()
+
+      expect(localStorageMock.setItem).toHaveBeenCalledWith(
+        'hatcher-onboarding',
+        expect.stringContaining('"selectedProject"')
+      )
+    })
+
+    it('should handle localStorage save errors gracefully', async () => {
+      localStorageMock.setItem.mockImplementation(() => {
+        throw new Error('Save failed')
+      })
+
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+      const { useOnboarding } = await import('./useOnboarding')
+      const onboarding = useOnboarding()
+
+      // Wait for initialization
+      await new Promise((resolve) => setTimeout(resolve, 500))
+      onboarding.selectTask('create-feature')
+      await nextTick()
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to save onboarding state'),
+        expect.any(Error)
+      )
+      consoleSpy.mockRestore()
+    })
+
+    it('should not save when localStorage is not available', async () => {
+      Object.defineProperty(global, 'localStorage', {
+        value: undefined,
+        writable: true,
+        configurable: true,
+      })
+
+      const { useOnboarding } = await import('./useOnboarding')
+      const onboarding = useOnboarding()
+
+      // Wait for initialization
+      await new Promise((resolve) => setTimeout(resolve, 500))
+      onboarding.selectTask('create-feature')
+      await nextTick()
+
+      // Should not throw
+      expect(true).toBe(true)
+    })
+  })
+
+  describe('electron integration', () => {
+    it.skip('should send step changes to Electron', async () => {
+      // Skip: This functionality was removed from useOnboarding
+      // The step change notification to Electron is no longer implemented
+      const { useOnboarding } = await import('./useOnboarding')
+      const onboarding = useOnboarding()
+
+      // Wait for initialization then reset
+      await new Promise((resolve) => setTimeout(resolve, 500))
+      onboarding.resetOnboarding()
+
+      await nextTick()
+
+      expect(mockWindowAPIs.electronAPI.sendMessage).toHaveBeenCalledWith(
+        'terminal-step-change',
+        'welcome'
+      )
+
+      onboarding.nextStep()
+      await nextTick()
+
+      expect(mockWindowAPIs.electronAPI.sendMessage).toHaveBeenCalledWith(
+        'terminal-step-change',
+        'project-selection'
+      )
+    })
+
+    it('should handle missing electronAPI gracefully', async () => {
+      window.electronAPI = undefined
+
+      const { useOnboarding } = await import('./useOnboarding')
+      const onboarding = useOnboarding()
+
+      // Wait for initialization
+      await new Promise((resolve) => setTimeout(resolve, 500))
+      onboarding.nextStep()
+
+      // Should not throw
+      await nextTick()
+      expect(true).toBe(true)
+    })
+  })
+
+  describe('clearStepsAfter', () => {
+    it('should clear data correctly based on step index', async () => {
+      const { useOnboarding } = await import('./useOnboarding')
+      const onboarding = useOnboarding()
+
+      // Wait for initialization
+      await new Promise((resolve) => setTimeout(resolve, 500))
+
+      // Set all data
+      onboarding.selectProject(mockProjectInfo)
+      onboarding.selectTask('create-feature')
+      onboarding.selectBranch(mockBranchConfig)
+      onboarding.isCreatingNewTask.value = true
+
+      // Go to branch-creation step
+      onboarding.goToStep('welcome')
+      onboarding.nextStep() // project-selection
+      onboarding.nextStep() // task-selector
+      onboarding.nextStep() // task-selection
+      onboarding.nextStep() // task-detail
+      onboarding.nextStep() // branch-creation
+
+      // Go back to task-selector
+      onboarding.goToStep('task-selector')
+
+      // Task and branch should be cleared
+      expect(onboarding.selectedTask.value).toBe(null)
+      expect(onboarding.selectedBranch.value).toBe(null)
+      expect(onboarding.isCreatingNewTask.value).toBe(false)
+
+      // Project should remain
+      expect(onboarding.selectedProject.value).toEqual(mockProjectInfo)
+    })
+  })
+
+  describe('constants', () => {
+    it('should export ONBOARDING_TASKS correctly', async () => {
+      const { useOnboarding, ONBOARDING_TASKS } = await import(
+        './useOnboarding'
+      )
+      const onboarding = useOnboarding()
+
+      // Wait for initialization
+      await new Promise((resolve) => setTimeout(resolve, 500))
+
+      expect(onboarding.ONBOARDING_TASKS).toEqual(ONBOARDING_TASKS)
+      expect(onboarding.ONBOARDING_TASKS.length).toBe(5)
+    })
+  })
+
+  describe('isCheckingWorkspace', () => {
+    it('should track workspace checking state', async () => {
+      const { useOnboarding } = await import('./useOnboarding')
+      const onboarding = useOnboarding()
+
+      // Initially should be false after initialization
+      await new Promise((resolve) => setTimeout(resolve, 500))
+      expect(onboarding.isCheckingWorkspace.value).toBe(false)
+    })
+  })
+
+  describe('edge cases', () => {
+    it('should handle completing without project or branch', async () => {
+      const { useOnboarding } = await import('./useOnboarding')
+      const onboarding = useOnboarding()
+
+      // Wait for initialization
+      await new Promise((resolve) => setTimeout(resolve, 500))
+
+      await onboarding.completeOnboarding()
+
+      expect(onboarding.currentStep.value).toBe('completed')
+      expect(onboarding.completedAt.value).toBeTruthy()
+    })
+
+    it('should handle window undefined in non-browser environment', async () => {
+      const originalWindow = global.window
+
+      // @ts-expect-error -- Testing missing window scenario
+      delete global.window
+
+      const { useOnboarding } = await import('./useOnboarding')
+      const onboarding = useOnboarding()
+
+      // Should not crash on nextStep
+      onboarding.nextStep()
+
+      // Should not throw
+      expect(true).toBe(true)
+
+      // Restore window
+      global.window = originalWindow
+    })
   })
 })

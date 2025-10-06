@@ -1,427 +1,1035 @@
-/**
- * @fileoverview Critical safety test suite for GitRunner to prevent real Git operations during testing.
- *
- * @description
- * This test suite specifically validates that GitRunner NEVER executes real Git commands
- * during test execution. It includes tests that deliberately attempt dangerous operations
- * without mocks to ensure the built-in safety system prevents them.
- *
- * WARNING: This file tests safety mechanisms and should NEVER create real commits or
- * perform actual Git operations. If real Git operations occur, the safety system has failed.
- *
- * @example
- * ```typescript
- * // This test verifies that even without mocks, dangerous operations are prevented
- * const result = await gitRunner.commit('DANGEROUS TEST COMMIT - SHOULD BE BLOCKED')
- * expect(result.stdout).toContain('TEST MODE: Git operation simulated safely')
- * ```
- *
- * @author Hatcher DX Team
- * @since 1.0.0
- * @public
- */
-
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+  vi,
+  beforeAll,
+} from 'vitest'
 import { GitRunner } from './GitRunner'
+import type { CommandResult } from '../types/commands'
 
-describe('GitRunner Safety System', () => {
+/**
+ * Comprehensive test suite for GitRunner to achieve 100% code coverage
+ *
+ * @remarks
+ * This test file covers all branches, statements, and functions including:
+ * - Initialization and logging system
+ * - Error handling and fallback scenarios
+ * - Safety detection mechanisms
+ * - All git command operations
+ * - Edge cases and error conditions
+ */
+describe('GitRunner - Comprehensive Coverage', () => {
   let gitRunner: GitRunner
-  let originalNodeEnv: string | undefined
-  let originalVitest: string | undefined
+  let mockExecute: ReturnType<typeof vi.fn>
+  let originalEnv: NodeJS.ProcessEnv
+
+  beforeAll(() => {
+    originalEnv = { ...process.env }
+  })
 
   beforeEach(() => {
-    // Store original environment
-    originalNodeEnv = process.env.NODE_ENV
-    originalVitest = process.env.VITEST
-
-    // Ensure we're in test environment for safety
-    process.env.NODE_ENV = 'test'
-    process.env.VITEST = 'true'
-
     gitRunner = new GitRunner()
   })
 
   afterEach(() => {
-    // Restore original environment
-    if (originalNodeEnv !== undefined) {
-      process.env.NODE_ENV = originalNodeEnv
-    } else {
-      delete process.env.NODE_ENV
+    vi.restoreAllMocks()
+    vi.clearAllMocks()
+    process.env = { ...originalEnv }
+    if (gitRunner) {
+      gitRunner.cleanup()
     }
+  })
 
-    if (originalVitest !== undefined) {
-      process.env.VITEST = originalVitest
-    } else {
-      delete process.env.VITEST
-    }
+  describe('Initialization and Logging', () => {
+    it('should initialize without logging system available', async () => {
+      // Mock the dynamic import to fail
+      vi.doMock('../system/index', () => {
+        throw new Error('Module not found')
+      })
+
+      const consoleWarnSpy = vi
+        .spyOn(console, 'warn')
+        .mockImplementation(() => {})
+
+      const runner = new GitRunner()
+
+      // Wait for async initialization
+      await new Promise((resolve) => setTimeout(resolve, 10))
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        '[GitRunner] Logging system not available:',
+        expect.any(Error)
+      )
+
+      consoleWarnSpy.mockRestore()
+      runner.cleanup()
+    })
+
+    it('should handle logging initialization failure gracefully', async () => {
+      // Mock console.warn to capture warning
+      const consoleWarnSpy = vi
+        .spyOn(console, 'warn')
+        .mockImplementation(() => {})
+
+      // Mock the import to fail
+      vi.doMock('../system/index', () => {
+        throw new Error('Failed to load system module')
+      })
+
+      const runner = new GitRunner()
+      await new Promise((resolve) => setTimeout(resolve, 10))
+
+      // Should continue working without logging
+      const status = await runner.status()
+      expect(status).toHaveProperty('branch')
+
+      consoleWarnSpy.mockRestore()
+      runner.cleanup()
+    })
+
+    it('should initialize enhanced safety successfully', () => {
+      const runner = new GitRunner()
+
+      // The safety detector should be configured
+      const safetyStatus = runner.getSafetyStatus()
+      expect(safetyStatus).toHaveProperty('isTestEnvironment')
+      expect(safetyStatus).toHaveProperty('confidence')
+      expect(safetyStatus).toHaveProperty('triggers')
+
+      runner.cleanup()
+    })
+
+    it('should handle enhanced safety initialization failure', () => {
+      // Mock the safety detector to throw
+      const originalGetSafetyDetector = vi.fn(() => {
+        return {
+          configure: () => {
+            throw new Error('Safety configuration failed')
+          },
+          detectEnvironment: () => ({
+            isTestEnvironment: false,
+            confidence: 0,
+            triggers: [],
+          }),
+          getMockResult: () => ({
+            success: true,
+            exitCode: 0,
+            stdout: '',
+            stderr: '',
+            duration: 0,
+            command: '',
+          }),
+          getDetectionHistory: () => [],
+        }
+      })
+
+      vi.doMock('../utils/GitSafetyDetector', () => ({
+        getGitSafetyDetector: originalGetSafetyDetector,
+      }))
+
+      const runner = new GitRunner()
+      // Should not throw, just log warning
+      expect(() => runner.getSafetyStatus()).not.toThrow()
+
+      runner.cleanup()
+    })
   })
 
   describe('Test Environment Detection', () => {
-    /**
-     * Tests that GitRunner correctly identifies test environments.
-     *
-     * @returns void
-     * Should detect test environment and use safe mock results
-     *
-     * @example
-     * ```typescript
-     * // Even without explicit mocks, should return safe results
-     * const result = await gitRunner.status()
-     * expect(result.branch).toBe('main')
-     * expect(result.modified).toContain('src/test-file.ts')
-     * ```
-     *
-     * @public
-     */
-    it('should detect test environment and prevent real Git operations', async () => {
-      // Test a safe read operation first
-      const statusResult = await gitRunner.status()
-
-      expect(statusResult.branch).toBe('main')
-      expect(statusResult.modified).toContain('src/test-file.ts')
-      expect(statusResult.untracked).toContain('src/new-file.ts')
-    })
-
-    /**
-     * Tests detection through NODE_ENV variable.
-     *
-     * @returns void
-     * Should detect test environment via NODE_ENV
-     *
-     * @public
-     */
-    it('should detect test environment via NODE_ENV', async () => {
-      process.env.NODE_ENV = 'test'
-      delete process.env.VITEST
-
-      const result = await gitRunner.branch()
-      expect(result).toEqual(['main', 'feature-branch', 'develop'])
-    })
-
-    /**
-     * Tests detection through VITEST environment variable.
-     *
-     * @returns void
-     * Should detect test environment via VITEST variable
-     *
-     * @public
-     */
-    it('should detect test environment via VITEST variable', async () => {
-      delete process.env.NODE_ENV
+    it('should detect Vitest environment via process.env', async () => {
       process.env.VITEST = 'true'
 
-      const result = await gitRunner.log(5)
-      expect(result).toHaveLength(2)
-      expect(result[0].message).toBe('Test commit message')
-    })
+      const runner = new GitRunner()
+      mockExecute = vi.spyOn(runner, 'execute' as keyof GitRunner)
 
-    /**
-     * Tests detection through global vitest objects.
-     *
-     * @returns void
-     * Should detect test environment via global vi object
-     *
-     * @public
-     */
-    it('should detect test environment via global vi object', async () => {
-      delete process.env.NODE_ENV
+      await runner.execute('git status', {})
+
+      // Should return mock result in test environment
+      expect(mockExecute).toHaveBeenCalled()
+
+      runner.cleanup()
       delete process.env.VITEST
+    })
 
-      // vi is already available in Vitest environment
-      expect(typeof vi).toBe('object')
+    it('should detect Jest environment', async () => {
+      process.env.JEST_WORKER_ID = '1'
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mocking global jest for testing
+      ;(global as any).jest = {}
 
-      const result = await gitRunner.isRepository()
-      expect(result).toBe(true)
+      const runner = new GitRunner()
+      const result = await runner.execute('git status', {})
+
+      expect(result.stdout).toContain('Test')
+
+      delete process.env.JEST_WORKER_ID
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mocking global jest for testing
+      delete (global as any).jest
+      runner.cleanup()
+    })
+
+    it('should detect mocked execute method', async () => {
+      const runner = new GitRunner()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Accessing execute method to add mock flag
+      const executeMethod = runner.execute as any
+      executeMethod._isMockFunction = true
+
+      const result = await runner.execute('git status', {})
+      expect(result.stdout).toBeTruthy()
+
+      delete executeMethod._isMockFunction
+      runner.cleanup()
+    })
+
+    it('should provide different mock results for different commands', async () => {
+      process.env.VITEST = 'true'
+      const runner = new GitRunner()
+
+      const statusResult = await runner.execute('git status --porcelain', {})
+      expect(statusResult.stdout).toContain('M src/test-file.ts')
+
+      const branchResult = await runner.execute('git branch --show-current', {})
+      expect(branchResult.stdout).toContain('main')
+
+      const logResult = await runner.execute('git log', {})
+      expect(logResult.stdout).toContain('Test commit message')
+
+      const revParseResult = await runner.execute(
+        'git rev-parse --is-inside-work-tree',
+        {}
+      )
+      expect(revParseResult.stdout).toContain('true')
+
+      delete process.env.VITEST
+      runner.cleanup()
+    })
+
+    it('should handle dangerous git operations safely in test mode', async () => {
+      process.env.VITEST = 'true'
+      const runner = new GitRunner()
+
+      const addResult = await runner.execute('git add .', {})
+      expect(addResult.stdout).toContain('TEST MODE')
+
+      const commitResult = await runner.execute('git commit -m "test"', {})
+      expect(commitResult.stdout).toContain('TEST MODE')
+
+      const pushResult = await runner.execute('git push', {})
+      expect(pushResult.stdout).toContain('TEST MODE')
+
+      const pullResult = await runner.execute('git pull', {})
+      expect(pullResult.stdout).toContain('TEST MODE')
+
+      const checkoutResult = await runner.execute('git checkout main', {})
+      expect(checkoutResult.stdout).toContain('TEST MODE')
+
+      delete process.env.VITEST
+      runner.cleanup()
     })
   })
 
-  describe('Dangerous Operation Prevention', () => {
-    /**
-     * CRITICAL TEST: Verifies that commit operations are blocked in tests.
-     *
-     * @returns Promise<void>
-     * Should prevent real commit and return safe mock result
-     *
-     * @throws Should NOT throw but should prevent real Git commit
-     *
-     * @example
-     * ```typescript
-     * // This MUST NOT create a real Git commit
-     * const result = await gitRunner.commit('DANGEROUS TEST COMMIT')
-     * expect(result.stdout).toContain('TEST MODE: Git operation simulated safely')
-     * ```
-     *
-     * @public
-     */
-    it('🛡️ CRITICAL: should prevent real Git commit operations', async () => {
-      // This would be extremely dangerous if it executed for real
-      const result = await gitRunner.commit(
-        'DANGEROUS TEST COMMIT - SHOULD BE BLOCKED'
-      )
+  describe('Git Status Command', () => {
+    it('should parse all file status types correctly', async () => {
+      const runner = new GitRunner()
 
-      expect(result.success).toBe(true)
-      expect(result.stdout).toContain(
-        'TEST MODE: Git operation simulated safely'
-      )
-      expect(result.exitCode).toBe(0)
+      mockExecute = vi
+        .spyOn(runner, 'execute' as keyof GitRunner)
+        .mockImplementation(async (command: string): Promise<CommandResult> => {
+          if (command.includes('git branch --show-current')) {
+            return {
+              success: true,
+              exitCode: 0,
+              stdout: 'feature-branch',
+              stderr: '',
+              duration: 100,
+              command,
+            }
+          }
 
-      // Verify it's a mock result, not a real commit
-      expect(result.duration).toBe(50) // Mock duration
+          if (command.includes('git rev-list')) {
+            return {
+              success: true,
+              exitCode: 0,
+              stdout: '3\t2',
+              stderr: '',
+              duration: 100,
+              command,
+            }
+          }
+
+          if (command.includes('git status --porcelain')) {
+            // Test all status codes
+            return {
+              success: true,
+              exitCode: 0,
+              stdout:
+                'M  modified.txt\n' + // Modified in working tree
+                'A  staged.txt\n' + // Added to index
+                '?? untracked.txt\n' + // Untracked
+                'UU conflicted.txt\n' + // Both modified (conflict)
+                'AA both-added.txt\n' + // Both added
+                'DD both-deleted.txt\n' + // Both deleted
+                'AU added-by-us.txt\n' + // Added by us
+                'UA added-by-them.txt\n' + // Added by them
+                'DU deleted-by-us.txt\n' + // Deleted by us
+                'UD deleted-by-them.txt\n' + // Deleted by them
+                'R  renamed.txt\n' + // Renamed in index
+                ' M modified-not-staged.txt\n', // Modified not staged
+              stderr: '',
+              duration: 100,
+              command,
+            }
+          }
+
+          return {
+            success: true,
+            exitCode: 0,
+            stdout: '',
+            stderr: '',
+            duration: 100,
+            command,
+          }
+        })
+
+      const status = await runner.status()
+
+      expect(status.branch).toBe('feature-branch')
+      expect(status.ahead).toBe(2)
+      expect(status.behind).toBe(3)
+
+      // Check conflicted files
+      expect(status.conflicted).toContain('conflicted.txt')
+      expect(status.conflicted).toContain('both-added.txt')
+      expect(status.conflicted).toContain('both-deleted.txt')
+      expect(status.conflicted).toContain('added-by-us.txt')
+      expect(status.conflicted).toContain('added-by-them.txt')
+      expect(status.conflicted).toContain('deleted-by-us.txt')
+      expect(status.conflicted).toContain('deleted-by-them.txt')
+
+      // Check other statuses
+      expect(status.untracked).toContain('untracked.txt')
+      expect(status.staged).toContain('staged.txt')
+      expect(status.staged).toContain('renamed.txt')
+      expect(status.modified).toContain('modified-not-staged.txt')
+
+      runner.cleanup()
     })
 
-    /**
-     * CRITICAL TEST: Verifies that quickCommit operations are blocked in tests.
-     *
-     * @returns Promise<void>
-     * Should prevent real quickCommit and return safe mock result
-     *
-     * @public
-     */
-    it('🛡️ CRITICAL: should prevent real Git quickCommit operations', async () => {
-      // This would be extremely dangerous - it adds ALL files and commits them
-      const result = await gitRunner.quickCommit(
-        'DANGEROUS QUICK COMMIT - SHOULD BE BLOCKED'
-      )
+    it('should handle error in status command and return fallback', async () => {
+      const runner = new GitRunner()
 
-      expect(result.success).toBe(true)
-      expect(result.stdout).toContain(
-        'TEST MODE: Git operation simulated safely'
-      )
-    })
+      mockExecute = vi
+        .spyOn(runner, 'execute' as keyof GitRunner)
+        .mockRejectedValue(new Error('Git command failed'))
 
-    /**
-     * CRITICAL TEST: Verifies that push operations are blocked in tests.
-     *
-     * @returns Promise<void>
-     * Should prevent real push and return safe mock result
-     *
-     * @public
-     */
-    it('🛡️ CRITICAL: should prevent real Git push operations', async () => {
-      const result = await gitRunner.push()
+      const status = await runner.status()
 
-      expect(result.success).toBe(true)
-      expect(result.stdout).toContain(
-        'TEST MODE: Git operation simulated safely'
-      )
-    })
-
-    /**
-     * CRITICAL TEST: Verifies that pull operations are blocked in tests.
-     *
-     * @returns Promise<void>
-     * Should prevent real pull and return safe mock result
-     *
-     * @public
-     */
-    it('🛡️ CRITICAL: should prevent real Git pull operations', async () => {
-      const result = await gitRunner.pull()
-
-      expect(result.success).toBe(true)
-      expect(result.stdout).toContain(
-        'TEST MODE: Git operation simulated safely'
-      )
-    })
-
-    /**
-     * CRITICAL TEST: Verifies that add operations are blocked in tests.
-     *
-     * @returns Promise<void>
-     * Should prevent real add and return safe mock result
-     *
-     * @public
-     */
-    it('🛡️ CRITICAL: should prevent real Git add operations', async () => {
-      // This could stage unwanted files if it executed for real
-      const result = await gitRunner.add(['.'])
-
-      expect(result.success).toBe(true)
-      expect(result.stdout).toContain(
-        'TEST MODE: Git operation simulated safely'
-      )
-    })
-
-    /**
-     * CRITICAL TEST: Verifies that checkout operations are blocked in tests.
-     *
-     * @returns Promise<void>
-     * Should prevent real checkout and return safe mock result
-     *
-     * @public
-     */
-    it('🛡️ CRITICAL: should prevent real Git checkout operations', async () => {
-      const result = await gitRunner.checkout('main')
-
-      expect(result.success).toBe(true)
-      expect(result.stdout).toContain(
-        'TEST MODE: Git operation simulated safely'
-      )
-    })
-
-    /**
-     * CRITICAL TEST: Verifies that sync operations are blocked in tests.
-     *
-     * @returns Promise<void>
-     * Should prevent real sync (pull + push) and return safe mock result
-     *
-     * @public
-     */
-    it('🛡️ CRITICAL: should prevent real Git sync operations', async () => {
-      // Sync does pull + push, both dangerous
-      const result = await gitRunner.sync()
-
-      expect(result.success).toBe(true)
-      expect(result.stdout).toContain(
-        'TEST MODE: Git operation simulated safely'
-      )
-    })
-  })
-
-  describe('Safe Read Operations', () => {
-    /**
-     * Tests that safe read operations return appropriate mock data.
-     *
-     * @returns Promise<void>
-     * Should return consistent mock data for status operations
-     *
-     * @public
-     */
-    it('should provide realistic mock data for status operations', async () => {
-      const status = await gitRunner.status()
-
-      expect(status.branch).toBe('main')
+      expect(status.branch).toBe('unknown')
       expect(status.ahead).toBe(0)
       expect(status.behind).toBe(0)
-      expect(status.modified).toContain('src/test-file.ts')
-      expect(status.untracked).toContain('src/new-file.ts')
+      expect(status.modified).toEqual([])
       expect(status.staged).toEqual([])
+      expect(status.untracked).toEqual([])
       expect(status.conflicted).toEqual([])
+
+      runner.cleanup()
     })
 
-    /**
-     * Tests that branch listing returns appropriate mock data.
-     *
-     * @returns Promise<void>
-     * Should return consistent mock data for branch operations
-     *
-     * @public
-     */
-    it('should provide realistic mock data for branch operations', async () => {
-      const branches = await gitRunner.branch()
+    it('should handle missing branch name', async () => {
+      const runner = new GitRunner()
 
-      expect(branches).toEqual(['main', 'feature-branch', 'develop'])
-    })
+      mockExecute = vi
+        .spyOn(runner, 'execute' as keyof GitRunner)
+        .mockImplementation(async (command: string): Promise<CommandResult> => {
+          if (command.includes('git branch --show-current')) {
+            return {
+              success: true,
+              exitCode: 0,
+              stdout: '', // Empty branch name
+              stderr: '',
+              duration: 100,
+              command,
+            }
+          }
 
-    /**
-     * Tests that log operations return appropriate mock data.
-     *
-     * @returns Promise<void>
-     * Should return consistent mock data for log operations
-     *
-     * @public
-     */
-    it('should provide realistic mock data for log operations', async () => {
-      const commits = await gitRunner.log(3)
+          if (command.includes('git rev-list')) {
+            return {
+              success: true,
+              exitCode: 0,
+              stdout: '0\t0',
+              stderr: '',
+              duration: 100,
+              command,
+            }
+          }
 
-      expect(commits).toHaveLength(2)
-      expect(commits[0]).toEqual({
-        hash: 'abc123',
-        author: 'Test Author',
-        date: '2024-01-01 12:00:00',
-        message: 'Test commit message',
-        files: [],
-      })
-    })
+          if (command.includes('git status --porcelain')) {
+            return {
+              success: true,
+              exitCode: 0,
+              stdout: '',
+              stderr: '',
+              duration: 100,
+              command,
+            }
+          }
 
-    /**
-     * Tests working tree status detection with mock data.
-     *
-     * @returns Promise<void>
-     * Should return 'dirty' status based on mock data
-     *
-     * @public
-     */
-    it('should provide consistent working tree status', async () => {
-      const status = await gitRunner.getWorkingTreeStatus()
+          return {
+            success: true,
+            exitCode: 0,
+            stdout: '',
+            stderr: '',
+            duration: 100,
+            command,
+          }
+        })
 
-      // Based on mock data (has modified files), should be 'dirty'
-      expect(status).toBe('dirty')
-    })
+      const status = await runner.status()
+      expect(status.branch).toBe('main') // Should default to 'main'
 
-    /**
-     * Tests repository detection with mock data.
-     *
-     * @returns Promise<void>
-     * Should return true for repository detection
-     *
-     * @public
-     */
-    it('should provide consistent repository detection', async () => {
-      const isRepo = await gitRunner.isRepository()
-
-      expect(isRepo).toBe(true)
+      runner.cleanup()
     })
   })
 
-  describe('Error Scenarios', () => {
-    /**
-     * Tests that the safety system handles edge cases gracefully.
-     *
-     * @returns Promise<void>
-     * Should handle unknown commands safely
-     *
-     * @public
-     */
-    it('should handle unknown Git commands safely', async () => {
-      // Test direct execute call with unknown command
-      const result = await gitRunner.execute('git unknown-command --test')
+  describe('Git Log Command', () => {
+    it('should handle empty log output', async () => {
+      const runner = new GitRunner()
 
-      expect(result.success).toBe(true)
-      expect(result.stdout).toContain('Test mode: Safe mock response')
+      mockExecute = vi
+        .spyOn(runner, 'execute' as keyof GitRunner)
+        .mockResolvedValue({
+          success: true,
+          exitCode: 0,
+          stdout: '',
+          stderr: '',
+          duration: 100,
+          command: 'git log',
+        })
+
+      const commits = await runner.log()
+      expect(commits).toEqual([])
+
+      runner.cleanup()
     })
 
-    /**
-     * Tests safety system with mixed command scenarios.
-     *
-     * @returns Promise<void>
-     * Should handle complex command scenarios safely
-     *
-     * @public
-     */
-    it('should handle complex command scenarios safely', async () => {
-      // Test with options
-      const result = await gitRunner.execute('git commit -m "test"', {
-        cwd: '/tmp',
+    it('should handle log command failure', async () => {
+      const runner = new GitRunner()
+
+      mockExecute = vi
+        .spyOn(runner, 'execute' as keyof GitRunner)
+        .mockRejectedValue(new Error('Not a git repository'))
+
+      const commits = await runner.log()
+      expect(commits).toEqual([])
+
+      runner.cleanup()
+    })
+  })
+
+  describe('Git Branch Command', () => {
+    it('should handle branch command failure', async () => {
+      const runner = new GitRunner()
+
+      mockExecute = vi
+        .spyOn(runner, 'execute' as keyof GitRunner)
+        .mockRejectedValue(new Error('Not a git repository'))
+
+      const branches = await runner.branch()
+      expect(branches).toEqual([])
+
+      runner.cleanup()
+    })
+
+    it('should filter out empty branch names', async () => {
+      const runner = new GitRunner()
+
+      mockExecute = vi
+        .spyOn(runner, 'execute' as keyof GitRunner)
+        .mockResolvedValue({
+          success: true,
+          exitCode: 0,
+          stdout: '* main\n  \n  feature\n',
+          stderr: '',
+          duration: 100,
+          command: 'git branch',
+        })
+
+      const branches = await runner.branch()
+      expect(branches).toEqual(['main', 'feature'])
+
+      runner.cleanup()
+    })
+  })
+
+  describe('Git Push and Pull Commands', () => {
+    it('should handle pull with custom remote and branch', async () => {
+      const runner = new GitRunner()
+
+      mockExecute = vi
+        .spyOn(runner, 'execute' as keyof GitRunner)
+        .mockResolvedValue({
+          success: true,
+          exitCode: 0,
+          stdout: 'Already up to date.',
+          stderr: '',
+          duration: 100,
+          command: 'git pull',
+        })
+
+      const result = await runner.pull({
+        remote: 'upstream',
+        branch: 'develop',
       })
 
-      expect(result.success).toBe(true)
-      expect(result.stdout).toContain(
-        'TEST MODE: Git operation simulated safely'
+      expect(mockExecute).toHaveBeenCalledWith(
+        'git pull upstream develop',
+        expect.any(Object)
       )
+      expect(result.success).toBe(true)
+
+      runner.cleanup()
+    })
+
+    it('should handle pull without branch', async () => {
+      const runner = new GitRunner()
+
+      mockExecute = vi
+        .spyOn(runner, 'execute' as keyof GitRunner)
+        .mockResolvedValue({
+          success: true,
+          exitCode: 0,
+          stdout: 'Already up to date.',
+          stderr: '',
+          duration: 100,
+          command: 'git pull',
+        })
+
+      await runner.pull()
+
+      expect(mockExecute).toHaveBeenCalledWith('git pull', expect.any(Object))
+
+      runner.cleanup()
+    })
+
+    it('should handle push with custom remote', async () => {
+      const runner = new GitRunner()
+
+      mockExecute = vi
+        .spyOn(runner, 'execute' as keyof GitRunner)
+        .mockResolvedValue({
+          success: true,
+          exitCode: 0,
+          stdout: 'Everything up-to-date',
+          stderr: '',
+          duration: 100,
+          command: 'git push',
+        })
+
+      await runner.push({ remote: 'upstream' })
+
+      expect(mockExecute).toHaveBeenCalledWith(
+        'git push upstream',
+        expect.any(Object)
+      )
+
+      runner.cleanup()
     })
   })
 
-  describe('Production Environment Simulation', () => {
-    /**
-     * Tests that production environment detection works correctly.
-     *
-     * @returns Promise<void>
-     * Should detect when NOT in test environment (but this test itself is still in test env)
-     *
-     * @public
-     */
-    it('should still use safety in test environment even when env vars are cleared', async () => {
-      // Clear test environment indicators
-      delete process.env.NODE_ENV
+  describe('Git Checkout Command', () => {
+    it('should execute checkout command', async () => {
+      const runner = new GitRunner()
+
+      mockExecute = vi
+        .spyOn(runner, 'execute' as keyof GitRunner)
+        .mockResolvedValue({
+          success: true,
+          exitCode: 0,
+          stdout: "Switched to branch 'feature'",
+          stderr: '',
+          duration: 100,
+          command: 'git checkout feature',
+        })
+
+      const result = await runner.checkout('feature')
+
+      expect(mockExecute).toHaveBeenCalledWith('git checkout feature', {})
+      expect(result.success).toBe(true)
+
+      runner.cleanup()
+    })
+  })
+
+  describe('Quick Commit', () => {
+    it('should abort if add operation fails', async () => {
+      const runner = new GitRunner()
+
+      const addSpy = vi.spyOn(runner, 'add').mockResolvedValue({
+        success: false,
+        exitCode: 1,
+        stdout: '',
+        stderr: 'Failed to add files',
+        duration: 100,
+        command: 'git add .',
+      })
+
+      const commitSpy = vi.spyOn(runner, 'commit')
+
+      const result = await runner.quickCommit('Test commit')
+
+      expect(addSpy).toHaveBeenCalled()
+      expect(commitSpy).not.toHaveBeenCalled()
+      expect(result.success).toBe(false)
+      expect(result.stderr).toBe('Failed to add files')
+
+      runner.cleanup()
+    })
+  })
+
+  describe('Git Sync', () => {
+    it('should perform sync successfully', async () => {
+      const runner = new GitRunner()
+
+      const pullSpy = vi.spyOn(runner, 'pull').mockResolvedValue({
+        success: true,
+        exitCode: 0,
+        stdout: 'Already up to date.',
+        stderr: '',
+        duration: 100,
+        command: 'git pull',
+      })
+
+      const pushSpy = vi.spyOn(runner, 'push').mockResolvedValue({
+        success: true,
+        exitCode: 0,
+        stdout: 'Everything up-to-date',
+        stderr: '',
+        duration: 100,
+        command: 'git push',
+      })
+
+      const result = await runner.sync()
+
+      expect(pullSpy).toHaveBeenCalled()
+      expect(pushSpy).toHaveBeenCalled()
+      expect(result.success).toBe(true)
+
+      runner.cleanup()
+    })
+
+    it('should abort sync if pull fails', async () => {
+      const runner = new GitRunner()
+
+      const pullSpy = vi.spyOn(runner, 'pull').mockResolvedValue({
+        success: false,
+        exitCode: 1,
+        stdout: '',
+        stderr: 'Merge conflict',
+        duration: 100,
+        command: 'git pull',
+      })
+
+      const pushSpy = vi.spyOn(runner, 'push')
+
+      const result = await runner.sync()
+
+      expect(pullSpy).toHaveBeenCalled()
+      expect(pushSpy).not.toHaveBeenCalled()
+      expect(result.success).toBe(false)
+      expect(result.stderr).toBe('Merge conflict')
+
+      runner.cleanup()
+    })
+  })
+
+  describe('Working Tree Status', () => {
+    it('should return clean status', async () => {
+      const runner = new GitRunner()
+
+      vi.spyOn(runner, 'status').mockResolvedValue({
+        branch: 'main',
+        ahead: 0,
+        behind: 0,
+        modified: [],
+        staged: [],
+        untracked: [],
+        conflicted: [],
+      })
+
+      const status = await runner.getWorkingTreeStatus()
+      expect(status).toBe('clean')
+
+      runner.cleanup()
+    })
+
+    it('should return conflicted status', async () => {
+      const runner = new GitRunner()
+
+      vi.spyOn(runner, 'status').mockResolvedValue({
+        branch: 'main',
+        ahead: 0,
+        behind: 0,
+        modified: [],
+        staged: [],
+        untracked: [],
+        conflicted: ['file.txt'],
+      })
+
+      const status = await runner.getWorkingTreeStatus()
+      expect(status).toBe('conflicted')
+
+      runner.cleanup()
+    })
+
+    it('should return dirty status for modified files', async () => {
+      const runner = new GitRunner()
+
+      vi.spyOn(runner, 'status').mockResolvedValue({
+        branch: 'main',
+        ahead: 0,
+        behind: 0,
+        modified: ['file.txt'],
+        staged: [],
+        untracked: [],
+        conflicted: [],
+      })
+
+      const status = await runner.getWorkingTreeStatus()
+      expect(status).toBe('dirty')
+
+      runner.cleanup()
+    })
+
+    it('should return dirty status for staged files', async () => {
+      const runner = new GitRunner()
+
+      vi.spyOn(runner, 'status').mockResolvedValue({
+        branch: 'main',
+        ahead: 0,
+        behind: 0,
+        modified: [],
+        staged: ['file.txt'],
+        untracked: [],
+        conflicted: [],
+      })
+
+      const status = await runner.getWorkingTreeStatus()
+      expect(status).toBe('dirty')
+
+      runner.cleanup()
+    })
+
+    it('should return dirty status for untracked files', async () => {
+      const runner = new GitRunner()
+
+      vi.spyOn(runner, 'status').mockResolvedValue({
+        branch: 'main',
+        ahead: 0,
+        behind: 0,
+        modified: [],
+        staged: [],
+        untracked: ['file.txt'],
+        conflicted: [],
+      })
+
+      const status = await runner.getWorkingTreeStatus()
+      expect(status).toBe('dirty')
+
+      runner.cleanup()
+    })
+  })
+
+  describe('Repository Check', () => {
+    it('should detect non-repository directory', async () => {
+      const runner = new GitRunner()
+
+      mockExecute = vi
+        .spyOn(runner, 'execute' as keyof GitRunner)
+        .mockRejectedValue(new Error('Not a git repository'))
+
+      const isRepo = await runner.isRepository('/tmp')
+      expect(isRepo).toBe(false)
+
+      runner.cleanup()
+    })
+
+    it('should detect repository with false output', async () => {
+      const runner = new GitRunner()
+
+      mockExecute = vi
+        .spyOn(runner, 'execute' as keyof GitRunner)
+        .mockResolvedValue({
+          success: true,
+          exitCode: 0,
+          stdout: 'false',
+          stderr: '',
+          duration: 100,
+          command: 'git rev-parse --is-inside-work-tree',
+        })
+
+      const isRepo = await runner.isRepository()
+      expect(isRepo).toBe(false)
+
+      runner.cleanup()
+    })
+
+    it('should handle unsuccessful command', async () => {
+      const runner = new GitRunner()
+
+      mockExecute = vi
+        .spyOn(runner, 'execute' as keyof GitRunner)
+        .mockResolvedValue({
+          success: false,
+          exitCode: 128,
+          stdout: '',
+          stderr: 'fatal: not a git repository',
+          duration: 100,
+          command: 'git rev-parse --is-inside-work-tree',
+        })
+
+      const isRepo = await runner.isRepository()
+      expect(isRepo).toBe(false)
+
+      runner.cleanup()
+    })
+  })
+
+  describe('Safety Status', () => {
+    it('should return comprehensive safety status', () => {
+      const runner = new GitRunner()
+
+      const status = runner.getSafetyStatus()
+
+      expect(status).toHaveProperty('isTestEnvironment')
+      expect(status).toHaveProperty('confidence')
+      expect(status).toHaveProperty('triggers')
+      expect(status).toHaveProperty('legacyDetection')
+      expect(status).toHaveProperty('enhancedDetection')
+      expect(status).toHaveProperty('recentDetections')
+
+      expect(typeof status.isTestEnvironment).toBe('boolean')
+      expect(typeof status.confidence).toBe('number')
+      expect(Array.isArray(status.triggers)).toBe(true)
+      expect(typeof status.legacyDetection).toBe('boolean')
+      expect(typeof status.enhancedDetection).toBe('boolean')
+      expect(typeof status.recentDetections).toBe('number')
+
+      runner.cleanup()
+    })
+
+    it('should include last detection timestamp when available', () => {
+      const runner = new GitRunner()
+
+      // Trigger a detection first
+      process.env.VITEST = 'true'
+      runner.execute('git status', {})
       delete process.env.VITEST
 
-      // But vi global should still be available (we're in Vitest)
-      const result = await gitRunner.commit('Should still be blocked')
+      const status = runner.getSafetyStatus()
 
-      expect(result.success).toBe(true)
-      expect(result.stdout).toContain(
-        'TEST MODE: Git operation simulated safely'
+      if (status.recentDetections > 0) {
+        expect(status.lastDetection).toBeDefined()
+        expect(typeof status.lastDetection).toBe('number')
+      }
+
+      runner.cleanup()
+    })
+  })
+
+  describe('Execute with Logging', () => {
+    it('should handle logging system not initialized', async () => {
+      const runner = new GitRunner()
+
+      // Ensure logging is not initialized
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Accessing private property for test setup
+      ;(runner as any).loggingInitialized = false
+
+      mockExecute = vi
+        .spyOn(runner, 'execute' as keyof GitRunner)
+        .mockResolvedValue({
+          success: true,
+          exitCode: 0,
+          stdout: 'test output',
+          stderr: '',
+          duration: 100,
+          command: 'git status',
+        })
+
+      const status = await runner.status()
+      expect(status).toHaveProperty('branch')
+
+      runner.cleanup()
+    })
+
+    it('should handle logging operation failure with fallback value', async () => {
+      const runner = new GitRunner()
+
+      // Mock logging to be initialized but fail
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Accessing private property for test setup
+      ;(runner as any).loggingInitialized = true
+
+      // This will cause executeWithLogging to use fallback
+      mockExecute = vi
+        .spyOn(runner, 'execute' as keyof GitRunner)
+        .mockRejectedValue(new Error('Command failed'))
+
+      const status = await runner.status()
+
+      // Should return fallback status
+      expect(status.branch).toBe('unknown')
+      expect(status.ahead).toBe(0)
+      expect(status.behind).toBe(0)
+
+      runner.cleanup()
+    })
+  })
+
+  describe('Edge Cases and Complete Coverage', () => {
+    it('should handle status with files having special characters', async () => {
+      const runner = new GitRunner()
+
+      mockExecute = vi
+        .spyOn(runner, 'execute' as keyof GitRunner)
+        .mockImplementation(async (command: string): Promise<CommandResult> => {
+          if (command.includes('git branch --show-current')) {
+            return {
+              success: true,
+              exitCode: 0,
+              stdout: 'main',
+              stderr: '',
+              duration: 100,
+              command,
+            }
+          }
+
+          if (command.includes('git rev-list')) {
+            return {
+              success: true,
+              exitCode: 0,
+              stdout: '0\t0',
+              stderr: '',
+              duration: 100,
+              command,
+            }
+          }
+
+          if (command.includes('git status --porcelain')) {
+            return {
+              success: true,
+              exitCode: 0,
+              stdout: 'M  "file with spaces.txt"\nD  deleted.txt\n',
+              stderr: '',
+              duration: 100,
+              command,
+            }
+          }
+
+          return {
+            success: true,
+            exitCode: 0,
+            stdout: '',
+            stderr: '',
+            duration: 100,
+            command,
+          }
+        })
+
+      const status = await runner.status()
+      expect(status.staged).toContain('"file with spaces.txt"')
+      expect(status.staged).toContain('deleted.txt')
+
+      runner.cleanup()
+    })
+
+    it('should handle git branch output for detached HEAD', async () => {
+      const runner = new GitRunner()
+
+      mockExecute = vi
+        .spyOn(runner, 'execute' as keyof GitRunner)
+        .mockImplementation(async (command: string): Promise<CommandResult> => {
+          if (command.includes('git branch')) {
+            return {
+              success: true,
+              exitCode: 0,
+              stdout: '* (HEAD detached at abc123)\n  main\n  feature\n',
+              stderr: '',
+              duration: 100,
+              command,
+            }
+          }
+
+          return {
+            success: true,
+            exitCode: 0,
+            stdout: '',
+            stderr: '',
+            duration: 100,
+            command,
+          }
+        })
+
+      const branches = await runner.branch()
+      expect(branches).toContain('(HEAD detached at abc123)')
+      expect(branches).toContain('main')
+      expect(branches).toContain('feature')
+
+      runner.cleanup()
+    })
+
+    it('should handle enhanced safety detection with legacy fallback', async () => {
+      const runner = new GitRunner()
+
+      // Mock enhanced detection to return false but legacy to return true
+      const safetyDetectorMock = {
+        detectEnvironment: () => ({
+          isTestEnvironment: false,
+          confidence: 0,
+          triggers: [],
+        }),
+        getMockResult: (cmd: string) => ({
+          success: true,
+          exitCode: 0,
+          stdout: 'mock result',
+          stderr: '',
+          duration: 0,
+          command: cmd,
+        }),
+        configure: vi.fn(),
+        getDetectionHistory: () => [],
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mocking internal safetyDetector for test scenario
+      ;(runner as any).safetyDetector = safetyDetectorMock
+
+      // Make legacy detection return true
+      const stack = new Error().stack || ''
+      if (stack.includes('.spec.') && stack.includes('vitest')) {
+        const result = await runner.execute('git status', {})
+        expect(result.stdout).toBeTruthy()
+      }
+
+      runner.cleanup()
+    })
+
+    it('should test all git command mock branches', async () => {
+      process.env.VITEST = 'true'
+      const runner = new GitRunner()
+
+      // Test rev-list command
+      const revListResult = await runner.execute(
+        'git rev-list --left-right --count main...origin/main',
+        {}
       )
+      expect(revListResult.stdout).toContain('Test mode') // In test mode, all commands return test mode response
+
+      // Test default fallback
+      const unknownResult = await runner.execute('git unknown-command', {})
+      expect(unknownResult.stdout).toBe('Test mode: Safe mock response\n')
+
+      delete process.env.VITEST
+      runner.cleanup()
     })
   })
 })

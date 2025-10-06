@@ -29,6 +29,7 @@ describe('StorageManager', () => {
   let config: StorageConfig
 
   beforeEach(() => {
+    vi.clearAllMocks()
     config = createTestConfig()
     storage = new StorageManager(config)
   })
@@ -37,6 +38,20 @@ describe('StorageManager', () => {
     it('should initialize with memory adapter', async () => {
       await expect(storage.initialize()).resolves.not.toThrow()
       expect(storage.underlyingAdapter.type).toBe('memory')
+    })
+
+    it('should initialize with sqlite adapter', async () => {
+      const sqliteConfig: StorageConfig = {
+        type: 'sqlite',
+        path: ':memory:',
+        encryption: { enabled: false },
+        compression: { enabled: false },
+      }
+
+      const sqliteStorage = new StorageManager(sqliteConfig)
+      await expect(sqliteStorage.initialize()).resolves.not.toThrow()
+      expect(sqliteStorage.underlyingAdapter.type).toBe('sqlite')
+      await sqliteStorage.close()
     })
 
     it('should run migrations during initialization', async () => {
@@ -57,6 +72,28 @@ describe('StorageManager', () => {
 
       await secureStorage.initialize()
       expect(() => secureStorage.vaultStorage).not.toThrow()
+    })
+
+    it('should handle initialization errors gracefully', async () => {
+      const failConfig = createTestConfig()
+      const failStorage = new StorageManager(failConfig)
+
+      // Mock the adapter's initialize to fail
+      const mockAdapter = {
+        initialize: vi.fn().mockRejectedValue(new Error('Adapter init failed')),
+        type: 'memory',
+      }
+
+      // Replace the adapter promise with a failing one
+      interface StorageWithAdapter {
+        adapterPromise: Promise<unknown>
+      }
+      ;(failStorage as unknown as StorageWithAdapter).adapterPromise =
+        Promise.resolve(mockAdapter)
+
+      await expect(failStorage.initialize()).rejects.toThrow(
+        'Failed to initialize storage'
+      )
     })
   })
 
@@ -95,6 +132,48 @@ describe('StorageManager', () => {
 
       expect(await storage.has('key1')).toBe(false)
       expect(await storage.has('key2')).toBe(false)
+    })
+
+    it('should count items with prefix', async () => {
+      // Clear any existing data first
+      await storage.clear()
+
+      await storage.set('user:1', { name: 'Alice' })
+      await storage.set('user:2', { name: 'Bob' })
+      await storage.set('config:theme', 'dark')
+
+      const userCount = await storage.count('user')
+      expect(userCount).toBe(2)
+
+      const totalCount = await storage.count()
+      expect(totalCount).toBe(3)
+    })
+
+    it('should get storage size', async () => {
+      await storage.set('key1', 'value1')
+      await storage.set('key2', 'value2')
+
+      const size = await storage.getSize()
+      expect(size).toBeGreaterThan(0)
+    })
+
+    it('should list keys with and without prefix', async () => {
+      await storage.clear()
+      await storage.set('user:1', { name: 'Alice' })
+      await storage.set('user:2', { name: 'Bob' })
+      await storage.set('config:theme', 'dark')
+
+      // List with prefix
+      const userKeys = await storage.list('user')
+      expect(userKeys).toContain('user:1')
+      expect(userKeys).toContain('user:2')
+      expect(userKeys).not.toContain('config:theme')
+
+      // List all keys
+      const allKeys = await storage.list()
+      expect(allKeys).toContain('user:1')
+      expect(allKeys).toContain('user:2')
+      expect(allKeys).toContain('config:theme')
     })
   })
 
@@ -147,6 +226,13 @@ describe('StorageManager', () => {
       expect(configNamespace.namespace).toBe('config')
     })
 
+    it('should reuse existing namespace instances', () => {
+      const ns1 = storage.namespace('users')
+      const ns2 = storage.namespace('users')
+
+      expect(ns1).toBe(ns2) // Should be the same instance
+    })
+
     it('should isolate data between namespaces', async () => {
       const userNamespace = storage.namespace('users')
       const configNamespace = storage.namespace('config')
@@ -169,6 +255,44 @@ describe('StorageManager', () => {
       expect(keys).toContain('user1')
       expect(keys).toContain('user2')
       expect(keys).not.toContain('global')
+    })
+
+    it('should clear only namespace data', async () => {
+      const userNamespace = storage.namespace('users')
+      const configNamespace = storage.namespace('config')
+
+      await userNamespace.set('user1', { name: 'Alice' })
+      await userNamespace.set('user2', { name: 'Bob' })
+      await configNamespace.set('theme', 'dark')
+
+      await userNamespace.clear()
+
+      // User namespace should be empty
+      expect(await userNamespace.count()).toBe(0)
+      expect(await userNamespace.list()).toHaveLength(0)
+
+      // Config namespace should still have data
+      expect(await configNamespace.get('theme')).toBe('dark')
+    })
+
+    it('should handle namespace delete operations', async () => {
+      const ns = storage.namespace('test')
+
+      await ns.set('key1', 'value1')
+      expect(await ns.get('key1')).toBe('value1')
+
+      await ns.delete('key1')
+      expect(await ns.get('key1')).toBeNull()
+    })
+
+    it('should properly handle originalKey method for non-namespaced keys', async () => {
+      const ns = storage.namespace('test')
+      await ns.set('mykey', 'value')
+
+      // List should return keys without namespace prefix
+      const keys = await ns.list()
+      expect(keys).toContain('mykey')
+      expect(keys).not.toContain('test:mykey')
     })
   })
 
@@ -233,9 +357,95 @@ describe('StorageManager', () => {
       )
     })
 
+    it('should throw error for dexie adapter (not implemented)', async () => {
+      const dexieConfig = {
+        type: 'dexie' as const,
+        encryption: { enabled: false },
+        compression: { enabled: false },
+      }
+
+      const dexieStorage = new StorageManager(dexieConfig)
+      await expect(dexieStorage.initialize()).rejects.toThrow(
+        'Dexie adapter not implemented yet'
+      )
+    })
+
+    it('should throw error for custom adapter without instance', async () => {
+      const customConfig = {
+        type: 'custom' as const,
+        encryption: { enabled: false },
+        compression: { enabled: false },
+      }
+
+      const customStorage = new StorageManager(customConfig)
+      await expect(customStorage.initialize()).rejects.toThrow(
+        'Custom adapter type requires providing adapter instance'
+      )
+    })
+
     it('should throw error when accessing vault without encryption', async () => {
       await storage.initialize()
       expect(() => storage.vaultStorage).toThrow('Vault not available')
+    })
+
+    it('should throw errors when operations are called before initialization', async () => {
+      const uninitStorage = new StorageManager(config)
+
+      expect(() => uninitStorage.get('key')).toThrow('Storage not initialized')
+      expect(() => uninitStorage.set('key', 'value')).toThrow(
+        'Storage not initialized'
+      )
+      expect(() => uninitStorage.delete('key')).toThrow(
+        'Storage not initialized'
+      )
+      expect(() => uninitStorage.clear()).toThrow('Storage not initialized')
+      expect(() => uninitStorage.getMany(['key'])).toThrow(
+        'Storage not initialized'
+      )
+      expect(() => uninitStorage.setMany(new Map())).toThrow(
+        'Storage not initialized'
+      )
+      expect(() => uninitStorage.list()).toThrow('Storage not initialized')
+      expect(() => uninitStorage.count()).toThrow('Storage not initialized')
+      expect(() => uninitStorage.has('key')).toThrow('Storage not initialized')
+      expect(() => uninitStorage.getSize()).toThrow('Storage not initialized')
+      expect(() => uninitStorage.namespace('test')).toThrow(
+        'Storage not initialized'
+      )
+      expect(() => uninitStorage.underlyingAdapter).toThrow(
+        'Storage not initialized'
+      )
+      expect(() => uninitStorage.query()).toThrow('Storage not initialized')
+    })
+
+    it('should throw when migration operations are called before initialization', () => {
+      const uninitStorage = new StorageManager(config)
+
+      expect(() => uninitStorage.getMigrationHistory()).toThrow(
+        'Cannot get migration history before storage is initialized'
+      )
+
+      expect(() => uninitStorage.getPendingMigrations()).toThrow(
+        'Cannot get pending migrations before storage is initialized'
+      )
+
+      expect(() => uninitStorage.rollback('1.0.0')).toThrow(
+        'Cannot rollback before storage is initialized'
+      )
+    })
+
+    it('should handle failed migrations during initialization', async () => {
+      const failingMigration = {
+        version: '1.0.0',
+        description: 'Failing migration',
+        up: vi.fn().mockRejectedValue(new Error('Migration failed')),
+      }
+
+      storage.addMigration(failingMigration)
+
+      await expect(storage.initialize()).rejects.toThrow(
+        'Failed to initialize storage'
+      )
     })
   })
 
@@ -254,6 +464,22 @@ describe('StorageManager', () => {
       expect(() => storage.addMigration(migration)).not.toThrow()
     })
 
+    it('should add migrations before initialization', async () => {
+      const uninitStorage = new StorageManager(config)
+      const migration = {
+        version: '1.2.0',
+        description: 'Pre-init migration',
+        up: vi.fn().mockResolvedValue(undefined),
+      }
+
+      // Add migration before initialization
+      expect(() => uninitStorage.addMigration(migration)).not.toThrow()
+
+      // Initialize and verify migration was applied
+      await uninitStorage.initialize()
+      expect(migration.up).toHaveBeenCalled()
+    })
+
     it('should get migration history', async () => {
       const history = await storage.getMigrationHistory()
       expect(Array.isArray(history)).toBe(true)
@@ -263,12 +489,51 @@ describe('StorageManager', () => {
       const pending = await storage.getPendingMigrations()
       expect(Array.isArray(pending)).toBe(true)
     })
+
+    it('should handle rollback', async () => {
+      const migration = {
+        version: '2.0.0',
+        description: 'Test migration with rollback',
+        up: vi.fn().mockResolvedValue(undefined),
+        down: vi.fn().mockResolvedValue(undefined),
+      }
+
+      storage.addMigration(migration)
+      const results = await storage.rollback('1.0.0')
+
+      expect(Array.isArray(results)).toBe(true)
+    })
   })
 
   describe('adapter lifecycle', () => {
     it('should close adapter and cleanup resources', async () => {
       await storage.initialize()
       await expect(storage.close()).resolves.not.toThrow()
+    })
+
+    it('should handle close when adapter is not initialized', async () => {
+      const uninitStorage = new StorageManager(config)
+      await expect(uninitStorage.close()).resolves.not.toThrow()
+    })
+
+    it('should handle close when adapter exists', async () => {
+      await storage.initialize()
+
+      // Create namespace to test cleanup
+      const ns1 = storage.namespace('test')
+      expect(ns1).toBeDefined()
+
+      // Close should clean up namespaces
+      await storage.close()
+
+      // After close, a new namespace should be created
+      // (since adapter still exists but namespaces were cleared)
+      await storage.initialize() // Re-initialize for the test
+      const ns2 = storage.namespace('test')
+
+      // Should be a different instance since namespaces were cleared
+      expect(ns2).toBeDefined()
+      expect(ns1).not.toBe(ns2)
     })
   })
 })

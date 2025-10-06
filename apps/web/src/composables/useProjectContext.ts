@@ -18,6 +18,8 @@
  */
 
 import { ref, computed, readonly } from 'vue'
+import { useOnboarding } from './useOnboarding'
+
 // Browser-compatible path utilities
 const join = (...paths: string[]): string => {
   return paths.join('/').replace(/\/+/g, '/')
@@ -97,6 +99,9 @@ const lastError = ref<string | null>(null)
  * @public
  */
 export function useProjectContext() {
+  // Get onboarding context to trigger when project is invalid
+  const { triggerOnboarding } = useOnboarding()
+
   /**
    * Loads a project from the given path and scans its file structure.
    *
@@ -145,6 +150,20 @@ export function useProjectContext() {
           console.log('[Project Context] 📁 Path exists:', exists)
 
           if (!exists) {
+            console.error(
+              '[Project Context] ❌ Project path does not exist:',
+              projectPath
+            )
+            // Clear the current project state
+            openedProject.value = null
+            projectFiles.value = []
+            // Trigger onboarding when project doesn't exist
+            console.log(
+              '[Project Context] 🔄 Triggering onboarding due to missing project'
+            )
+            setTimeout(() => {
+              triggerOnboarding()
+            }, 100)
             throw new Error(`Project path does not exist: ${projectPath}`)
           }
 
@@ -156,6 +175,20 @@ export function useProjectContext() {
           console.log('[Project Context] 📂 Is directory:', isDir)
 
           if (!isDir) {
+            console.error(
+              '[Project Context] ❌ Project path is not a directory:',
+              projectPath
+            )
+            // Clear the current project state
+            openedProject.value = null
+            projectFiles.value = []
+            // Trigger onboarding when project is not a directory
+            console.log(
+              '[Project Context] 🔄 Triggering onboarding due to invalid project'
+            )
+            setTimeout(() => {
+              triggerOnboarding()
+            }, 100)
             throw new Error(`Project path is not a directory: ${projectPath}`)
           }
 
@@ -279,7 +312,10 @@ export function useProjectContext() {
     openedProject.value.fileCount = files.length
     openedProject.value.lastScanned = new Date()
 
-    console.log(`[Project Context] Files refreshed: ${files.length} files`)
+    // Only log significant refreshes to reduce console spam
+    if (files.length > 100) {
+      console.log(`[Project Context] Files refreshed: ${files.length} files`)
+    }
   }
 
   /**

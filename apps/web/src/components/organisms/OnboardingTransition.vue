@@ -10,7 +10,11 @@
               <div class="ring-segment"></div>
               <div class="ring-segment"></div>
             </div>
-            <BaseLogo size="md" variant="egg-white" class="loading-logo" />
+            <BaseLogo
+              size="xxl"
+              variant="egg-white"
+              class="loading-logo loading-logo-extra"
+            />
           </div>
         </div>
 
@@ -21,11 +25,27 @@
             Setting up Hatcher for your {{ taskDisplayName }} journey
           </p>
 
-          <!-- Selected Task Summary -->
-          <div v-if="selectedTaskData" class="task-summary">
+          <!-- Selected Task or Branch Summary -->
+          <div
+            v-if="selectedTaskData || selectedBranchData"
+            class="task-summary"
+          >
             <div class="task-summary-header">
-              <BaseIcon :name="selectedTaskData.icon" size="md" />
-              <span class="task-name">{{ selectedTaskData.title }}</span>
+              <BaseIcon
+                :name="selectedTaskData ? selectedTaskData.icon : 'GitBranch'"
+                size="md"
+              />
+              <span class="task-name">
+                {{
+                  selectedTaskData && selectedBranchData
+                    ? `${selectedTaskData.title} - ${selectedBranchData.name}`
+                    : selectedTaskData
+                      ? selectedTaskData.title
+                      : selectedBranchData
+                        ? `Working on ${selectedBranchData.name}`
+                        : 'Setting up...'
+                }}
+              </span>
             </div>
             <p class="task-context">{{ contextMessage }}</p>
           </div>
@@ -50,18 +70,6 @@
             </div>
           </div>
         </div>
-
-        <!-- Skip Button -->
-        <div class="skip-section">
-          <BaseButton
-            variant="ghost"
-            size="sm"
-            class="skip-button"
-            @click="handleComplete"
-          >
-            Skip animation
-          </BaseButton>
-        </div>
       </div>
     </div>
   </div>
@@ -71,17 +79,24 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useOnboarding } from '../../composables/useOnboarding'
 import BaseLogo from '../atoms/BaseLogo.vue'
-import BaseButton from '../atoms/BaseButton.vue'
 import BaseIcon from '../atoms/BaseIcon.vue'
 
-const { getSelectedTask, completeOnboarding } = useOnboarding()
+const { getSelectedTask, getSelectedBranch, completeOnboarding } =
+  useOnboarding()
 
 const currentMessageIndex = ref(0)
 let progressInterval: ReturnType<typeof setInterval> | null = null
 
 const selectedTaskData = computed(() => getSelectedTask.value)
+const selectedBranchData = computed(() => getSelectedBranch.value)
 
 const taskDisplayName = computed(() => {
+  // If we have a selected branch (existing workflow), use generic messaging
+  if (selectedBranchData.value) {
+    return 'development'
+  }
+
+  // Otherwise, use task-specific messaging
   switch (selectedTaskData.value?.id) {
     case 'create-feature':
       return 'feature creation'
@@ -99,6 +114,17 @@ const taskDisplayName = computed(() => {
 })
 
 const contextMessage = computed(() => {
+  // If we have a selected task, it means we're creating a new branch
+  if (selectedTaskData.value && selectedBranchData.value) {
+    return `Creating the new "${selectedBranchData.value.name}" branch. Hatcher is analyzing your codebase to provide intelligent assistance for your task.`
+  }
+
+  // If we only have a selected branch (no task), it means we're working on existing branch
+  if (selectedBranchData.value && !selectedTaskData.value) {
+    return `Ready to continue work on the "${selectedBranchData.value.name}" branch. Hatcher will adapt to your existing development context and provide intelligent assistance.`
+  }
+
+  // Fallback for task-only scenarios (shouldn't happen in normal flow)
   switch (selectedTaskData.value?.id) {
     case 'create-feature':
       return 'Hatcher will help you build new features with AI assistance, from design to implementation and testing.'
@@ -152,38 +178,26 @@ onUnmounted(() => {
 
 <style scoped>
 .onboarding-transition {
-  position: relative;
+  width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
-  background: linear-gradient(
-    135deg,
-    var(--bg-primary) 0%,
-    var(--bg-secondary) 100%
-  );
-  padding: 24px;
+  padding: 48px;
+  padding-bottom: 48px;
 }
 
 .transition-container {
-  max-width: 500px;
   width: 100%;
+  max-width: 800px;
   text-align: center;
   animation: fade-in-up 0.8s ease-out;
 }
 
 .transition-content {
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border-primary);
-  border-radius: 16px;
-  padding: 40px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(8px);
-}
-
-.dark .transition-content {
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  background-color: transparent;
+  padding: 0;
 }
 
 .loading-section {
@@ -197,6 +211,10 @@ onUnmounted(() => {
   justify-content: center;
   width: 80px;
   height: 80px;
+}
+
+.loading-logo-extra {
+  transform: scale(0.75);
 }
 
 .loading-ring {
@@ -329,20 +347,6 @@ onUnmounted(() => {
 
 .message-completed .message-icon {
   color: var(--accent-primary);
-}
-
-.skip-section {
-  padding-top: 20px;
-  border-top: 1px solid var(--border-primary);
-}
-
-.skip-button {
-  color: var(--text-tertiary);
-  font-size: 13px;
-}
-
-.skip-button:hover {
-  color: var(--text-secondary);
 }
 
 /* Animations */

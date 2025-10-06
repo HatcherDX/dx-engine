@@ -39,7 +39,7 @@ const buttonClasses = computed(() => {
     'focus:ring-2',
     'focus:ring-offset-2',
     'disabled:opacity-50',
-    'disabled:cursor-not-allowed',
+    'disabled:cursor-default',
     'disabled:pointer-events-none',
   ]
 

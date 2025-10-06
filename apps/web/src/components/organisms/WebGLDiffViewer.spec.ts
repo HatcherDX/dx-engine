@@ -378,8 +378,8 @@ describe('WebGLDiffViewer', () => {
 
       expect(wrapper.exists()).toBe(true)
       expect(wrapper.find('.webgl-diff-viewer').exists()).toBe(true)
-      expect(wrapper.find('.diff-header').exists()).toBe(true)
-      expect(wrapper.find('.diff-viewport').exists()).toBe(true)
+      // Header and viewport are only shown when there's content
+      expect(wrapper.find('.empty-state-container').exists()).toBe(true)
     })
 
     /**
@@ -439,14 +439,15 @@ describe('WebGLDiffViewer', () => {
     it('should show no diff message when no data provided', () => {
       wrapper = mount(WebGLDiffViewer, {
         props: {
-          currentFile: '',
-          gitDiff: null,
+          currentFile: null,
+          diffData: null,
+          isLoading: false,
         },
       })
 
-      expect(wrapper.find('.no-diff-message').exists()).toBe(true)
-      expect(wrapper.find('.no-diff-message').text()).toBe(
-        'Select a file to view diff'
+      expect(wrapper.find('.empty-state-container').exists()).toBe(true)
+      expect(wrapper.find('.empty-state-title').text()).toBe(
+        'No Changes Detected'
       )
     })
   })
@@ -2175,11 +2176,12 @@ describe('WebGLDiffViewer', () => {
     wrapper = mount(WebGLDiffViewer, {
       props: {
         diffData: null,
-        currentFile: 'test.js',
+        currentFile: null,
+        isLoading: false,
       },
     })
 
-    expect(wrapper.find('.no-diff-message').exists()).toBe(true)
+    expect(wrapper.find('.empty-state-container').exists()).toBe(true)
   })
 
   it('should handle diffData with no hunks', () => {
@@ -2427,7 +2429,7 @@ describe('WebGLDiffViewer', () => {
     })
 
     // When currentFile is empty, it shows the default message
-    expect(wrapper.find('.diff-title').text()).toBe('Select a file')
+    expect(wrapper.find('.diff-title').text()).toBe('Loading...')
   })
 
   it('should handle very long file paths', () => {
@@ -4214,14 +4216,14 @@ describe('WebGLDiffViewer', () => {
       // Test with no diffData and no loading (line 249 v-else)
       const wrapperNoData = mount(WebGLDiffViewer, {
         props: {
-          currentFile: 'test.js',
+          currentFile: null,
           diffData: null,
           isLoading: false,
         },
       })
 
       // Should render no-diff-message
-      expect(wrapperNoData.find('.no-diff-message').exists()).toBe(true)
+      expect(wrapperNoData.find('.empty-state-container').exists()).toBe(true)
     })
 
     /**
@@ -4867,7 +4869,7 @@ describe('🎯 Additional Coverage - Computed Properties and Methods', () => {
     })
 
     expect(wrapper.exists()).toBe(true)
-    expect(wrapper.find('.diff-title').text()).toContain('Select a file')
+    expect(wrapper.find('.diff-title').text()).toContain('Loading...')
   })
 
   /**
@@ -7098,8 +7100,8 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
         },
         {
           name: 'no diff state',
-          props: { isLoading: false, diffData: null, currentFile: 'empty.js' },
-          expectedClass: '.no-diff-message',
+          props: { isLoading: false, diffData: null, currentFile: null },
+          expectedClass: '.empty-state-container',
         },
         {
           name: 'diff with stats',

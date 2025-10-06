@@ -22,6 +22,16 @@ import { beforeEach, describe, expect, it, vi, afterEach } from 'vitest'
 import { NodePtyBackend } from './NodePtyBackend'
 import type { BackendSpawnOptions, BackendProcess } from './TerminalBackend'
 
+// Mock Logger to avoid console conflicts
+vi.mock('../utils/logger', () => ({
+  Logger: class MockLogger {
+    debug = vi.fn()
+    info = vi.fn()
+    warn = vi.fn()
+    error = vi.fn()
+  },
+}))
+
 // Mock dependencies with vi.hoisted
 const nodePtyBackendMocks = vi.hoisted(() => {
   return {

@@ -20,12 +20,9 @@
       </div>
     </template>
 
-    <!-- Modo Code: Project name + file path -->
+    <!-- Modo Code: File path only -->
     <template v-else-if="currentMode === 'code'">
       <div class="breadcrumb-segment project-file">
-        <div class="project-badge">
-          {{ projectName || 'mi-proyecto' }}
-        </div>
         <div v-if="filePath" class="file-path">
           <span
             v-for="(segment, index) in pathSegments"
@@ -41,12 +38,9 @@
       </div>
     </template>
 
-    <!-- Modo Git: Project name + branch -->
+    <!-- Modo Timegraph: Branch only -->
     <template v-else>
       <div class="breadcrumb-segment project-git">
-        <div class="project-badge">
-          {{ projectName || 'mi-proyecto' }}
-        </div>
         <div class="git-branch">
           <BaseIcon name="GitBranch" size="xs" class="branch-icon" />
           <span class="branch-text">{{ gitBranch || 'main' }}</span>

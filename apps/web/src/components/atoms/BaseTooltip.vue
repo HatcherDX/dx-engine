@@ -84,9 +84,32 @@ const triggerRef = ref<HTMLElement>()
 const tooltipRef = ref<HTMLElement>()
 const showTimeout = ref<number>()
 const hideTimeout = ref<number>()
-const ariaId = computed(
-  () => `tooltip-${Math.random().toString(36).substr(2, 9)}`
-)
+/**
+ * Generate a unique ID for accessibility attributes
+ *
+ * @returns A computed string in format 'tooltip-{9 characters}'
+ *
+ * @remarks
+ * Uses a deterministic approach to ensure exactly 9 characters are generated.
+ * Combines multiple random sources to guarantee sufficient length.
+ */
+const ariaId = computed(() => {
+  // Generate multiple random strings and concatenate to ensure we have enough characters
+  const part1 = Math.random().toString(36).slice(2)
+  const part2 = Math.random().toString(36).slice(2)
+  const combined = (part1 + part2).slice(0, 9)
+
+  // If still not enough, pad with additional characters
+  if (combined.length < 9) {
+    const padding = '0123456789abcdefghijklmnopqrstuvwxyz'.slice(
+      0,
+      9 - combined.length
+    )
+    return `tooltip-${combined}${padding}`
+  }
+
+  return `tooltip-${combined}`
+})
 
 /**
  * Computed classes for the tooltip container

@@ -1,23 +1,38 @@
 @import 'tailwindcss';
+@import './luxury-tooltips.css';
+@import './icons.css';
 
 /* Custom CSS properties for theme system */
 :root {
-  /* Light theme colors */
-  --bg-primary: #ffffff;
-  --bg-secondary: #f8fafc;
-  --bg-tertiary: #f1f5f9;
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-tertiary: #64748b;
-  --border-primary: #e2e8f0;
-  --border-secondary: #cbd5e1;
-  --accent-primary: #0ea5e9;
-  --accent-secondary: #0284c7;
+  /* Typography */
+  --font-system:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text',
+    'Segoe UI', 'Segoe UI Variable Display', Roboto, Oxygen, Ubuntu, Cantarell,
+    'Helvetica Neue', Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+    'Segoe UI Symbol';
+  --font-mono:
+    ui-monospace, 'SF Mono', SFMono-Regular, 'Cascadia Mono', 'Cascadia Code',
+    'Segoe UI Mono', 'Roboto Mono', 'Oxygen Mono', 'Ubuntu Monospace',
+    'Source Code Pro', 'Fira Mono', 'Droid Sans Mono', 'Courier New', monospace;
 
-  /* Sidebar colors */
-  --bg-sidebar: #f1f5f9;
-  --bg-sidebar-header: #e2e8f0;
-  --border-sidebar: #cbd5e1;
+  /* Light theme colors - improved contrast */
+  --bg-primary: #ffffff;
+  --bg-secondary: #fafbfc;
+  --bg-tertiary: #f3f4f6;
+  --text-primary: #1a1d23;
+  --text-secondary: #3f4650;
+  --text-tertiary: #5a6270;
+  --border-primary: #d4dae2;
+  --border-secondary: #b8c2d3;
+  --accent-primary: #dfa927;
+  --accent-primary-hover: #c79920;
+  --accent-secondary: #0284c7;
+  --text-on-accent: #ffffff;
+
+  /* Sidebar colors - slightly more contrast */
+  --bg-sidebar: #f5f6f8;
+  --bg-sidebar-header: #e8ebf0;
+  --border-sidebar: #c5d0e0;
   --resize-handle-color: #94a3b8;
   --resize-handle-hover: #64748b;
 
@@ -39,33 +54,53 @@
   --transition-slow: 500ms ease;
 
   /* Hover effects - stronger and more visible */
-  --hover-bg-light: #e2e8f0;
+  --hover-bg-light: #e8ecf2;
   --hover-bg-dark: #334155;
+
+  /* Terminal-specific colors for light theme - improved contrast */
+  --terminal-bg: #fafbfc;
+  --terminal-border: #d4dae2;
+  --terminal-text: #3f4650;
+  --terminal-text-hover: #1a1d23;
+  --terminal-text-active: #1a1d23;
+  --terminal-hover-bg: rgba(26, 29, 35, 0.06);
+  --terminal-active-bg: rgba(223, 169, 39, 0.12);
 }
 
 /* Dark theme colors */
 .dark {
-  --bg-primary: #0f172a;
-  --bg-secondary: #111827;
+  --bg-primary: #000000;
+  --bg-secondary: #1d1f24;
   --bg-tertiary: #334155;
   --text-primary: #f8fafc;
   --text-secondary: #cbd5e1;
   --text-tertiary: #94a3b8;
   --border-primary: #334155;
   --border-secondary: #475569;
-  --accent-primary: #38bdf8;
+  --accent-primary: #dfa927;
+  --accent-primary-hover: #c79920;
   --accent-secondary: #0ea5e9;
+  --text-on-accent: #000000; /* Dark text on golden background for better contrast in dark mode */
 
-  /* Dark sidebar colors - darker than main content */
-  --bg-sidebar: #0a0f1a;
-  --bg-sidebar-header: #0a0f1a;
-  --border-sidebar: #374151;
-  --resize-handle-color: #374151;
-  --resize-handle-hover: #4b5563;
+  /* Dark sidebar colors - much darker for strong contrast with content */
+  --bg-sidebar: #0c0e11;
+  --bg-sidebar-header: #12141a;
+  --border-sidebar: #1f2329;
+  --resize-handle-color: #1f2329;
+  --resize-handle-hover: #2a2e3a;
 
   /* Hover effects for dark mode - stronger and more visible */
   --hover-bg-light: #1e293b;
   --hover-bg-dark: #1e293b;
+
+  /* Terminal-specific colors for dark theme */
+  --terminal-bg: #161b22;
+  --terminal-border: #30363d;
+  --terminal-text: #8b949e;
+  --terminal-text-hover: #c9d1d9;
+  --terminal-text-active: #f0f6fc;
+  --terminal-hover-bg: rgba(139, 148, 158, 0.1);
+  --terminal-active-bg: rgba(223, 169, 39, 0.1);
 }
 
 /* Platform-specific styling */
@@ -87,18 +122,6 @@
   width: 78px;
 }
 
-.sidebar-header.platform-windows .sidebar-header-left,
-.sidebar-header.platform-linux .sidebar-header-left {
-  /* Logo space for Windows/Linux */
-  padding-left: 0px;
-}
-
-/* SOLO PARA PC: Remove left padding from .sidebar-header directly */
-.sidebar-header.platform-windows,
-.sidebar-header.platform-linux {
-  padding-left: 0px !important;
-}
-
 /* Global styles */
 * {
   margin: 0;
@@ -111,16 +134,18 @@ body,
 #app {
   width: 100%;
   height: 100%;
-  font-family:
-    'Inter',
-    system-ui,
-    -apple-system,
-    sans-serif;
+  font-family: var(--font-system);
   background-color: var(--bg-primary);
   color: var(--text-primary);
   transition:
     background-color var(--transition-normal),
     color var(--transition-normal);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings:
+    'liga' 1,
+    'calt' 1; /* Enable ligatures and contextual alternates */
 }
 
 /* Scrollbar styling */
@@ -152,6 +177,52 @@ body,
 ::selection {
   background-color: var(--accent-primary);
   color: white;
+}
+
+/* Typography utilities */
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+.font-system {
+  font-family: var(--font-system);
+}
+
+/* Font weights following system font conventions */
+.font-thin {
+  font-weight: 100;
+}
+
+.font-extralight {
+  font-weight: 200;
+}
+
+.font-light {
+  font-weight: 300;
+}
+
+.font-normal {
+  font-weight: 400;
+}
+
+.font-medium {
+  font-weight: 500;
+}
+
+.font-semibold {
+  font-weight: 600;
+}
+
+.font-bold {
+  font-weight: 700;
+}
+
+.font-extrabold {
+  font-weight: 800;
+}
+
+.font-black {
+  font-weight: 900;
 }
 
 /* Utilities */

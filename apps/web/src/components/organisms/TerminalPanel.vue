@@ -24,15 +24,7 @@
 -->
 <template>
   <div class="terminal-panel">
-    <TerminalTabBar
-      :terminals="terminals"
-      :system-terminals="systemTerminals"
-      :active-terminal-id="activeTerminalId"
-      @tab-click="setActiveTerminal"
-      @tab-close="closeTerminal"
-      @tab-context-menu="showTerminalContextMenu"
-      @new-terminal="createTerminal"
-    />
+    <!-- Tab bar removed - now handled by GlobalTerminalFooter -->
     <div class="terminal-panel__content">
       <!-- System Terminal Views - Always rendered for initialization -->
       <SystemTerminalView
@@ -44,7 +36,7 @@
         @set-active-terminal="setActiveSystemTerminal"
       />
 
-      <!-- Regular Terminal Views -->
+      <!-- Regular Terminal Views - Show when it's the active terminal and no system terminal is active -->
       <TerminalView
         v-for="terminal in terminals"
         v-show="terminal.id === activeTerminalId && !activeSystemTerminal"
@@ -58,9 +50,11 @@
         "
         :terminal-id="terminal.id"
         :theme="themeMode === 'auto' ? 'dark' : themeMode"
-        @data="(data) => sendTerminalInput(terminal.id, data)"
-        @resize="(size) => resizeTerminal(terminal.id, size)"
-        @ready="onTerminalReady(terminal.id)"
+        @data="(terminalId, data) => sendTerminalInput(terminalId, data)"
+        @resize="
+          (terminalId, cols, rows) => resizeTerminal(terminalId, { cols, rows })
+        "
+        @ready="(terminalId) => onTerminalReady(terminalId)"
       />
     </div>
   </div>
@@ -85,21 +79,25 @@ import {
   type ComponentPublicInstance,
 } from 'vue'
 import type { ReadOnlyTerminalLine } from '@hatcherdx/terminal-system'
-import TerminalTabBar from '../molecules/TerminalTabBar.vue'
 import TerminalView from './TerminalView.vue'
 import SystemTerminalView from './SystemTerminalView.vue'
 import { useTerminalManager } from '../../composables/useTerminalManager'
 import { useSystemTerminals } from '../../composables/useSystemTerminals'
 import { useTheme } from '../../composables/useTheme'
 
+// Define emits
+const emit = defineEmits<{
+  initialized: []
+}>()
+
 /**
- * Terminal instance interface for component state management.
+ * Terminal tab data for component state management.
  *
- * @interface Terminal
- * @public
+ * @interface TerminalTabData
+ * @private
  * @since 1.0.0
  */
-interface Terminal {
+interface TerminalTabData {
   /** Unique identifier for the terminal session */
   id: string
   /** Display name for the terminal tab */
@@ -131,6 +129,8 @@ const {
   timelineTerminal,
   activeTerminal: activeSystemTerminal,
   setActiveTerminal: setActiveSystemTerminal,
+  isInitialized: systemTerminalsInitialized,
+  initializeTerminals,
 } = useSystemTerminals()
 
 const terminalRefs = ref<Map<string, InstanceType<typeof TerminalView>>>(
@@ -138,7 +138,7 @@ const terminalRefs = ref<Map<string, InstanceType<typeof TerminalView>>>(
 )
 
 // Regular terminals
-const terminals = computed((): Terminal[] =>
+const terminals = computed((): TerminalTabData[] =>
   terminalStates.value.map((terminal) => ({
     id: terminal.id,
     name: terminal.name,
@@ -150,8 +150,8 @@ const terminals = computed((): Terminal[] =>
 )
 
 // System terminals
-const systemTerminals = computed((): Terminal[] => {
-  const result: Terminal[] = []
+const systemTerminals = computed((): TerminalTabData[] => {
+  const result: TerminalTabData[] = []
 
   if (systemTerminal.isReady) {
     result.push({
@@ -168,7 +168,7 @@ const systemTerminals = computed((): Terminal[] => {
   if (timelineTerminal.isReady) {
     result.push({
       id: 'timeline',
-      name: 'Timeline',
+      name: 'Timegraph',
       isRunning: true,
       isActive: activeSystemTerminal.value === 'timeline',
       terminalType: 'timeline',
@@ -298,10 +298,6 @@ const onTerminalReady = (id: string) => {
   void id
 }
 
-const showTerminalContextMenu = () => {
-  // Context menu implementation placeholder
-}
-
 // Watch for system terminal activation to deactivate regular terminals
 watch(
   () => activeSystemTerminal.value,
@@ -325,19 +321,58 @@ watch(
 )
 
 // Lifecycle
-onMounted(() => {
-  // System terminals should be initialized automatically
-  // They will become available once initialized
+onMounted(async () => {
+  console.log('[TerminalPanel] Mounted - initializing terminal system')
+
+  // Initialize system terminals first - this is critical for proper terminal functioning
+  // The system terminals must be ready before creating regular terminals
+  try {
+    if (!systemTerminalsInitialized.value) {
+      console.log(
+        '[TerminalPanel] System terminals not initialized, initializing...'
+      )
+      await initializeTerminals()
+      console.log('[TerminalPanel] System terminals initialized successfully')
+
+      // Give system terminals a moment to fully establish
+      // This ensures the IPC channels are ready
+      await new Promise((resolve) => setTimeout(resolve, 100))
+    } else {
+      console.log('[TerminalPanel] System terminals already initialized')
+    }
+  } catch (error) {
+    console.error(
+      '[TerminalPanel] Failed to initialize system terminals:',
+      error
+    )
+    // Continue anyway - regular terminals might still work
+  }
 
   // Create initial terminal if none exist (regular terminals)
   if (terminals.value.length === 0) {
-    createTerminal().then((terminal) => {
-      // If a system terminal is already active, deactivate the new regular terminal
-      if (activeSystemTerminal.value && terminal) {
-        switchTerminal(null)
+    console.log('[TerminalPanel] No terminals exist, creating initial terminal')
+    try {
+      const terminal = await createTerminal()
+      console.log('[TerminalPanel] Initial terminal created:', terminal?.id)
+
+      // Clear system terminal selection to show regular terminal
+      if (terminal) {
+        setActiveSystemTerminal(null)
+        switchTerminal(terminal.id)
+        console.log('[TerminalPanel] Activated regular terminal:', terminal.id)
       }
-    })
+    } catch (error) {
+      console.error('[TerminalPanel] Failed to create initial terminal:', error)
+    }
+  } else {
+    console.log(
+      '[TerminalPanel] Terminals already exist:',
+      terminals.value.length
+    )
   }
+
+  // Emit initialization complete event
+  emit('initialized')
 })
 
 onUnmounted(() => {
@@ -348,11 +383,15 @@ onUnmounted(() => {
 // Note: IPC listeners are handled by individual TerminalView components
 // This avoids duplication and allows each terminal to handle its own data
 
-// Expose functions for testing
+// Expose functions for parent component
 defineExpose({
   getSystemTerminalActivityState,
   terminals,
   systemTerminals,
+  activeTerminalId,
+  setActiveTerminal,
+  closeTerminal,
+  createTerminal,
 })
 </script>
 
@@ -368,7 +407,7 @@ defineExpose({
   flex: 1;
   position: relative;
   overflow: hidden;
-  height: calc(100% - 6px); /* Subtract resize handle height */
+  height: 100%;
   min-height: 0; /* Allow flex item to shrink */
 }
 </style>

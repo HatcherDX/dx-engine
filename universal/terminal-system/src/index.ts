@@ -9,7 +9,17 @@ export { BackendDetector } from './core/BackendDetector.js'
 export { EnhancedTerminalFactory } from './core/EnhancedTerminalFactory.js'
 export { NodePtyBackend } from './core/NodePtyBackend.js'
 export { SubprocessBackend } from './core/SubprocessBackend.js'
+export { SimpleSubprocessBackend } from './core/SimpleSubprocessBackend.js'
 export { TerminalBackend } from './core/TerminalBackend.js'
+
+// Plug-and-play initialization exports
+export { TerminalReadyDetector } from './core/TerminalReadyDetector.js'
+export {
+  WelcomeMessageProvider,
+  type WelcomeMessageOptions,
+} from './core/WelcomeMessageProvider.js'
+export { TerminalEchoHandler } from './core/TerminalEchoHandler.js'
+// export { TerminalInitializer, type TerminalInitOptions, type TerminalInitResult } from './core/TerminalInitializer.js'
 
 // Terminal UI exports - VSCode-style multi-tab terminal
 export { TabManager, TerminalInstance, TerminalUI } from './terminal/index.js'
@@ -66,3 +76,21 @@ export type {
 
 // Constants
 export { IPC_CHANNELS } from './types/ipc'
+
+// NOTE: Browser-only exports (XTerm.js components) have been moved to ./browser
+// Import from '@hatcherdx/terminal-system/browser' for:
+// - XTermManager, TerminalAddonManager, XTerminalFactory
+// - createHatcherTerminal
+// - WebGLTerminalRenderer, TerminalResizeManager, TerminalFocusManager
+// These components require DOM and browser APIs and cannot be used in Node.js/Electron main process
+
+// Extended Electron IPC Bridge
+export {
+  ExtendedIPCBridge,
+  type ExtendedCreateTerminalOptions,
+  type SessionRecording,
+  type BatchWrite,
+  type TerminalStats,
+} from './electron/ExtendedIPCBridge.js'
+
+// Type exports moved to ./browser to avoid loading xterm module

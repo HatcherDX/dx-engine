@@ -1,253 +1,333 @@
 <!-- eslint-disable vue/no-v-html -->
 <template>
   <div class="webgl-diff-viewer">
-    <div class="diff-header">
-      <div class="diff-info">
-        <h4 class="diff-title">{{ currentFile || 'Select a file' }}</h4>
-        <div v-if="diffStats" class="diff-stats">
-          <span class="additions">+{{ diffStats.additions }}</span>
-          <span class="deletions">-{{ diffStats.deletions }}</span>
+    <!-- Show header only when there's content -->
+    <template v-if="isLoading || diffData || currentFile">
+      <div class="diff-header">
+        <div class="diff-info">
+          <h4 class="diff-title">{{ currentFile || 'Loading...' }}</h4>
+          <div v-if="diffStats" class="diff-stats">
+            <span class="additions">+{{ diffStats.additions }}</span>
+            <span class="deletions">-{{ diffStats.deletions }}</span>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div class="diff-viewport">
-      <!-- Diff content area -->
-      <div class="diff-content-area">
-        <div v-if="isLoading" class="loading-overlay">
-          <div class="loading-spinner" />
-          <span class="loading-text">Loading diff...</span>
-        </div>
+      <div class="diff-viewport">
+        <!-- Diff content area -->
+        <div class="diff-content-area">
+          <div v-if="isLoading" class="loading-overlay">
+            <div class="loading-spinner" />
+            <span class="loading-text">Loading diff...</span>
+          </div>
 
-        <div v-else-if="diffData" class="diff-content" @wheel="handleWheel">
-          <div class="diff-container">
-            <!-- Old version (left side) -->
-            <div class="diff-side-content old-content">
-              <template
-                v-for="(item, index) in processedOldSide"
-                :key="`old-${index}`"
-              >
-                <!-- Expandable section header -->
-                <div
-                  v-if="item.type === 'expandable'"
-                  class="diff-expandable-section old-side"
+          <div
+            v-else-if="diffData"
+            class="diff-content"
+            @wheel.passive="handleWheel"
+          >
+            <div class="diff-container">
+              <!-- Old version (left side) -->
+              <div class="diff-side-content old-content">
+                <template
+                  v-for="(item, index) in processedOldSide"
+                  :key="`old-${index}`"
                 >
-                  <span class="expand-icon old-expand">◀</span>
-                  <span class="expand-text old-range">
-                    -{{ item.startLine }},{{ item.lineCount }}
-                  </span>
-                  <span class="expand-hint">{{
-                    getExpandHintText(item.hunkIndex)
-                  }}</span>
-                  <div class="expand-controls">
-                    <button
-                      v-if="
-                        item.hunkIndex !== undefined &&
-                        canExpandUp(item.hunkIndex)
-                      "
-                      class="expand-btn expand-up"
-                      :disabled="
-                        item.hunkIndex === undefined ||
-                        !hasLinesUp(item.hunkIndex)
-                      "
-                      @click.stop="
-                        handleUpButtonClick(
-                          item.hunkIndex,
-                          item.startLine,
-                          item.endLine,
-                          $event
-                        )
-                      "
-                    >
-                      ↑
-                    </button>
-                    <button
-                      v-if="
-                        item.hunkIndex !== undefined &&
-                        canExpandDown(item.hunkIndex)
-                      "
-                      class="expand-btn expand-down"
-                      :disabled="
-                        item.hunkIndex === undefined ||
-                        !hasLinesDown(item.hunkIndex)
-                      "
-                      @click.stop="
-                        handleDownButtonClick(
-                          item.hunkIndex,
-                          item.startLine,
-                          item.endLine,
-                          $event
-                        )
-                      "
-                    >
-                      ↓
-                    </button>
+                  <!-- Expandable section header -->
+                  <div
+                    v-if="item.type === 'expandable'"
+                    class="diff-expandable-section old-side"
+                  >
+                    <span class="expand-icon old-expand">◀</span>
+                    <span class="expand-text old-range">
+                      -{{ item.startLine }},{{ item.lineCount }}
+                    </span>
+                    <span class="expand-hint">{{
+                      getExpandHintText(item.hunkIndex)
+                    }}</span>
+                    <div class="expand-controls">
+                      <button
+                        v-if="
+                          item.hunkIndex !== undefined &&
+                          canExpandUp(item.hunkIndex)
+                        "
+                        class="expand-btn expand-up"
+                        :disabled="
+                          item.hunkIndex === undefined ||
+                          !hasLinesUp(item.hunkIndex)
+                        "
+                        @click.stop="
+                          handleUpButtonClick(
+                            item.hunkIndex,
+                            item.startLine,
+                            item.endLine,
+                            $event
+                          )
+                        "
+                      >
+                        ↑
+                      </button>
+                      <button
+                        v-if="
+                          item.hunkIndex !== undefined &&
+                          canExpandDown(item.hunkIndex)
+                        "
+                        class="expand-btn expand-down"
+                        :disabled="
+                          item.hunkIndex === undefined ||
+                          !hasLinesDown(item.hunkIndex)
+                        "
+                        @click.stop="
+                          handleDownButtonClick(
+                            item.hunkIndex,
+                            item.startLine,
+                            item.endLine,
+                            $event
+                          )
+                        "
+                      >
+                        ↓
+                      </button>
+                    </div>
                   </div>
-                </div>
 
-                <!-- Regular diff line -->
-                <div
-                  v-else
-                  class="diff-line"
-                  :class="[
-                    item.lineType,
-                    {
-                      'diff-line-hovered': isLineHighlighted(
-                        item.hunkIndex,
-                        item.lineNumber ?? null,
-                        'old'
-                      ),
-                    },
-                  ]"
-                  @mouseenter="
-                    handleLineHover(
-                      'old',
-                      item.hunkIndex,
-                      item.lineNumber ?? null,
-                      true
-                    )
-                  "
-                  @mouseleave="
-                    handleLineHover(
-                      'old',
-                      item.hunkIndex,
-                      item.lineNumber ?? null,
-                      false
-                    )
-                  "
-                >
-                  <span class="line-number">{{ item.lineNumber }}</span>
-                  <span
-                    class="line-content"
-                    v-html="
-                      getHighlightedContent(
-                        alignedDiffRows.findIndex((row) => row.old === item),
+                  <!-- Regular diff line -->
+                  <div
+                    v-else
+                    class="diff-line"
+                    :class="[
+                      item.lineType,
+                      {
+                        'diff-line-hovered': isLineHighlighted(
+                          item.hunkIndex,
+                          item.lineNumber ?? null,
+                          'old'
+                        ),
+                      },
+                    ]"
+                    @mouseenter="
+                      handleLineHover(
                         'old',
-                        item.content || ''
-                      )
-                    "
-                  ></span>
-                </div>
-              </template>
-            </div>
-
-            <!-- Divider -->
-            <div class="diff-content-divider" />
-
-            <!-- New version (right side) -->
-            <div class="diff-side-content new-content">
-              <template
-                v-for="(item, index) in processedNewSide"
-                :key="`new-${index}`"
-              >
-                <!-- Expandable section header -->
-                <div
-                  v-if="item.type === 'expandable'"
-                  class="diff-expandable-section new-side"
-                >
-                  <span class="expand-icon new-expand">▶</span>
-                  <span class="expand-text new-range">
-                    +{{ item.startLine }},{{ item.lineCount }}
-                  </span>
-                  <span class="expand-hint">{{
-                    getExpandHintText(item.hunkIndex)
-                  }}</span>
-                  <div class="expand-controls">
-                    <button
-                      v-if="
-                        item.hunkIndex !== undefined &&
-                        canExpandUp(item.hunkIndex)
-                      "
-                      class="expand-btn expand-up"
-                      :disabled="
-                        item.hunkIndex === undefined ||
-                        !hasLinesUp(item.hunkIndex)
-                      "
-                      @click.stop="
-                        handleUpButtonClick(
-                          item.hunkIndex,
-                          item.startLine,
-                          item.endLine,
-                          $event
-                        )
-                      "
-                    >
-                      ↑
-                    </button>
-                    <button
-                      v-if="
-                        item.hunkIndex !== undefined &&
-                        canExpandDown(item.hunkIndex)
-                      "
-                      class="expand-btn expand-down"
-                      :disabled="
-                        item.hunkIndex === undefined ||
-                        !hasLinesDown(item.hunkIndex)
-                      "
-                      @click.stop="
-                        handleDownButtonClick(
-                          item.hunkIndex,
-                          item.startLine,
-                          item.endLine,
-                          $event
-                        )
-                      "
-                    >
-                      ↓
-                    </button>
-                  </div>
-                </div>
-
-                <!-- Regular diff line -->
-                <div
-                  v-else
-                  class="diff-line"
-                  :class="[
-                    item.lineType,
-                    {
-                      'diff-line-hovered': isLineHighlighted(
                         item.hunkIndex,
                         item.lineNumber ?? null,
-                        'new'
-                      ),
-                    },
-                  ]"
-                  @mouseenter="
-                    handleLineHover(
-                      'new',
-                      item.hunkIndex,
-                      item.lineNumber ?? null,
-                      true
-                    )
-                  "
-                  @mouseleave="
-                    handleLineHover(
-                      'new',
-                      item.hunkIndex,
-                      item.lineNumber ?? null,
-                      false
-                    )
-                  "
-                >
-                  <span class="line-number">{{ item.lineNumber }}</span>
-                  <span
-                    class="line-content"
-                    v-html="
-                      getHighlightedContent(
-                        alignedDiffRows.findIndex((row) => row.new === item),
-                        'new',
-                        item.content || ''
+                        true
                       )
                     "
-                  ></span>
-                </div>
-              </template>
+                    @mouseleave="
+                      handleLineHover(
+                        'old',
+                        item.hunkIndex,
+                        item.lineNumber ?? null,
+                        false
+                      )
+                    "
+                  >
+                    <span class="line-number">{{ item.lineNumber }}</span>
+                    <span
+                      class="line-content"
+                      v-html="
+                        getHighlightedContent(
+                          alignedDiffRows.findIndex((row) => row.old === item),
+                          'old',
+                          item.content || ''
+                        )
+                      "
+                    ></span>
+                  </div>
+                </template>
+              </div>
+
+              <!-- Divider -->
+              <div class="diff-content-divider" />
+
+              <!-- New version (right side) -->
+              <div class="diff-side-content new-content">
+                <template
+                  v-for="(item, index) in processedNewSide"
+                  :key="`new-${index}`"
+                >
+                  <!-- Expandable section header -->
+                  <div
+                    v-if="item.type === 'expandable'"
+                    class="diff-expandable-section new-side"
+                  >
+                    <span class="expand-icon new-expand">▶</span>
+                    <span class="expand-text new-range">
+                      +{{ item.startLine }},{{ item.lineCount }}
+                    </span>
+                    <span class="expand-hint">{{
+                      getExpandHintText(item.hunkIndex)
+                    }}</span>
+                    <div class="expand-controls">
+                      <button
+                        v-if="
+                          item.hunkIndex !== undefined &&
+                          canExpandUp(item.hunkIndex)
+                        "
+                        class="expand-btn expand-up"
+                        :disabled="
+                          item.hunkIndex === undefined ||
+                          !hasLinesUp(item.hunkIndex)
+                        "
+                        @click.stop="
+                          handleUpButtonClick(
+                            item.hunkIndex,
+                            item.startLine,
+                            item.endLine,
+                            $event
+                          )
+                        "
+                      >
+                        ↑
+                      </button>
+                      <button
+                        v-if="
+                          item.hunkIndex !== undefined &&
+                          canExpandDown(item.hunkIndex)
+                        "
+                        class="expand-btn expand-down"
+                        :disabled="
+                          item.hunkIndex === undefined ||
+                          !hasLinesDown(item.hunkIndex)
+                        "
+                        @click.stop="
+                          handleDownButtonClick(
+                            item.hunkIndex,
+                            item.startLine,
+                            item.endLine,
+                            $event
+                          )
+                        "
+                      >
+                        ↓
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Regular diff line -->
+                  <div
+                    v-else
+                    class="diff-line"
+                    :class="[
+                      item.lineType,
+                      {
+                        'diff-line-hovered': isLineHighlighted(
+                          item.hunkIndex,
+                          item.lineNumber ?? null,
+                          'new'
+                        ),
+                      },
+                    ]"
+                    @mouseenter="
+                      handleLineHover(
+                        'new',
+                        item.hunkIndex,
+                        item.lineNumber ?? null,
+                        true
+                      )
+                    "
+                    @mouseleave="
+                      handleLineHover(
+                        'new',
+                        item.hunkIndex,
+                        item.lineNumber ?? null,
+                        false
+                      )
+                    "
+                  >
+                    <span class="line-number">{{ item.lineNumber }}</span>
+                    <span
+                      class="line-content"
+                      v-html="
+                        getHighlightedContent(
+                          alignedDiffRows.findIndex((row) => row.new === item),
+                          'new',
+                          item.content || ''
+                        )
+                      "
+                    ></span>
+                  </div>
+                </template>
+              </div>
             </div>
           </div>
         </div>
+      </div>
+    </template>
 
-        <div v-else class="no-diff-message">
-          <p>Select a file to view diff</p>
+    <!-- Empty state takes full width -->
+    <div v-else class="empty-state-container">
+      <div class="empty-state">
+        <div class="empty-state-icon">
+          <!-- Minimalist flat icon -->
+          <svg
+            width="48"
+            height="48"
+            viewBox="0 0 48 48"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <rect
+              x="8"
+              y="12"
+              width="32"
+              height="24"
+              stroke="currentColor"
+              stroke-width="1.5"
+              rx="2"
+              opacity="0.5"
+            />
+            <line
+              x1="14"
+              y1="20"
+              x2="26"
+              y2="20"
+              stroke="currentColor"
+              stroke-width="1.5"
+              opacity="0.3"
+            />
+            <line
+              x1="14"
+              y1="24"
+              x2="34"
+              y2="24"
+              stroke="currentColor"
+              stroke-width="1.5"
+              opacity="0.3"
+            />
+            <line
+              x1="14"
+              y1="28"
+              x2="30"
+              y2="28"
+              stroke="currentColor"
+              stroke-width="1.5"
+              opacity="0.3"
+            />
+          </svg>
+        </div>
+        <h3 class="empty-state-title">{{ emptyStateTitle }}</h3>
+        <p class="empty-state-description">{{ emptyStateDescription }}</p>
+        <div v-if="hasChangedFiles" class="empty-state-hint">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <circle
+              cx="8"
+              cy="8"
+              r="7"
+              stroke="currentColor"
+              stroke-width="1"
+              opacity="0.5"
+            />
+            <circle cx="8" cy="5" r="0.5" fill="currentColor" />
+            <rect x="7.5" y="7" width="1" height="4" fill="currentColor" />
+          </svg>
+          <span>Select a file from the sidebar to view changes</span>
         </div>
       </div>
     </div>
@@ -291,6 +371,10 @@ interface Props {
   oldVersion?: string
   /** New version label */
   newVersion?: string
+  /** Whether there are changed files available */
+  hasChangedFiles?: boolean
+  /** Total number of changed files */
+  totalChangedFiles?: number
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -301,6 +385,8 @@ const props = withDefaults(defineProps<Props>(), {
   isLoading: false,
   oldVersion: 'Previous',
   newVersion: 'Current',
+  hasChangedFiles: false,
+  totalChangedFiles: 0,
 })
 
 // Interface for processed diff items (lines + expandable sections)
@@ -389,12 +475,12 @@ const initializeSyntaxHighlighter = async (): Promise<void> => {
     )
 
     // Test the highlighter with a simple example
-    const testResult = newHighlighter.highlightLine('const test = "hello";')
-    console.log('[WebGL Diff Viewer] Test highlight result:', testResult)
-    console.log(
-      '[WebGL Diff Viewer] Test has inline styles:',
-      testResult.includes('style=')
-    )
+    // const testResult = newHighlighter.highlightLine('const test = "hello";')
+    // console.log('[WebGL Diff Viewer] Test highlight result:', testResult)
+    // console.log(
+    //   '[WebGL Diff Viewer] Test has inline styles:',
+    //   testResult.includes('style=')
+    // )
 
     // Only set the highlighter if it's working properly
     diffHighlighter.value = newHighlighter
@@ -412,6 +498,30 @@ const initializeSyntaxHighlighter = async (): Promise<void> => {
     diffHighlighter.value = null
   }
 }
+
+/**
+ * Computed properties for empty state
+ */
+const emptyStateTitle = computed(() => {
+  if (!props.currentFile && !props.hasChangedFiles) {
+    return 'No Changes Detected'
+  }
+  if (!props.currentFile && props.hasChangedFiles) {
+    return 'Timeline View'
+  }
+  return 'Loading...'
+})
+
+const emptyStateDescription = computed(() => {
+  if (!props.currentFile && !props.hasChangedFiles) {
+    return 'Your working directory is clean. Make some changes to see them here.'
+  }
+  if (!props.currentFile && props.hasChangedFiles) {
+    const fileCount = props.totalChangedFiles
+    return `${fileCount} file${fileCount !== 1 ? 's' : ''} with changes detected`
+  }
+  return 'Preparing diff view...'
+})
 
 /**
  * Highlights code content with syntax highlighting.
@@ -434,10 +544,10 @@ const highlightContent = (content: string): string => {
   try {
     const highlighted = diffHighlighter.value.highlightLine(content)
     if (highlighted && highlighted.includes('style=')) {
-      console.log(
-        '[WebGL Diff Viewer] ✅ Content highlighted with inline styles for:',
-        content.substring(0, 30)
-      )
+      // console.log(
+      //   '[WebGL Diff Viewer] ✅ Content highlighted with inline styles for:',
+      //   content.substring(0, 30)
+      // )
       highlightCache.value.set(cacheKey, highlighted)
       return highlighted
     } else {
@@ -515,10 +625,10 @@ const highlightVisibleRows = async () => {
             highlighted.old.includes('style=')
           ) {
             highlightedCount++
-            console.log(
-              `[WebGL Diff Viewer] ✅ Old side highlighted for row ${row.rowIndex}:`,
-              originalContent.substring(0, 30)
-            )
+            // console.log(
+            //   `[WebGL Diff Viewer] ✅ Old side highlighted for row ${row.rowIndex}:`,
+            //   originalContent.substring(0, 30)
+            // )
           }
         }
 
@@ -530,10 +640,10 @@ const highlightVisibleRows = async () => {
             highlighted.new.includes('style=')
           ) {
             highlightedCount++
-            console.log(
-              `[WebGL Diff Viewer] ✅ New side highlighted for row ${row.rowIndex}:`,
-              originalContent.substring(0, 30)
-            )
+            // console.log(
+            //   `[WebGL Diff Viewer] ✅ New side highlighted for row ${row.rowIndex}:`,
+            //   originalContent.substring(0, 30)
+            // )
           }
         }
 
@@ -587,9 +697,9 @@ const getHighlightedContent = (
   if (originalContent && originalContent.trim()) {
     const onDemandHighlight = highlightContent(originalContent)
     if (onDemandHighlight.includes('style=')) {
-      console.log(
-        `[WebGL Diff Viewer] ✅ On-demand highlight for ${side} row ${rowIndex}`
-      )
+      // console.log(
+      //   `[WebGL Diff Viewer] ✅ On-demand highlight for ${side} row ${rowIndex}`
+      // )
       return onDemandHighlight
     }
   }
@@ -1898,6 +2008,7 @@ defineExpose({
   background: var(--bg-primary);
   overflow: hidden;
   box-sizing: border-box;
+  flex: 1; /* Take full available space from parent */
 }
 
 .diff-header {
@@ -2199,7 +2310,7 @@ defineExpose({
 
 .expand-btn:disabled {
   opacity: 0.4;
-  cursor: not-allowed;
+  cursor: default;
   background: rgba(var(--bg-secondary-rgb, 248, 250, 252), 0.5);
   color: rgba(var(--text-tertiary-rgb, 107, 114, 126), 0.5);
 }
@@ -2339,5 +2450,187 @@ defineExpose({
   /* Only set non-color properties */
   background: transparent;
   font-family: inherit;
+}
+
+/* Empty state styles */
+.empty-state-container {
+  position: relative !important;
+  flex: 1 !important;
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: var(--bg-primary) !important;
+  /* Override any inherited column/grid styles */
+  max-width: 100% !important;
+  min-width: 100% !important;
+  grid-template-columns: none !important;
+  grid-template-rows: none !important;
+  /* Reset any flex child properties */
+  flex-basis: 100% !important;
+  flex-grow: 1 !important;
+  flex-shrink: 1 !important;
+}
+
+/* Force single column at root level */
+.webgl-diff-viewer > .empty-state-container {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+  animation: fadeIn 0.4s ease-in-out;
+  max-width: 500px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* Hide any diff-related elements that might appear */
+.empty-state-container .diff-container,
+.empty-state-container .diff-viewport,
+.empty-state-container .diff-content,
+.empty-state-container .diff-content-divider,
+.empty-state-container .diff-side-content,
+.empty-state-container .old-content,
+.empty-state-container .new-content {
+  display: none !important;
+}
+
+/* Ensure single column layout at all viewport sizes */
+@media screen and (min-width: 0px) {
+  .empty-state-container {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .empty-state {
+    max-width: 500px;
+    width: 100%;
+    margin: 0 auto;
+  }
+}
+
+/* Override any potential large screen styles */
+@media screen and (min-width: 1100px) {
+  .empty-state-container {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .webgl-diff-viewer > .empty-state-container {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .empty-state {
+    max-width: 500px !important;
+    width: 100% !important;
+    margin: 0 auto !important;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.empty-state-icon {
+  margin-bottom: 20px;
+  color: var(--text-tertiary);
+  opacity: 0.4;
+}
+
+.empty-state-title {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin: 0 0 8px;
+  letter-spacing: -0.01em;
+}
+
+.empty-state-description {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0 0 20px;
+  max-width: 350px;
+  line-height: 1.5;
+  opacity: 0.8;
+}
+
+.empty-state-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--bg-secondary);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  border: 1px solid var(--border-primary);
+  transition: all 0.15s ease;
+}
+
+.empty-state-hint:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--border-secondary);
+  color: var(--text-secondary);
+}
+
+.empty-state-hint svg {
+  opacity: 0.6;
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .empty-state-container {
+    background: #0d1117;
+  }
+
+  .empty-state-icon {
+    color: #4b5563;
+    opacity: 0.3;
+  }
+
+  .empty-state-title {
+    color: #e5e7eb;
+  }
+
+  .empty-state-description {
+    color: #9ca3af;
+    opacity: 0.7;
+  }
+
+  .empty-state-hint {
+    background: rgba(31, 41, 55, 0.3);
+    border-color: rgba(55, 65, 81, 0.5);
+    color: #9ca3af;
+  }
+
+  .empty-state-hint:hover {
+    background: rgba(31, 41, 55, 0.5);
+    border-color: rgba(55, 65, 81, 0.8);
+    color: #d1d5db;
+  }
 }
 </style>

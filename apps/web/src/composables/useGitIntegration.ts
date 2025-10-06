@@ -361,15 +361,19 @@ export function useGitIntegration() {
       )
 
       gitStatus.value = fileStatuses
-      console.log(
-        `[Git Integration] Found ${fileStatuses.length} changed files`
-      )
-      console.log(
-        '[Git Integration] All parsed files:',
-        fileStatuses.map(
-          (f) => `${f.path} [${f.indexStatus}${f.worktreeStatus}]`
+      // Only log significant status updates to reduce console noise
+      if (fileStatuses.length > 50) {
+        console.log(
+          `[Git Integration] Found ${fileStatuses.length} changed files`
         )
-      )
+      }
+      // Don't log all files unless debugging is needed
+      // console.log(
+      //   '[Git Integration] All parsed files:',
+      //   fileStatuses.map(
+      //     (f) => `${f.path} [${f.indexStatus}${f.worktreeStatus}]`
+      //   )
+      // )
       return fileStatuses
     } catch (error) {
       const errorMessage =
@@ -379,6 +383,146 @@ export function useGitIntegration() {
       throw error
     } finally {
       isLoadingStatus.value = false
+    }
+  }
+
+  /**
+   * Gets all Git branches for the repository.
+   *
+   * @param projectPath - Path to the project
+   * @returns Promise resolving to branch information
+   *
+   * @example
+   * ```typescript
+   * const branches = await getGitBranches('/path/to/project')
+   * console.log('Current branch:', branches.current)
+   * ```
+   *
+   * @public
+   */
+  const getGitBranches = async (
+    projectPath: string
+  ): Promise<{
+    current: string
+    all: string[]
+    local: string[]
+    remote: string[]
+  }> => {
+    try {
+      console.log('[Git Integration] Getting branches for:', projectPath)
+
+      if (!window.electronAPI || !window.electronAPI.getGitBranches) {
+        throw new Error(
+          'Electron API getGitBranches not available - this is a desktop-only application'
+        )
+      }
+
+      // Use Electron API to get Git branches
+      const result = await window.electronAPI.getGitBranches(projectPath)
+
+      console.log(`[Git Integration] Found ${result.all.length} total branches`)
+      console.log('[Git Integration] Current branch:', result.current)
+      console.log('[Git Integration] Local branches:', result.local)
+      console.log('[Git Integration] Remote branches:', result.remote)
+
+      return result
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error'
+      console.error(
+        '[Git Integration] Failed to get Git branches:',
+        errorMessage
+      )
+      throw error
+    }
+  }
+
+  /**
+   * Switches to a different Git branch in the repository.
+   *
+   * @param projectPath - Path to the project
+   * @param branchName - Name of the branch to switch to
+   * @returns Promise resolving to switch result
+   *
+   * @example
+   * ```typescript
+   * const result = await switchBranch('/path/to/project', 'feature/new-feature')
+   * if (result.success) {
+   *   console.log('Successfully switched to:', result.currentBranch)
+   * } else {
+   *   console.error('Failed to switch:', result.message)
+   * }
+   * ```
+   *
+   * @throws {@link Error} When Electron API is not available
+   *
+   * @public
+   * @since 1.0.0
+   */
+  const switchBranch = async (
+    projectPath: string,
+    branchName: string
+  ): Promise<{
+    success: boolean
+    currentBranch: string
+    message: string
+    errorType?: 'uncommitted_changes' | 'untracked_files' | 'both' | 'other'
+    affectedFiles?: string[]
+    suggestions?: string[]
+    canForce?: boolean
+    rawError?: string
+  }> => {
+    try {
+      console.log(
+        `[Git Integration] Switching to branch '${branchName}' in:`,
+        projectPath
+      )
+
+      if (!window.electronAPI || !window.electronAPI.switchGitBranch) {
+        throw new Error(
+          'Electron API switchGitBranch not available - this is a desktop-only application'
+        )
+      }
+
+      // Use Electron API to switch Git branch
+      const result = await window.electronAPI.switchGitBranch(
+        projectPath,
+        branchName
+      )
+
+      if (result.success) {
+        console.log(
+          `[Git Integration] ✅ Successfully switched to branch: ${result.currentBranch}`
+        )
+      } else {
+        console.error(
+          `[Git Integration] ❌ Failed to switch branch: ${result.message}`
+        )
+        if (result.errorType && result.affectedFiles?.length) {
+          console.error(`[Git Integration] Error type: ${result.errorType}`)
+          console.error(
+            `[Git Integration] Affected files:`,
+            result.affectedFiles
+          )
+          console.error(`[Git Integration] Suggestions:`, result.suggestions)
+        }
+      }
+
+      return result
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error'
+      console.error(
+        '[Git Integration] Failed to switch Git branch:',
+        errorMessage
+      )
+
+      // Return error result in expected format
+      return {
+        success: false,
+        currentBranch: '',
+        message: errorMessage,
+      }
     }
   }
 
@@ -765,6 +909,8 @@ export function useGitIntegration() {
     checkIfGitRepository,
     getGitRoot,
     getGitStatus,
+    getGitBranches,
+    switchBranch,
     getCommitHistory,
     getFileContent,
     getFileDiff,

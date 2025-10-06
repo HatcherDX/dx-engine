@@ -14,31 +14,34 @@
       @mousedown="startResize"
     />
 
-    <!-- Minimalist Chat Container -->
-    <div ref="messagesContainer" class="minimalist-chat">
-      <!-- Central Greeting -->
-      <div v-if="showWelcome" class="central-greeting">
-        <h1 class="greeting-text">
-          <span class="greeting-hello">Hello, </span>
-          <span class="greeting-hatcher"><b>Hatcher</b></span>
-        </h1>
-      </div>
-
-      <!-- User messages (when present) -->
-      <div v-if="!showWelcome" class="messages-area">
-        <div
-          v-for="message in userMessages"
-          :key="message.id"
-          class="user-message"
-        >
-          {{ message.content }}
+    <!-- Main Chat Content Area -->
+    <div class="chat-content-wrapper">
+      <!-- Minimalist Chat Container -->
+      <div ref="messagesContainer" class="minimalist-chat">
+        <!-- Central Greeting -->
+        <div v-if="showWelcome" class="central-greeting">
+          <h1 class="greeting-text">
+            <span class="greeting-hello">Hello, </span>
+            <span class="greeting-hatcher"><b>Hatcher</b></span>
+          </h1>
         </div>
 
-        <!-- Simple typing indicator -->
-        <div v-if="isTyping" class="typing-indicator">
-          <div class="typing-dot"></div>
-          <div class="typing-dot"></div>
-          <div class="typing-dot"></div>
+        <!-- User messages (when present) -->
+        <div v-if="!showWelcome" class="messages-area">
+          <div
+            v-for="message in userMessages"
+            :key="message.id"
+            class="user-message"
+          >
+            {{ message.content }}
+          </div>
+
+          <!-- Simple typing indicator -->
+          <div v-if="isTyping" class="typing-indicator">
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -174,6 +177,8 @@ const generateId = () => {
   border-left: 1px solid var(--border-primary);
   /* Remove width transition to prevent lag during resize */
   min-width: 250px;
+  /* Add extra padding to balance pipeline visual weight */
+  padding-left: 24px;
 }
 
 .chat-panel.is-generative {
@@ -236,6 +241,14 @@ const generateId = () => {
 
 /* Header removed - minimalist design */
 
+/* Chat Content Wrapper */
+.chat-content-wrapper {
+  flex: 1;
+  display: flex;
+  position: relative;
+  overflow: hidden;
+}
+
 /* Minimalist Chat Container */
 .minimalist-chat {
   flex: 1;
@@ -243,7 +256,7 @@ const generateId = () => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 32px;
+  padding: 48px 32px; /* Increased top/bottom padding for more visual weight */
   overflow-y: auto;
 }
 
@@ -268,6 +281,11 @@ const generateId = () => {
 }
 
 .greeting-hatcher {
+  color: var(--accent-primary-hover); /* Darker gold for better contrast */
+}
+
+/* Use normal accent color in dark mode */
+.dark .greeting-hatcher {
   color: var(--accent-primary);
 }
 

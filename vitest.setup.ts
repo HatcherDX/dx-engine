@@ -1,6 +1,14 @@
 import { config, RouterLinkStub } from '@vue/test-utils'
 import { vi } from 'vitest'
 
+// Mock CSS imports - must be at top level
+vi.mock('xterm/css/xterm.css', () => ({
+  default: {},
+}))
+
+// Logger mocking removed - tests should mock Logger individually when needed
+// This allows logger.spec.ts to test the real Logger implementation
+
 // Declare global for Vue Test Utils auto unmount tracking
 declare global {
   // eslint-disable-next-line no-var
@@ -64,6 +72,92 @@ global.ResizeObserver = vi.fn(() => ({
   unobserve: vi.fn(),
   disconnect: vi.fn(),
 }))
+
+// Mock localStorage for all environments
+const localStorageMock = {
+  getItem: vi.fn(() => null),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+  clear: vi.fn(),
+  length: 0,
+  key: vi.fn(),
+}
+
+// Mock document if not available
+if (typeof document === 'undefined') {
+  global.document = {
+    createElement: vi.fn(() => ({
+      style: {},
+      classList: {
+        add: vi.fn(),
+        remove: vi.fn(),
+        contains: vi.fn(),
+      },
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      appendChild: vi.fn(),
+      removeChild: vi.fn(),
+      querySelector: vi.fn(() => null),
+      querySelectorAll: vi.fn(() => []),
+    })),
+    getElementById: vi.fn(() => null),
+    querySelector: vi.fn(() => null),
+    querySelectorAll: vi.fn(() => []),
+    body: {
+      style: {},
+      classList: {
+        add: vi.fn(),
+        remove: vi.fn(),
+        contains: vi.fn(),
+      },
+      appendChild: vi.fn(),
+      removeChild: vi.fn(),
+    },
+    documentElement: {
+      style: {},
+    },
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  } as Partial<Document>
+}
+
+// Mock window if not available
+if (typeof window === 'undefined') {
+  global.window = {
+    document: global.document,
+    localStorage: localStorageMock,
+    sessionStorage: localStorageMock,
+    location: {
+      href: 'http://localhost:3000',
+      pathname: '/',
+      search: '',
+      hash: '',
+    },
+    navigator: {
+      userAgent: 'Vitest',
+    },
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+    CustomEvent: class CustomEvent extends Event {
+      detail: unknown
+      constructor(type: string, eventInitDict?: CustomEventInit) {
+        super(type, eventInitDict)
+        this.detail = eventInitDict?.detail
+      }
+    },
+  } as Partial<Window & typeof globalThis>
+} else {
+  // If window exists, ensure localStorage is mocked
+  Object.defineProperty(window, 'localStorage', {
+    value: localStorageMock,
+    writable: true,
+    configurable: true,
+  })
+}
+
+// Also set global localStorage
+global.localStorage = localStorageMock
 
 // Global error handler to prevent uncaught exceptions in tests
 // These errors are expected in tests that deliberately throw errors
@@ -138,14 +232,6 @@ if (typeof window !== 'undefined') {
     }
   })
 }
-
-const localStorageMock = {
-  getItem: vi.fn(),
-  setItem: vi.fn(),
-  removeItem: vi.fn(),
-  clear: vi.fn(),
-}
-Object.defineProperty(window, 'localStorage', { value: localStorageMock })
 
 // Auto unmount - only enable once
 import { enableAutoUnmount } from '@vue/test-utils'

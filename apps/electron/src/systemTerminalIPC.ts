@@ -168,8 +168,12 @@ function setupSystemTerminalHandlers(): void {
   ipcMain.handle(
     'system-terminal-initialize',
     async (event, options: SystemTerminalInitOptions = {}) => {
+      console.log('[System Terminal IPC] Handler called with options:', options)
       try {
         if (isSystemTerminalsInitialized) {
+          console.log(
+            '[System Terminal IPC] Already initialized, returning cached state'
+          )
           return {
             success: true,
             message: 'System terminals already initialized',
@@ -180,31 +184,57 @@ function setupSystemTerminalHandlers(): void {
           }
         }
 
-        // Initialize system terminals
-        await readOnlyTerminalManager.initializeSystemTerminals()
+        console.log(
+          '[System Terminal IPC] Calling readOnlyTerminalManager.initializeSystemTerminals()...'
+        )
 
-        // Log initialization with project context
+        try {
+          // Initialize system terminals first (before any logging)
+          await readOnlyTerminalManager.initializeSystemTerminals()
+          console.log(
+            '[System Terminal IPC] readOnlyTerminalManager.initializeSystemTerminals() completed'
+          )
+        } catch (initError) {
+          console.error(
+            '[System Terminal IPC] Failed to initialize terminals:',
+            initError
+          )
+          throw initError
+        }
+
+        // Now log initialization messages after terminals are ready
+        // This prevents the messages from appearing in the terminal output
         if (options.projectName) {
           systemLogger.info(
-            `Initializing Hatcher workspace: ${options.projectName}`
+            `Initializing Hatcher workspace: ${options.projectName}`,
+            'system' // Explicitly log to system terminal only
           )
-        } else {
-          systemLogger.info('Initializing Hatcher workspace...')
         }
 
         if (options.projectType && options.packageManager) {
           systemLogger.info(
-            `Project detected: ${options.projectType} with ${options.packageManager}`
+            `Project detected: ${options.projectType} with ${options.packageManager}`,
+            'system' // Explicitly log to system terminal only
           )
         }
 
         isSystemTerminalsInitialized = true
 
         // Get terminal states
+        console.log('[System Terminal IPC] Getting terminal states...')
         const systemTerminal = readOnlyTerminalManager.getTerminal('system')
         const timelineTerminal = readOnlyTerminalManager.getTerminal('timeline')
 
-        return {
+        console.log(
+          '[System Terminal IPC] System terminal:',
+          systemTerminal ? 'found' : 'not found'
+        )
+        console.log(
+          '[System Terminal IPC] Timeline terminal:',
+          timelineTerminal ? 'found' : 'not found'
+        )
+
+        const response = {
           success: true,
           message: 'System terminals initialized successfully',
           data: {
@@ -212,6 +242,12 @@ function setupSystemTerminalHandlers(): void {
             timelineTerminal,
           },
         }
+
+        console.log(
+          '[System Terminal IPC] Returning response with success:',
+          response.success
+        )
+        return response
       } catch (error) {
         console.error(
           '[System Terminal IPC] Failed to initialize system terminals:',

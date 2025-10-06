@@ -187,13 +187,13 @@ const formatDate = (date: Date): string => {
 
 .commit-selected {
   background-color: var(--accent-primary);
-  color: white;
+  color: var(--text-on-accent);
   border-left-color: var(--accent-secondary);
 }
 
 .commit-selected .commit-hash {
   background: rgba(255, 255, 255, 0.2);
-  color: white;
+  color: var(--text-on-accent);
 }
 
 .commit-selected .commit-author,
@@ -253,7 +253,7 @@ const formatDate = (date: Date): string => {
 
 .commit-tag {
   background: var(--accent-primary);
-  color: white;
+  color: var(--text-on-accent);
   padding: 1px 4px;
   border-radius: 2px;
   font-size: 10px;

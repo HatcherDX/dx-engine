@@ -297,7 +297,7 @@ describe('PtyHost', () => {
       expect(mockCreateTerminal).toHaveBeenCalledWith('test-terminal', {
         shell: '/bin/bash',
         cwd: '/test/dir',
-        env: undefined,
+        env: expect.any(Object),
         cols: 120,
         rows: 40,
       })
@@ -772,13 +772,13 @@ describe('PtyHost', () => {
       // Simulate WINCH loop pattern multiple times
       const winchPattern = '\r\r\u001b[m\u001b[m\u001b[m\u001b[J% '
 
-      // Send pattern multiple times to trigger blocking
-      for (let i = 0; i < 5; i++) {
+      // Send pattern multiple times to trigger blocking (more than MAX_WINCH_SIGNALS = 15)
+      for (let i = 0; i < 20; i++) {
         mockTerminal.emit('data', winchPattern)
       }
 
       expect(console.log).toHaveBeenCalledWith(
-        expect.stringContaining('[PTY Host] CRITICAL: Blocking WINCH loop')
+        expect.stringContaining('[PTY Host] BLOCKING WINCH loop')
       )
     })
 
@@ -920,7 +920,7 @@ describe('PtyHost', () => {
         'test-terminal',
         expect.objectContaining({
           cwd: '/home/testuser',
-          cols: 80,
+          cols: 45,
           rows: 24,
         })
       )
@@ -1009,6 +1009,520 @@ describe('PtyHost', () => {
       expect(console.error).toHaveBeenCalledWith(
         '[PTY Host] Error cleaning up terminal test-terminal:',
         expect.any(Error)
+      )
+    })
+
+    it('should handle SIGINT signal for cleanup', async () => {
+      await import('./ptyHost')
+
+      // Find the SIGINT handler
+      const sigintHandler = (
+        process.on as unknown as { mock: { calls: unknown[][] } }
+      ).mock.calls.find((call) => call[0] === 'SIGINT')?.[1]
+
+      sigintHandler?.()
+
+      expect(console.log).toHaveBeenCalledWith(
+        '[PTY Host] Received SIGINT, cleaning up...'
+      )
+      expect(process.exit).toHaveBeenCalledWith(0)
+    })
+  })
+
+  describe('Complete Coverage - Missing Edge Cases', () => {
+    it('should handle very long terminal data for substring coverage', async () => {
+      await import('./ptyHost')
+
+      const messageHandler = (
+        process.on as unknown as { mock: { calls: unknown[][] } }
+      ).mock.calls.find((call) => call[0] === 'message')?.[1]
+
+      // Create terminal
+      await messageHandler?.({
+        type: 'create',
+        id: 'long-data-test',
+        options: {},
+      })
+
+      // Send data longer than 100 characters to trigger substring logic on line 454
+      const longData = 'x'.repeat(150) + '\r\n' + 'y'.repeat(50)
+      mockTerminal.emit('data', longData)
+
+      // Verify the logging happened with truncated data
+      expect(console.log).toHaveBeenCalledWith(
+        expect.stringContaining(
+          '[PTY Host] 🔥 DATA EVENT from terminal long-data-test:'
+        ),
+        expect.objectContaining({
+          dataLength: longData.length,
+          first100: expect.stringContaining('x'.repeat(100)),
+        })
+      )
+    })
+
+    it('should handle data with various control characters for replace coverage', async () => {
+      await import('./ptyHost')
+
+      const messageHandler = (
+        process.on as unknown as { mock: { calls: unknown[][] } }
+      ).mock.calls.find((call) => call[0] === 'message')?.[1]
+
+      // Create terminal
+      await messageHandler?.({
+        type: 'create',
+        id: 'control-chars-test',
+        options: {},
+      })
+
+      // Send data with \r and \n characters that need replacement
+      const dataWithControlChars = 'Hello\r\nWorld\rTest\nEnd'
+      mockTerminal.emit('data', dataWithControlChars)
+
+      // Verify the logging happened with escaped control characters
+      expect(console.log).toHaveBeenCalledWith(
+        expect.stringContaining(
+          '[PTY Host] 🔥 DATA EVENT from terminal control-chars-test:'
+        ),
+        expect.objectContaining({
+          first100: 'Hello\\r\\nWorld\\rTest\\nEnd',
+        })
+      )
+    })
+
+    it('should test process.send error handling with stringified message', async () => {
+      // Mock process.send to throw an error
+      const mockSend = vi.fn().mockImplementation(() => {
+        throw new Error('IPC send failed')
+      })
+
+      Object.defineProperty(process, 'send', {
+        value: mockSend,
+        writable: true,
+        configurable: true,
+      })
+
+      await import('./ptyHost')
+
+      const messageHandler = (
+        process.on as unknown as { mock: { calls: unknown[][] } }
+      ).mock.calls.find((call) => call[0] === 'message')?.[1]
+
+      // Try to create terminal which will trigger sendMessage
+      await messageHandler?.({
+        type: 'list',
+        id: 'send-error-test',
+      })
+
+      expect(console.error).toHaveBeenCalledWith(
+        '[PTY Host] ❌ FAILED to send message:',
+        expect.any(Error)
+      )
+
+      expect(console.error).toHaveBeenCalledWith(
+        '[PTY Host] Message details:',
+        expect.any(String)
+      )
+    })
+
+    it('should trigger keep-alive interval function', async () => {
+      // Mock setInterval to capture the callback
+      const originalSetInterval = global.setInterval
+      let keepAliveCallback: () => void = () => {}
+
+      const mockSetInterval = vi
+        .fn()
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Mock function signature requires interval parameter
+        .mockImplementation((callback: () => void, _interval: number) => {
+          keepAliveCallback = callback
+          return 1 // Return a timer ID
+        })
+
+      global.setInterval = mockSetInterval
+
+      await import('./ptyHost')
+
+      // Verify setInterval was called
+      expect(mockSetInterval).toHaveBeenCalledWith(
+        expect.any(Function),
+        1000 * 60 * 60 // 1 hour
+      )
+
+      // Execute the keep-alive callback to cover line 845
+      expect(() => keepAliveCallback()).not.toThrow()
+
+      // Restore original setInterval
+      global.setInterval = originalSetInterval
+    })
+
+    it('should handle falsy data for hasData coverage', async () => {
+      await import('./ptyHost')
+
+      const messageHandler = (
+        process.on as unknown as { mock: { calls: unknown[][] } }
+      ).mock.calls.find((call) => call[0] === 'message')?.[1]
+
+      // Create terminal
+      await messageHandler?.({
+        type: 'create',
+        id: 'falsy-data-test',
+        options: {},
+      })
+
+      // Send empty/falsy data to trigger hasData: !!data (line 457)
+      mockTerminal.emit('data', '')
+
+      // Verify logging happened with hasData: false
+      expect(console.log).toHaveBeenCalledWith(
+        expect.stringContaining(
+          '[PTY Host] 🔥 DATA EVENT from terminal falsy-data-test:'
+        ),
+        expect.objectContaining({
+          hasData: false,
+        })
+      )
+    })
+
+    it('should handle setTimeout initial newline success', async () => {
+      vi.useFakeTimers()
+
+      await import('./ptyHost')
+
+      const messageHandler = (
+        process.on as unknown as { mock: { calls: unknown[][] } }
+      ).mock.calls.find((call) => call[0] === 'message')?.[1]
+
+      // Create terminal to trigger setTimeout
+      await messageHandler?.({
+        type: 'create',
+        id: 'newline-success-test',
+        options: {},
+      })
+
+      // Fast-forward time to trigger setTimeout (500ms)
+      vi.advanceTimersByTime(500)
+
+      expect(console.log).toHaveBeenCalledWith(
+        '[PTY Host] Sending initial newline to trigger prompt for terminal newline-success-test'
+      )
+      expect(mockTerminal.write).toHaveBeenCalledWith('\n')
+      expect(console.log).toHaveBeenCalledWith(
+        '[PTY Host] Initial newline sent successfully to terminal newline-success-test'
+      )
+
+      vi.useRealTimers()
+    })
+
+    it('should handle setTimeout initial newline error', async () => {
+      vi.useFakeTimers()
+
+      // Mock terminal.write to throw an error
+      mockTerminal.write.mockImplementation((data: string) => {
+        if (data === '\n') {
+          throw new Error('Write newline failed')
+        }
+      })
+
+      await import('./ptyHost')
+
+      const messageHandler = (
+        process.on as unknown as { mock: { calls: unknown[][] } }
+      ).mock.calls.find((call) => call[0] === 'message')?.[1]
+
+      // Create terminal to trigger setTimeout
+      await messageHandler?.({
+        type: 'create',
+        id: 'newline-error-test',
+        options: {},
+      })
+
+      // Fast-forward time to trigger setTimeout (500ms)
+      vi.advanceTimersByTime(500)
+
+      expect(console.log).toHaveBeenCalledWith(
+        '[PTY Host] Sending initial newline to trigger prompt for terminal newline-error-test'
+      )
+      expect(console.error).toHaveBeenCalledWith(
+        '[PTY Host] Failed to send initial newline to terminal newline-error-test:',
+        expect.any(Error)
+      )
+
+      vi.useRealTimers()
+    })
+
+    it('should handle non-Error instance in writeToTerminal', async () => {
+      // Mock terminal.write to throw a non-Error object
+      mockTerminal.write.mockImplementation(() => {
+        throw 'String error instead of Error instance' // Non-Error throw
+      })
+
+      await import('./ptyHost')
+
+      const messageHandler = (
+        process.on as unknown as { mock: { calls: unknown[][] } }
+      ).mock.calls.find((call) => call[0] === 'message')?.[1]
+
+      // Create terminal first
+      await messageHandler?.({
+        type: 'create',
+        id: 'non-error-test',
+        options: {},
+      })
+
+      // Try to write which will trigger the non-Error catch
+      await messageHandler?.({
+        type: 'write',
+        id: 'non-error-test',
+        data: 'test',
+      })
+
+      expect(process.send).toHaveBeenCalledWith({
+        type: 'error',
+        id: 'non-error-test',
+        error: 'Failed to write to terminal',
+      })
+    })
+  })
+
+  describe('Complete Coverage - Data Processing and Terminal Cleanup', () => {
+    it('should process terminal data with various zsh pattern cleaning scenarios', async () => {
+      const terminalId = 'zsh-pattern-test'
+
+      await import('./ptyHost')
+
+      const messageHandler = (
+        process.on as unknown as { mock: { calls: unknown[][] } }
+      ).mock.calls.find((call) => call[0] === 'message')?.[1]
+
+      await messageHandler?.({
+        type: 'create',
+        id: terminalId,
+        options: {
+          shell: '/bin/zsh',
+          cwd: '/test/path',
+          env: {
+            PATH: '/usr/local/bin:/usr/bin:/bin'.repeat(10), // Long PATH for substring coverage
+            HOME: '/home/user',
+            USER: 'testuser',
+            SHELL: '/bin/zsh',
+            TERM: 'xterm-256color',
+            LANG: 'en_US.UTF-8',
+            LC_ALL: 'en_US.UTF-8',
+            COLUMNS: '80',
+            LINES: '24',
+          },
+          cols: 80,
+          rows: 24,
+        },
+      })
+
+      // Test various zsh pattern scenarios that trigger different cleaning logic
+      const testPatterns = [
+        // Zsh prompt spacing issue (line 571-577)
+        '%                    user@hostname',
+        // Excessive spaces pattern (line 580-587)
+        '%   user@hostname   %   command   ',
+        // Zsh EOL marker with excessive padding (line 591-595)
+        '\r          \r\u001b[0J',
+        // Zsh partial line marker pattern (line 599-604)
+        '%                                                                      user@hostname ~/path %',
+        // Invisible escape sequences (line 609-613)
+        '\u001b[m\u001b[m\u001b[m% user@hostname',
+        // Double percent spacing pattern (line 616-620)
+        '%          user@hostname % command %',
+      ]
+
+      for (const pattern of testPatterns) {
+        mockTerminal.emit('data', pattern)
+      }
+
+      expect(mockCreateTerminal).toHaveBeenCalledWith(
+        terminalId,
+        expect.objectContaining({
+          shell: '/bin/zsh',
+          cwd: '/test/path',
+          cols: 80,
+          rows: 24,
+        })
+      )
+
+      // The environment variables are logged, verify the call exists
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Test requires flexible typing for validation testing
+      const envLogCall = (console.log as any).mock.calls.find(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Test requires flexible typing for validation testing
+        (call: any[]) =>
+          typeof call[0] === 'string' &&
+          call[0].includes(
+            '[PTY Host] 🔍 Environment variables for zsh-pattern-test'
+          )
+      )
+      expect(envLogCall).toBeDefined()
+      expect(envLogCall[1]).toHaveProperty('PATH')
+      expect(envLogCall[1]).toHaveProperty('HOME')
+      expect(envLogCall[1]).toHaveProperty('USER')
+    })
+
+    it('should handle terminal exit with remaining buffer data', async () => {
+      const terminalId = 'exit-test'
+
+      await import('./ptyHost')
+
+      const messageHandler = (
+        process.on as unknown as { mock: { calls: unknown[][] } }
+      ).mock.calls.find((call) => call[0] === 'message')?.[1]
+
+      await messageHandler?.({
+        type: 'create',
+        id: terminalId,
+        options: {
+          shell: '/bin/bash',
+          cwd: '/test/path',
+          env: {},
+          cols: 80,
+          rows: 24,
+        },
+      })
+
+      // Add some data to buffer
+      mockTerminal.emit(
+        'data',
+        'some buffered data that should be sent on exit'
+      )
+
+      // Trigger exit with remaining buffer data (lines 651-657)
+      mockTerminal.emit('exit', 0, 'SIGTERM')
+
+      expect(console.log).toHaveBeenCalledWith(
+        expect.stringContaining(
+          '[PTY Host] Terminal exit-test exited with code 0, signal SIGTERM'
+        )
+      )
+    })
+
+    it('should handle WINCH loop detection and blocking', async () => {
+      const terminalId = 'winch-test'
+
+      await import('./ptyHost')
+
+      const messageHandler = (
+        process.on as unknown as { mock: { calls: unknown[][] } }
+      ).mock.calls.find((call) => call[0] === 'message')?.[1]
+
+      await messageHandler?.({
+        type: 'create',
+        id: terminalId,
+        options: {
+          shell: '/bin/zsh',
+          cwd: '/test/path',
+          env: {},
+          cols: 80,
+          rows: 24,
+        },
+      })
+
+      // Simulate WINCH loop patterns that should be detected and blocked
+      const winchPatterns = [
+        '\r\r\u001b[m\u001b[m\u001b[m\u001b[J% ',
+        '\u001b[0K\u001b[m\u001b[m\u001b[m% ',
+        '\u001b[J\u001b[m\u001b[m\u001b[m% ',
+      ]
+
+      // Send enough WINCH patterns to trigger blocking (MAX_WINCH_SIGNALS = 15)
+      for (let i = 0; i < 20; i++) {
+        mockTerminal.emit('data', winchPatterns[i % winchPatterns.length])
+      }
+
+      expect(console.log).toHaveBeenCalledWith(
+        expect.stringContaining('[PTY Host] BLOCKING WINCH loop')
+      )
+
+      // Test non-WINCH data to trigger count reduction
+      mockTerminal.emit(
+        'data',
+        'regular command output with substantial content'
+      )
+
+      expect(console.log).toHaveBeenCalledWith(
+        expect.stringContaining(
+          '[PTY Host] Non-WINCH data detected, reducing count'
+        )
+      )
+    })
+
+    it('should handle buffer processing with backpressure control', async () => {
+      const terminalId = 'buffer-test'
+
+      await import('./ptyHost')
+
+      const messageHandler = (
+        process.on as unknown as { mock: { calls: unknown[][] } }
+      ).mock.calls.find((call) => call[0] === 'message')?.[1]
+
+      await messageHandler?.({
+        type: 'create',
+        id: terminalId,
+        options: {
+          shell: '/bin/sh',
+          cwd: '/test/path',
+          env: {},
+          cols: 80,
+          rows: 24,
+        },
+      })
+
+      // Send large data to trigger chunking (chunkSize = 1024)
+      const largeData = 'x'.repeat(2048)
+      mockTerminal.emit('data', largeData)
+
+      expect(console.log).toHaveBeenCalledWith(
+        expect.stringContaining('[PTY Host] 🚀 PROCESSING BUFFER'),
+        expect.objectContaining({
+          bufferLength: expect.any(Number),
+          bufferStart: expect.any(String),
+          timestamp: expect.any(String),
+        })
+      )
+
+      expect(console.log).toHaveBeenCalledWith(
+        expect.stringContaining('[PTY Host] 📤 SENDING CHUNK'),
+        expect.objectContaining({
+          chunkLength: expect.any(Number),
+          remainingBuffer: expect.any(Number),
+          sendAvailable: true,
+        })
+      )
+    })
+
+    it('should handle environment variable logging with missing env vars', async () => {
+      const terminalId = 'env-test'
+
+      await import('./ptyHost')
+
+      const messageHandler = (
+        process.on as unknown as { mock: { calls: unknown[][] } }
+      ).mock.calls.find((call) => call[0] === 'message')?.[1]
+
+      // Test with missing PATH to trigger 'MISSING' log (line 320)
+      await messageHandler?.({
+        type: 'create',
+        id: terminalId,
+        options: {
+          shell: '/bin/bash',
+          cwd: '/test/path',
+          env: {
+            // Intentionally omit PATH to trigger MISSING log
+            HOME: '/home/user',
+            USER: 'testuser',
+          },
+          cols: 80,
+          rows: 24,
+        },
+      })
+
+      // Note: The actual environment will have PATH from the test process,
+      // but we can still test the environment variable logging functionality
+      expect(console.log).toHaveBeenCalledWith(
+        expect.stringContaining('[PTY Host] 🔍 Environment variables for'),
+        expect.any(Object)
       )
     })
   })

@@ -54,7 +54,10 @@ const rootDir = join(__dirname, '..')
  *
  * @public
  */
-function updatePackageVersion(filePath: string, newVersion: string): boolean {
+export function updatePackageVersion(
+  filePath: string,
+  newVersion: string
+): boolean {
   try {
     if (!existsSync(filePath)) {
       console.warn(`⚠️  File not found: ${filePath}`)
@@ -99,7 +102,7 @@ function updatePackageVersion(filePath: string, newVersion: string): boolean {
  *
  * @public
  */
-async function main() {
+export async function main() {
   const newVersion = process.argv[2]
 
   if (!newVersion) {
@@ -157,8 +160,12 @@ async function main() {
   }
 }
 
-// Run the script
-main().catch((error) => {
-  console.error('❌ Script failed:', error)
-  process.exit(1)
-})
+// Run the script only if executed directly (not imported)
+// Check if we're in test environment
+const isTest = process.env.NODE_ENV === 'test' || process.env.VITEST
+if (!isTest && import.meta.url === `file://${process.argv[1]}`) {
+  main().catch((error) => {
+    console.error('❌ Script failed:', error)
+    process.exit(1)
+  })
+}

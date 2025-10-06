@@ -265,7 +265,7 @@ const copyCode = async () => {
 }
 
 .dark :deep(.comment) {
-  color: #8b949e;
+  color: var(--terminal-text);
 }
 
 .dark :deep(.tag) {

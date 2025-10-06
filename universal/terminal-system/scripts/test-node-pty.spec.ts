@@ -523,4 +523,142 @@ describe('test-node-pty.ts', () => {
       expect(mockPtyProcess.kill).toHaveBeenCalled()
     })
   })
+
+  describe('Coverage for uncovered lines', () => {
+    beforeEach(() => {
+      vi.useFakeTimers()
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('should only log data once when outputReceived becomes true (line 47)', async () => {
+      let dataCallback: any
+      const mockPty = await import('node-pty')
+      mockPty.spawn.mockReturnValue(mockPtyProcess)
+
+      // Mock process.exit to prevent test failures
+      const originalExit = global.process.exit
+      global.process.exit = vi.fn()
+
+      // Track console.log calls
+      const consoleLogSpy = vi.spyOn(console, 'log')
+
+      mockPtyProcess.onData.mockImplementation((callback) => {
+        dataCallback = callback
+      })
+      mockPtyProcess.onExit.mockImplementation((callback) => {
+        setTimeout(() => callback({ exitCode: 0 }), 100)
+      })
+
+      const testPromise = runNodePtyTest()
+
+      // Wait for setup
+      await vi.advanceTimersByTimeAsync(10)
+
+      // First data - should log (outputReceived = false)
+      if (dataCallback) {
+        dataCallback(
+          'First data chunk that is longer than 50 characters to test slicing'
+        )
+      }
+
+      // Second data - should NOT log (outputReceived = true)
+      if (dataCallback) {
+        dataCallback('Second data chunk')
+      }
+
+      // Third data - should NOT log (outputReceived = true)
+      if (dataCallback) {
+        dataCallback('Third data chunk')
+      }
+
+      await vi.runAllTimersAsync()
+      await testPromise
+
+      // Filter for the specific log message
+      const dataCalls = consoleLogSpy.mock.calls.filter(
+        (call) => call[0] === '✅ PTY data received:'
+      )
+
+      // Should only have logged once
+      expect(dataCalls).toHaveLength(1)
+      // Check that it starts with the expected text (may have ANSI codes)
+      expect(dataCalls[0][1]).toMatch(
+        /First data chunk that is longer than 50 character/
+      )
+
+      // Restore mocks
+      consoleLogSpy.mockRestore()
+      global.process.exit = originalExit
+    })
+
+    it('should call process.exit(0) on success when process.exit exists (lines 85-87)', async () => {
+      const mockPty = await import('node-pty')
+      mockPty.spawn.mockReturnValue(mockPtyProcess)
+
+      // Ensure process.exit is defined
+      const exitSpy = vi.fn()
+      global.process.exit = exitSpy
+
+      mockPtyProcess.onData.mockImplementation(() => {})
+      mockPtyProcess.onExit.mockImplementation((callback) => {
+        setTimeout(() => callback({ exitCode: 0 }), 100)
+      })
+
+      const testPromise = runNodePtyTest()
+      await vi.runAllTimersAsync()
+      await testPromise
+
+      expect(exitSpy).toHaveBeenCalledWith(0)
+    })
+
+    it('should call process.exit(1) on error when process.exit exists (lines 95-97)', async () => {
+      const mockPty = await import('node-pty')
+
+      // Make spawn throw an error
+      mockPty.spawn.mockImplementation(() => {
+        throw new Error('Spawn failed')
+      })
+
+      // Ensure process.exit is defined
+      const exitSpy = vi.fn()
+      global.process.exit = exitSpy
+
+      await expect(runNodePtyTest()).rejects.toThrow('Spawn failed')
+
+      expect(exitSpy).toHaveBeenCalledWith(1)
+    })
+
+    it('should handle missing process gracefully', async () => {
+      const mockPty = await import('node-pty')
+      mockPty.spawn.mockReturnValue(mockPtyProcess)
+
+      // Store original process
+      const originalProcess = global.process
+
+      // Create a process without exit
+      global.process = {
+        ...originalProcess,
+        // exit is undefined
+      } as any
+      delete (global.process as any).exit
+
+      mockPtyProcess.onData.mockImplementation(() => {})
+      mockPtyProcess.onExit.mockImplementation((callback) => {
+        setTimeout(() => callback({ exitCode: 0 }), 100)
+      })
+
+      const testPromise = runNodePtyTest()
+      await vi.runAllTimersAsync()
+      await testPromise
+
+      // Restore process
+      global.process = originalProcess
+
+      // Should complete without errors
+      expect(true).toBe(true)
+    })
+  })
 })

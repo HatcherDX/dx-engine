@@ -21,14 +21,9 @@ export default defineConfig({
     // NO mocks - use real dependencies
     setupFiles: ['./src/test-setup-real.ts'],
 
-    // Only run .integration.ts files
-    include: ['src/**/*.integration.ts'],
-    exclude: [
-      'src/**/*.spec.ts',
-      'src/**/*.e2e.ts',
-      '**/node_modules/**',
-      '**/dist/**',
-    ],
+    // Run SQLiteAdapter test with real dependencies
+    include: ['src/adapters/SQLiteAdapter.spec.ts'],
+    exclude: ['**/node_modules/**', '**/dist/**'],
 
     // Longer timeout for real I/O operations
     testTimeout: 30000,

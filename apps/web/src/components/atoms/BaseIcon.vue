@@ -12,7 +12,7 @@ import { computed, defineAsyncComponent } from 'vue'
 
 interface Props {
   name: string
-  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
+  size?: '2xs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl'
   color?: string
   accessible?: boolean
   ariaLabel?: string
@@ -35,6 +35,7 @@ const iconClasses = computed(() => {
 
   // Size variants
   const sizes = {
+    '2xs': ['w-2', 'h-2'],
     xs: ['w-3', 'h-3'],
     sm: ['w-4', 'h-4'],
     md: ['w-5', 'h-5'],

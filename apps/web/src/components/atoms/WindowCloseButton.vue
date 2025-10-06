@@ -73,7 +73,7 @@ const handleClick = () => {
 
 .window-control-button:disabled {
   opacity: 0.5;
-  cursor: not-allowed;
+  cursor: default;
 }
 
 .window-control-button:disabled:hover {

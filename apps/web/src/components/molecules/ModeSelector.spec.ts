@@ -46,7 +46,7 @@ describe('ModeSelector.vue', () => {
     expect(wrapper.text()).toContain('Gen')
     expect(wrapper.text()).toContain('Visual')
     expect(wrapper.text()).toContain('Code')
-    expect(wrapper.text()).toContain('Timeline')
+    expect(wrapper.text()).toContain('Timegraph')
   })
 
   it('should handle keyboard navigation', async () => {

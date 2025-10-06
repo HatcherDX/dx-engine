@@ -19,7 +19,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { join } from 'node:path'
 
 // Mock modules with hoisted functions
-const { mockBrowserWindow, mockSession } = vi.hoisted(() => ({
+const { mockBrowserWindow, mockSession, mockScreen } = vi.hoisted(() => ({
   mockBrowserWindow: {
     getAllWindows: vi.fn(),
     prototype: {
@@ -42,6 +42,14 @@ const { mockBrowserWindow, mockSession } = vi.hoisted(() => ({
         onHeadersReceived: vi.fn(),
       },
     },
+  },
+  mockScreen: {
+    getPrimaryDisplay: vi.fn(() => ({
+      workAreaSize: {
+        width: 1920,
+        height: 1080,
+      },
+    })),
   },
 }))
 
@@ -66,16 +74,25 @@ const { mockSetupApplicationMenu } = vi.hoisted(() => ({
 vi.mock('electron', () => ({
   BrowserWindow: mockBrowserWindow,
   session: mockSession,
+  screen: mockScreen,
 }))
 
 // Mock Node.js modules
-vi.mock('node:fs', () => ({
-  existsSync: mockExistsSync,
-}))
+vi.mock('node:fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs')>()
+  return {
+    ...actual,
+    existsSync: mockExistsSync,
+  }
+})
 
-vi.mock('node:path', () => ({
-  join: mockJoin,
-}))
+vi.mock('node:path', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:path')>()
+  return {
+    ...actual,
+    join: mockJoin,
+  }
+})
 
 // Mock utility modules
 vi.mock('/@/utils/', () => ({
@@ -152,6 +169,7 @@ describe('Main Window Management', () => {
         show: vi.fn(),
         webContents: {
           openDevTools: vi.fn(),
+          on: vi.fn(), // Add mock for webContents.on
         },
       }
 
@@ -173,6 +191,14 @@ describe('Main Window Management', () => {
       vi.doMock('electron', () => ({
         BrowserWindow: mockBrowserWindowConstructor,
         session: sessionMock,
+        screen: {
+          getPrimaryDisplay: vi.fn(() => ({
+            workAreaSize: {
+              width: 1920,
+              height: 1080,
+            },
+          })),
+        },
       }))
 
       vi.doMock('node:fs', async (importOriginal) => {
@@ -200,6 +226,16 @@ describe('Main Window Management', () => {
 
       vi.doMock('./menu', () => ({
         setupApplicationMenu: vi.fn(),
+      }))
+
+      vi.doMock('./ipc/storageHandlers', () => ({
+        registerTrustedSender: vi.fn(),
+      }))
+
+      vi.doMock('./terminalKeyboardHandler', () => ({
+        terminalKeyboardHandler: {
+          initialize: vi.fn(),
+        },
       }))
 
       // Import and execute the function
@@ -243,6 +279,14 @@ describe('Main Window Management', () => {
             },
           },
         },
+        screen: {
+          getPrimaryDisplay: vi.fn(() => ({
+            workAreaSize: {
+              width: 1920,
+              height: 1080,
+            },
+          })),
+        },
       }))
 
       vi.doMock('node:fs', async (importOriginal) => {
@@ -270,6 +314,16 @@ describe('Main Window Management', () => {
 
       vi.doMock('./menu', () => ({
         setupApplicationMenu: vi.fn(),
+      }))
+
+      vi.doMock('./ipc/storageHandlers', () => ({
+        registerTrustedSender: vi.fn(),
+      }))
+
+      vi.doMock('./terminalKeyboardHandler', () => ({
+        terminalKeyboardHandler: {
+          initialize: vi.fn(),
+        },
       }))
 
       // Import and execute the function
@@ -305,6 +359,7 @@ describe('Main Window Management', () => {
         show: vi.fn(),
         webContents: {
           openDevTools: vi.fn(),
+          on: vi.fn(), // Add mock for webContents.on
         },
       }
 
@@ -324,6 +379,14 @@ describe('Main Window Management', () => {
       vi.doMock('electron', () => ({
         BrowserWindow: mockBrowserWindowConstructor,
         session: sessionMock,
+        screen: {
+          getPrimaryDisplay: vi.fn(() => ({
+            workAreaSize: {
+              width: 1920,
+              height: 1080,
+            },
+          })),
+        },
       }))
 
       vi.doMock('node:fs', async (importOriginal) => {
@@ -351,6 +414,16 @@ describe('Main Window Management', () => {
 
       vi.doMock('./menu', () => ({
         setupApplicationMenu: vi.fn(),
+      }))
+
+      vi.doMock('./ipc/storageHandlers', () => ({
+        registerTrustedSender: vi.fn(),
+      }))
+
+      vi.doMock('./terminalKeyboardHandler', () => ({
+        terminalKeyboardHandler: {
+          initialize: vi.fn(),
+        },
       }))
 
       // Update import.meta.env for this specific test
@@ -906,6 +979,783 @@ describe('Main Window Management', () => {
       })
       expect(workflow.setupEvents).toHaveBeenCalled()
       expect(window.loadURL).toHaveBeenCalledWith('http://localhost:3000')
+    })
+  })
+
+  describe('Complete Coverage - Production Mode and Edge Cases', () => {
+    it('should load file in production mode when VITE_DEV_SERVER_URL is undefined', async () => {
+      vi.resetModules()
+
+      const mockWindow = {
+        isDestroyed: vi.fn().mockReturnValue(false),
+        isMinimized: vi.fn().mockReturnValue(false),
+        restore: vi.fn(),
+        focus: vi.fn(),
+        loadURL: vi.fn().mockResolvedValue(undefined),
+        loadFile: vi.fn().mockResolvedValue(undefined),
+        on: vi.fn(),
+        show: vi.fn(),
+        webContents: {
+          openDevTools: vi.fn(),
+          on: vi.fn(),
+        },
+      }
+
+      const mockBrowserWindowConstructor = vi.fn().mockReturnValue(mockWindow)
+      mockBrowserWindowConstructor.getAllWindows = vi.fn().mockReturnValue([])
+
+      vi.doMock('electron', () => ({
+        BrowserWindow: mockBrowserWindowConstructor,
+        session: {
+          defaultSession: {
+            webRequest: {
+              onHeadersReceived: vi.fn(),
+            },
+          },
+        },
+        screen: {
+          getPrimaryDisplay: vi.fn(() => ({
+            workAreaSize: { width: 1920, height: 1080 },
+          })),
+        },
+      }))
+
+      vi.doMock('node:fs', async (importOriginal) => {
+        const actual = await importOriginal<typeof import('node:fs')>()
+        return {
+          ...actual,
+          existsSync: vi.fn().mockReturnValue(false),
+        }
+      })
+
+      vi.doMock('node:path', async (importOriginal) => {
+        const actual = await importOriginal<typeof import('node:path')>()
+        return {
+          ...actual,
+          join: vi
+            .fn()
+            .mockImplementation((...args: string[]) => args.join('/')),
+        }
+      })
+
+      // Set isDev to true but VITE_DEV_SERVER_URL undefined to test production fallback
+      vi.doMock('./utils', () => ({
+        isDev: true,
+        isPackaged: false,
+      }))
+
+      vi.doMock('./menu', () => ({
+        setupApplicationMenu: vi.fn(),
+      }))
+
+      vi.doMock('./ipc/storageHandlers', () => ({
+        registerTrustedSender: vi.fn(),
+      }))
+
+      vi.doMock('./terminalKeyboardHandler', () => ({
+        terminalKeyboardHandler: {
+          initialize: vi.fn(),
+        },
+      }))
+
+      // Ensure VITE_DEV_SERVER_URL is undefined to trigger production path
+      Object.defineProperty(import.meta, 'env', {
+        value: { VITE_DEV_SERVER_URL: undefined },
+        writable: true,
+      })
+
+      const { restoreOrCreateWindow } = await import('./mainWindow')
+      await restoreOrCreateWindow()
+
+      // Verify loadFile was called instead of loadURL
+      expect(mockWindow.loadFile).toHaveBeenCalledWith(
+        expect.stringContaining('web/index.html')
+      )
+      expect(mockWindow.loadURL).not.toHaveBeenCalled()
+    })
+
+    it('should handle getMainWindow function', async () => {
+      vi.resetModules()
+
+      // Set up mocks BEFORE importing the module
+      const mockWindow = {
+        isDestroyed: vi.fn().mockReturnValue(false),
+        isMinimized: vi.fn().mockReturnValue(false),
+        restore: vi.fn(),
+        focus: vi.fn(),
+        loadURL: vi.fn().mockResolvedValue(undefined),
+        loadFile: vi.fn().mockResolvedValue(undefined),
+        on: vi.fn(),
+        show: vi.fn(),
+        webContents: {
+          openDevTools: vi.fn(),
+        },
+      }
+
+      const mockBrowserWindowConstructor = vi.fn().mockReturnValue(mockWindow)
+      mockBrowserWindowConstructor.getAllWindows = vi.fn().mockReturnValue([])
+
+      vi.doMock('electron', () => ({
+        BrowserWindow: mockBrowserWindowConstructor,
+        session: {
+          defaultSession: {
+            webRequest: {
+              onHeadersReceived: vi.fn(),
+            },
+          },
+        },
+        screen: {
+          getPrimaryDisplay: vi.fn(() => ({
+            workAreaSize: { width: 1920, height: 1080 },
+          })),
+        },
+      }))
+
+      vi.doMock('node:fs', async (importOriginal) => {
+        const actual = await importOriginal<typeof import('node:fs')>()
+        return {
+          ...actual,
+          existsSync: vi.fn().mockReturnValue(false),
+        }
+      })
+
+      vi.doMock('node:path', async (importOriginal) => {
+        const actual = await importOriginal<typeof import('node:path')>()
+        return {
+          ...actual,
+          join: vi
+            .fn()
+            .mockImplementation((...args: string[]) => args.join('/')),
+        }
+      })
+
+      vi.doMock('./utils', () => ({
+        isDev: false,
+        isPackaged: true,
+      }))
+
+      vi.doMock('./menu', () => ({
+        setupApplicationMenu: vi.fn(),
+      }))
+
+      vi.doMock('./ipc/storageHandlers', () => ({
+        registerTrustedSender: vi.fn(),
+      }))
+
+      vi.doMock('./terminalKeyboardHandler', () => ({
+        terminalKeyboardHandler: {
+          initialize: vi.fn(),
+        },
+      }))
+
+      // First test when mainWindowRef is null
+      const module = await import('./mainWindow')
+      expect(module.getMainWindow()).toBeNull()
+
+      // Now create a window
+      await module.restoreOrCreateWindow()
+
+      // Now getMainWindow should return the created window
+      expect(module.getMainWindow()).toBe(mockWindow)
+    })
+
+    it('should handle development mode with console events', async () => {
+      vi.resetModules()
+
+      let didFinishLoadCallback: (() => void) | undefined
+      let consoleMessageCallback: // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Test mock event handler requires flexible typing for event simulation
+      ((event: any, level: any, message: string) => void) | undefined
+
+      const mockWindow = {
+        isDestroyed: vi.fn().mockReturnValue(false),
+        isMinimized: vi.fn().mockReturnValue(false),
+        restore: vi.fn(),
+        focus: vi.fn(),
+        loadURL: vi.fn().mockResolvedValue(undefined),
+        loadFile: vi.fn().mockResolvedValue(undefined),
+        on: vi.fn().mockImplementation((event, callback) => {
+          if (event === 'ready-to-show') {
+            setTimeout(callback, 0)
+          }
+        }),
+        show: vi.fn(),
+        webContents: {
+          openDevTools: vi.fn(),
+          on: vi.fn().mockImplementation((event, callback) => {
+            if (event === 'did-finish-load') {
+              didFinishLoadCallback = callback
+            } else if (event === 'console-message') {
+              consoleMessageCallback = callback
+            }
+          }),
+        },
+      }
+
+      const mockBrowserWindowConstructor = vi.fn().mockReturnValue(mockWindow)
+      mockBrowserWindowConstructor.getAllWindows = vi.fn().mockReturnValue([])
+
+      vi.doMock('electron', () => ({
+        BrowserWindow: mockBrowserWindowConstructor,
+        session: {
+          defaultSession: {
+            webRequest: {
+              onHeadersReceived: vi.fn(),
+            },
+          },
+        },
+        screen: {
+          getPrimaryDisplay: vi.fn(() => ({
+            workAreaSize: { width: 1920, height: 1080 },
+          })),
+        },
+      }))
+
+      vi.doMock('node:fs', async (importOriginal) => {
+        const actual = await importOriginal<typeof import('node:fs')>()
+        return {
+          ...actual,
+          existsSync: vi.fn().mockReturnValue(false),
+        }
+      })
+
+      vi.doMock('node:path', async (importOriginal) => {
+        const actual = await importOriginal<typeof import('node:path')>()
+        return {
+          ...actual,
+          join: vi
+            .fn()
+            .mockImplementation((...args: string[]) => args.join('/')),
+        }
+      })
+
+      vi.doMock('./utils', () => ({
+        isDev: true,
+        isPackaged: false,
+      }))
+
+      vi.doMock('./menu', () => ({
+        setupApplicationMenu: vi.fn(),
+      }))
+
+      vi.doMock('./ipc/storageHandlers', () => ({
+        registerTrustedSender: vi.fn(),
+      }))
+
+      vi.doMock('./terminalKeyboardHandler', () => ({
+        terminalKeyboardHandler: {
+          initialize: vi.fn(),
+        },
+      }))
+
+      // Mock console.log to verify it's called
+      const originalConsoleLog = console.log
+      const mockConsoleLog = vi.fn()
+      console.log = mockConsoleLog
+
+      Object.defineProperty(import.meta, 'env', {
+        value: { VITE_DEV_SERVER_URL: 'http://localhost:3000' },
+        writable: true,
+      })
+
+      const { restoreOrCreateWindow } = await import('./mainWindow')
+      await restoreOrCreateWindow()
+
+      // Wait for ready-to-show
+      await new Promise((resolve) => setTimeout(resolve, 10))
+
+      // Trigger did-finish-load event
+      expect(didFinishLoadCallback).toBeDefined()
+      if (didFinishLoadCallback) {
+        didFinishLoadCallback()
+        expect(mockConsoleLog).toHaveBeenCalledWith(
+          '[Main Window] Renderer finished loading'
+        )
+      }
+
+      // Trigger console-message events with different messages
+      expect(consoleMessageCallback).toBeDefined()
+      if (consoleMessageCallback) {
+        // Test message containing 'Preload'
+        consoleMessageCallback({}, 1, 'Preload script initialized')
+        expect(mockConsoleLog).toHaveBeenCalledWith(
+          '[Renderer Console] Preload script initialized'
+        )
+
+        // Test message containing 'terminal'
+        consoleMessageCallback({}, 1, 'terminal connected')
+        expect(mockConsoleLog).toHaveBeenCalledWith(
+          '[Renderer Console] terminal connected'
+        )
+
+        // Test message that doesn't match (branch coverage)
+        mockConsoleLog.mockClear()
+        consoleMessageCallback({}, 1, 'some other message')
+        expect(mockConsoleLog).not.toHaveBeenCalled()
+      }
+
+      // Restore console.log
+      console.log = originalConsoleLog
+    })
+
+    it('should handle production CSP configuration', async () => {
+      vi.resetModules()
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Test mock event handler requires flexible typing for event simulation
+      let cspCallback: ((details: any, callback: any) => void) | undefined
+
+      const mockWindow = {
+        isDestroyed: vi.fn().mockReturnValue(false),
+        isMinimized: vi.fn().mockReturnValue(false),
+        restore: vi.fn(),
+        focus: vi.fn(),
+        loadFile: vi.fn().mockResolvedValue(undefined),
+        on: vi.fn(),
+        show: vi.fn(),
+        webContents: {
+          openDevTools: vi.fn(),
+        },
+      }
+
+      const mockBrowserWindowConstructor = vi.fn().mockReturnValue(mockWindow)
+      mockBrowserWindowConstructor.getAllWindows = vi.fn().mockReturnValue([])
+
+      vi.doMock('electron', () => ({
+        BrowserWindow: mockBrowserWindowConstructor,
+        session: {
+          defaultSession: {
+            webRequest: {
+              onHeadersReceived: vi.fn().mockImplementation((callback) => {
+                cspCallback = callback
+              }),
+            },
+          },
+        },
+        screen: {
+          getPrimaryDisplay: vi.fn(() => ({
+            workAreaSize: { width: 1920, height: 1080 },
+          })),
+        },
+      }))
+
+      vi.doMock('node:fs', async (importOriginal) => {
+        const actual = await importOriginal<typeof import('node:fs')>()
+        return {
+          ...actual,
+          existsSync: vi.fn().mockReturnValue(false),
+        }
+      })
+
+      vi.doMock('node:path', async (importOriginal) => {
+        const actual = await importOriginal<typeof import('node:path')>()
+        return {
+          ...actual,
+          join: vi
+            .fn()
+            .mockImplementation((...args: string[]) => args.join('/')),
+        }
+      })
+
+      // Production mode (isDev = false)
+      vi.doMock('./utils', () => ({
+        isDev: false,
+        isPackaged: true,
+      }))
+
+      vi.doMock('./menu', () => ({
+        setupApplicationMenu: vi.fn(),
+      }))
+
+      vi.doMock('./ipc/storageHandlers', () => ({
+        registerTrustedSender: vi.fn(),
+      }))
+
+      vi.doMock('./terminalKeyboardHandler', () => ({
+        terminalKeyboardHandler: {
+          initialize: vi.fn(),
+        },
+      }))
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Test requires flexible typing for validation testing
+      const { BrowserWindow } = (await vi.importMock('electron')) as any
+      BrowserWindow.getAllWindows = vi.fn().mockReturnValue([])
+
+      const { restoreOrCreateWindow } = await import('./mainWindow')
+      await restoreOrCreateWindow()
+
+      // Test CSP callback with production configuration
+      expect(cspCallback).toBeDefined()
+      if (cspCallback) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Test requires flexible typing for validation testing
+        let resultHeaders: any
+        const mockDetails = {
+          responseHeaders: {
+            'X-Other-Header': ['value'],
+          },
+        }
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Test requires flexible typing for validation testing
+        cspCallback(mockDetails, (result: any) => {
+          resultHeaders = result.responseHeaders
+        })
+
+        expect(resultHeaders['Content-Security-Policy']).toBeDefined()
+        expect(resultHeaders['Content-Security-Policy'][0]).not.toContain('ws:')
+        expect(resultHeaders['Content-Security-Policy'][0]).not.toContain(
+          'localhost'
+        )
+        expect(resultHeaders['X-Other-Header']).toEqual(['value'])
+      }
+    })
+
+    it('should handle window not minimized case', async () => {
+      vi.resetModules()
+
+      // Setup existing window mock that is NOT minimized
+      const mockExistingWindow = {
+        isDestroyed: vi.fn().mockReturnValue(false),
+        isMinimized: vi.fn().mockReturnValue(false), // Not minimized
+        restore: vi.fn(),
+        focus: vi.fn(),
+      }
+
+      const mockBrowserWindowConstructor = vi.fn()
+      mockBrowserWindowConstructor.getAllWindows = vi
+        .fn()
+        .mockReturnValue([mockExistingWindow])
+
+      vi.doMock('electron', () => ({
+        BrowserWindow: mockBrowserWindowConstructor,
+        session: {
+          defaultSession: {
+            webRequest: {
+              onHeadersReceived: vi.fn(),
+            },
+          },
+        },
+        screen: {
+          getPrimaryDisplay: vi.fn(() => ({
+            workAreaSize: { width: 1920, height: 1080 },
+          })),
+        },
+      }))
+
+      vi.doMock('node:fs', async (importOriginal) => {
+        const actual = await importOriginal<typeof import('node:fs')>()
+        return {
+          ...actual,
+          existsSync: vi.fn().mockReturnValue(false),
+        }
+      })
+
+      vi.doMock('node:path', async (importOriginal) => {
+        const actual = await importOriginal<typeof import('node:path')>()
+        return {
+          ...actual,
+          join: vi
+            .fn()
+            .mockImplementation((...args: string[]) => args.join('/')),
+        }
+      })
+
+      vi.doMock('./utils', () => ({
+        isDev: false,
+        isPackaged: true,
+      }))
+
+      vi.doMock('./menu', () => ({
+        setupApplicationMenu: vi.fn(),
+      }))
+
+      vi.doMock('./ipc/storageHandlers', () => ({
+        registerTrustedSender: vi.fn(),
+      }))
+
+      vi.doMock('./terminalKeyboardHandler', () => ({
+        terminalKeyboardHandler: {
+          initialize: vi.fn(),
+        },
+      }))
+
+      const { restoreOrCreateWindow } = await import('./mainWindow')
+      await restoreOrCreateWindow()
+
+      // Verify window was found but restore was NOT called (since not minimized)
+      expect(mockBrowserWindowConstructor.getAllWindows).toHaveBeenCalled()
+      expect(mockExistingWindow.restore).not.toHaveBeenCalled()
+      expect(mockExistingWindow.focus).toHaveBeenCalled()
+    })
+
+    it('should handle platform-specific window configuration for non-Darwin', async () => {
+      vi.resetModules()
+
+      // Set platform to Windows
+      Object.defineProperty(process, 'platform', {
+        value: 'win32',
+        writable: true,
+      })
+
+      const mockWindow = {
+        isDestroyed: vi.fn().mockReturnValue(false),
+        isMinimized: vi.fn().mockReturnValue(false),
+        restore: vi.fn(),
+        focus: vi.fn(),
+        loadFile: vi.fn().mockResolvedValue(undefined),
+        on: vi.fn(),
+        show: vi.fn(),
+        webContents: {
+          openDevTools: vi.fn(),
+        },
+      }
+
+      const mockBrowserWindowConstructor = vi
+        .fn()
+        .mockImplementation((config) => {
+          // Verify Windows-specific configuration
+          expect(config.frame).toBe(false) // Frame should be false for non-Darwin
+          expect(config.trafficLightPosition).toBeUndefined() // Should not have traffic light position
+          return mockWindow
+        })
+      mockBrowserWindowConstructor.getAllWindows = vi.fn().mockReturnValue([])
+
+      vi.doMock('electron', () => ({
+        BrowserWindow: mockBrowserWindowConstructor,
+        session: {
+          defaultSession: {
+            webRequest: {
+              onHeadersReceived: vi.fn(),
+            },
+          },
+        },
+        screen: {
+          getPrimaryDisplay: vi.fn(() => ({
+            workAreaSize: { width: 1920, height: 1080 },
+          })),
+        },
+      }))
+
+      vi.doMock('node:fs', async (importOriginal) => {
+        const actual = await importOriginal<typeof import('node:fs')>()
+        return {
+          ...actual,
+          existsSync: vi.fn().mockReturnValue(false),
+        }
+      })
+
+      vi.doMock('node:path', async (importOriginal) => {
+        const actual = await importOriginal<typeof import('node:path')>()
+        return {
+          ...actual,
+          join: vi
+            .fn()
+            .mockImplementation((...args: string[]) => args.join('/')),
+        }
+      })
+
+      vi.doMock('./utils', () => ({
+        isDev: false,
+        isPackaged: true,
+      }))
+
+      vi.doMock('./menu', () => ({
+        setupApplicationMenu: vi.fn(),
+      }))
+
+      vi.doMock('./ipc/storageHandlers', () => ({
+        registerTrustedSender: vi.fn(),
+      }))
+
+      vi.doMock('./terminalKeyboardHandler', () => ({
+        terminalKeyboardHandler: {
+          initialize: vi.fn(),
+        },
+      }))
+
+      const { restoreOrCreateWindow } = await import('./mainWindow')
+      await restoreOrCreateWindow()
+
+      expect(mockBrowserWindowConstructor).toHaveBeenCalled()
+    })
+
+    it('should handle screen dimensions for small screens', async () => {
+      vi.resetModules()
+
+      const mockWindow = {
+        isDestroyed: vi.fn().mockReturnValue(false),
+        isMinimized: vi.fn().mockReturnValue(false),
+        restore: vi.fn(),
+        focus: vi.fn(),
+        loadFile: vi.fn().mockResolvedValue(undefined),
+        on: vi.fn(),
+        show: vi.fn(),
+        webContents: {
+          openDevTools: vi.fn(),
+        },
+      }
+
+      // Test with small screen that causes 85% to be used
+      const mockBrowserWindowConstructor = vi
+        .fn()
+        .mockImplementation((config) => {
+          // For a 1000x600 screen, 85% would be 850x510
+          expect(config.width).toBe(850)
+          expect(config.height).toBe(510)
+          return mockWindow
+        })
+      mockBrowserWindowConstructor.getAllWindows = vi.fn().mockReturnValue([])
+
+      vi.doMock('electron', () => ({
+        BrowserWindow: mockBrowserWindowConstructor,
+        session: {
+          defaultSession: {
+            webRequest: {
+              onHeadersReceived: vi.fn(),
+            },
+          },
+        },
+        screen: {
+          getPrimaryDisplay: vi.fn(() => ({
+            workAreaSize: { width: 1000, height: 600 }, // Small screen
+          })),
+        },
+      }))
+
+      vi.doMock('node:fs', async (importOriginal) => {
+        const actual = await importOriginal<typeof import('node:fs')>()
+        return {
+          ...actual,
+          existsSync: vi.fn().mockReturnValue(false),
+        }
+      })
+
+      vi.doMock('node:path', async (importOriginal) => {
+        const actual = await importOriginal<typeof import('node:path')>()
+        return {
+          ...actual,
+          join: vi
+            .fn()
+            .mockImplementation((...args: string[]) => args.join('/')),
+        }
+      })
+
+      vi.doMock('./utils', () => ({
+        isDev: false,
+        isPackaged: true,
+      }))
+
+      vi.doMock('./menu', () => ({
+        setupApplicationMenu: vi.fn(),
+      }))
+
+      vi.doMock('./ipc/storageHandlers', () => ({
+        registerTrustedSender: vi.fn(),
+      }))
+
+      vi.doMock('./terminalKeyboardHandler', () => ({
+        terminalKeyboardHandler: {
+          initialize: vi.fn(),
+        },
+      }))
+
+      const { restoreOrCreateWindow } = await import('./mainWindow')
+      await restoreOrCreateWindow()
+
+      expect(mockBrowserWindowConstructor).toHaveBeenCalled()
+    })
+
+    it('should find and use existing icon file', async () => {
+      vi.resetModules()
+
+      const mockWindow = {
+        isDestroyed: vi.fn().mockReturnValue(false),
+        isMinimized: vi.fn().mockReturnValue(false),
+        restore: vi.fn(),
+        focus: vi.fn(),
+        loadFile: vi.fn().mockResolvedValue(undefined),
+        on: vi.fn(),
+        show: vi.fn(),
+        webContents: {
+          openDevTools: vi.fn(),
+        },
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Test requires flexible typing for validation testing
+      let capturedConfig: any
+      const mockBrowserWindowConstructor = vi
+        .fn()
+        .mockImplementation((config) => {
+          capturedConfig = config
+          return mockWindow
+        })
+      mockBrowserWindowConstructor.getAllWindows = vi.fn().mockReturnValue([])
+
+      vi.doMock('electron', () => ({
+        BrowserWindow: mockBrowserWindowConstructor,
+        session: {
+          defaultSession: {
+            webRequest: {
+              onHeadersReceived: vi.fn(),
+            },
+          },
+        },
+        screen: {
+          getPrimaryDisplay: vi.fn(() => ({
+            workAreaSize: { width: 1920, height: 1080 },
+          })),
+        },
+      }))
+
+      // The key is to return true for the first joined path
+      // Manually compute the normalized path (removing /src/.. pattern)
+      const firstIconPath = __dirname.replace(/\/src$/, '') + '/build/icon.png'
+
+      vi.doMock('node:fs', async (importOriginal) => {
+        const actual = await importOriginal<typeof import('node:fs')>()
+        return {
+          ...actual,
+          existsSync: vi.fn().mockImplementation((path: string) => {
+            // Return true for the first icon path
+            return path === firstIconPath
+          }),
+        }
+      })
+
+      vi.doMock('node:path', async (importOriginal) => {
+        const actual = await importOriginal<typeof import('node:path')>()
+        return {
+          ...actual,
+          join: vi.fn().mockImplementation((...args: string[]) => {
+            // Use the actual join to normalize paths properly
+            return actual.join(...args)
+          }),
+        }
+      })
+
+      vi.doMock('./utils', () => ({
+        isDev: false,
+        isPackaged: true,
+      }))
+
+      vi.doMock('./menu', () => ({
+        setupApplicationMenu: vi.fn(),
+      }))
+
+      vi.doMock('./ipc/storageHandlers', () => ({
+        registerTrustedSender: vi.fn(),
+      }))
+
+      vi.doMock('./terminalKeyboardHandler', () => ({
+        terminalKeyboardHandler: {
+          initialize: vi.fn(),
+        },
+      }))
+
+      const { restoreOrCreateWindow } = await import('./mainWindow')
+      await restoreOrCreateWindow()
+
+      expect(mockBrowserWindowConstructor).toHaveBeenCalled()
+      // Verify that the icon was included in the config
+      expect(capturedConfig).toBeDefined()
+      expect(capturedConfig.icon).toBe(firstIconPath)
     })
   })
 })

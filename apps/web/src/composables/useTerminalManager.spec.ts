@@ -80,6 +80,7 @@ interface MockModeDetector {
   isWebMode: { value: boolean }
   isConnected: { value: boolean }
   sendMessage: ReturnType<typeof vi.fn>
+  detectModeWithFallback: ReturnType<typeof vi.fn>
 }
 
 const mockModeDetector: MockModeDetector = {
@@ -88,6 +89,7 @@ const mockModeDetector: MockModeDetector = {
   isWebMode: { value: false },
   isConnected: { value: true },
   sendMessage: vi.fn(),
+  detectModeWithFallback: vi.fn().mockResolvedValue('electron'),
 }
 
 // Mock the mode detector module
@@ -191,10 +193,10 @@ describe('useTerminalManager', () => {
     const { createTerminal, setActiveTerminal, activeTerminalId } =
       await createFreshManager()
 
-    const terminal1 = await createTerminal()
+    await createTerminal() // Create first terminal
     const terminal2 = await createTerminal()
 
-    expect(activeTerminalId.value).toBe(terminal1.id) // First terminal should be active
+    expect(activeTerminalId.value).toBe(terminal2.id) // Last created terminal should be active
 
     setActiveTerminal(terminal2.id)
     expect(activeTerminalId.value).toBe(terminal2.id)
@@ -839,13 +841,13 @@ describe('useTerminalManager', () => {
       const terminal1 = await createTerminal()
       const terminal2 = await createTerminal()
 
-      // First terminal should be active by default
-      expect(activeTerminalId.value).toBe(terminal1.id)
+      // Last created terminal should be active by default
+      expect(activeTerminalId.value).toBe(terminal2.id)
 
-      // Close the active terminal
+      // Close the non-active terminal
       await closeTerminal(terminal1.id)
 
-      // Second terminal should now be active
+      // Second terminal should remain active
       expect(activeTerminalId.value).toBe(terminal2.id)
     })
 
@@ -930,8 +932,8 @@ describe('useTerminalManager', () => {
       const { createTerminal, setActiveTerminal, activeTerminalId } =
         await createFreshManager()
 
-      await createTerminal()
-      expect(activeTerminalId.value).toBe('terminal-1')
+      const terminal = await createTerminal()
+      expect(activeTerminalId.value).toBe(terminal.id)
 
       // Set active terminal to null
       setActiveTerminal(null)

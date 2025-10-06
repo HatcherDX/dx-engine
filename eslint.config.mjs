@@ -118,6 +118,26 @@ export default [
     },
   },
 
+  // Test files - Allow multiple components per file for test fixtures
+  {
+    files: ['**/*.spec.ts', '**/*.spec.js', '**/*.test.ts', '**/*.test.js'],
+    rules: {
+      'vue/one-component-per-file': 'off',
+    },
+  },
+
+  // Components with sanitized v-html - XSS safe
+  {
+    files: [
+      '**/TerminalEasterEgg.vue',
+      '**/OnboardingBranchCreation.vue',
+      '**/OnboardingTaskSelector.vue',
+    ],
+    rules: {
+      'vue/no-v-html': 'off',
+    },
+  },
+
   // Prettier config must be last
   prettierConfig,
 ]

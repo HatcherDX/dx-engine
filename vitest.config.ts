@@ -18,6 +18,13 @@ export default defineConfig({
       { find: '@/universal', replacement: resolve(__dirname, 'universal') },
       { find: '@', replacement: resolve(__dirname, 'src') },
       { find: '/assets', replacement: resolve(__dirname, 'apps/web/public') },
+      {
+        find: '@hatcherdx/terminal-system/browser',
+        replacement: resolve(
+          __dirname,
+          'universal/terminal-system/dist/browser.js'
+        ),
+      },
     ],
   },
   define: {
@@ -85,10 +92,13 @@ export default defineConfig({
         maxForks: 1, // Single fork to completely avoid race conditions
         minForks: 1,
 
+        // Memory limit to prevent heap out of memory errors
+        memoryLimit: '1024MB',
+
         // Process cleanup and communication timeouts
         execArgv: [
           '--no-warnings',
-          '--max-old-space-size=512',
+          '--max-old-space-size=1024',
           '--unhandled-rejections=warn', // Don't crash on unhandled rejections
         ],
 
@@ -187,7 +197,7 @@ export default defineConfig({
       // Include all source code (excluding WIP)
       include: [
         'apps/**/*.{js,ts,vue}',
-        'universal/**/*.{js,ts}',
+        'universal/**/*.{js,ts,mjs}',
         'tooling/**/*.{js,ts}',
         'scripts/**/*.{js,ts}',
         '!apps/docs/**',
@@ -216,6 +226,8 @@ export default defineConfig({
         '**/test-global-setup.ts',
         '**/test-global-teardown.ts',
         '**/*.integration.ts',
+        '**/demo/electron-preload.js',
+        '**/demo/electron-main*.js',
       ],
     },
   },

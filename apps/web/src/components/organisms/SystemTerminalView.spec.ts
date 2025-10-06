@@ -165,14 +165,15 @@ describe('SystemTerminalView', () => {
      * Tests component initialization lifecycle.
      *
      * @returns void
-     * Should call initializeTerminals on mount
+     * Should NOT call initializeTerminals on mount (handled by parent)
      *
      * @public
      */
-    it('should call initializeTerminals on mount', () => {
+    it('should NOT call initializeTerminals on mount (handled by parent)', () => {
       wrapper = mount(SystemTerminalView, getDefaultMountOptions())
 
-      expect(mockSystemTerminals.initializeTerminals).toHaveBeenCalledTimes(1)
+      // Initialization is now handled by the parent component (TerminalPanel)
+      expect(mockSystemTerminals.initializeTerminals).not.toHaveBeenCalled()
     })
   })
 
@@ -521,13 +522,11 @@ describe('SystemTerminalView', () => {
 
       wrapper = mount(SystemTerminalView, getDefaultMountOptions())
 
-      // Use a more direct approach to test the retry functionality
-      const vm = wrapper.vm as SystemTerminalViewInstance
-      if (vm.initializeTerminals) {
-        vm.initializeTerminals()
-      }
+      // Click the retry button to test retry functionality
+      const retryButton = wrapper.find('.error-retry')
+      await retryButton.trigger('click')
 
-      expect(mockSystemTerminals.initializeTerminals).toHaveBeenCalledTimes(2) // Once on mount, once on retry
+      expect(mockSystemTerminals.initializeTerminals).toHaveBeenCalledTimes(1) // Only on retry, not on mount
     })
 
     /**
@@ -678,7 +677,8 @@ describe('SystemTerminalView', () => {
       wrapper = mount(SystemTerminalView, getDefaultMountOptions())
 
       expect(wrapper.exists()).toBe(true)
-      expect(mockSystemTerminals.initializeTerminals).toHaveBeenCalled()
+      // Initialization is now handled by parent component
+      expect(mockSystemTerminals.initializeTerminals).not.toHaveBeenCalled()
     })
 
     /**
@@ -1561,12 +1561,10 @@ describe('SystemTerminalView', () => {
       const retryButton = wrapper.find('.error-retry')
       expect(retryButton.exists()).toBe(true)
 
-      // Clear previous calls
-      mockSystemTerminals.initializeTerminals.mockClear()
-
       // Click retry button
       await retryButton.trigger('click')
 
+      // Retry should call initializeTerminals
       expect(mockSystemTerminals.initializeTerminals).toHaveBeenCalledTimes(1)
     })
 
@@ -1862,7 +1860,8 @@ describe('SystemTerminalView', () => {
       wrapper = mount(SystemTerminalView, getDefaultMountOptions())
 
       expect(wrapper.exists()).toBe(true)
-      expect(mockSystemTerminals.initializeTerminals).toHaveBeenCalled()
+      // Initialization is now handled by parent component
+      expect(mockSystemTerminals.initializeTerminals).not.toHaveBeenCalled()
 
       // Test unmounting
       expect(() => wrapper.unmount()).not.toThrow()
@@ -1883,8 +1882,8 @@ describe('SystemTerminalView', () => {
       // Verify composable properties are accessible
       expect(wrapper.exists()).toBe(true)
 
-      // Test that composable methods are called during initialization
-      expect(mockSystemTerminals.initializeTerminals).toHaveBeenCalledTimes(1)
+      // Test that composable methods are NOT called during initialization (handled by parent)
+      expect(mockSystemTerminals.initializeTerminals).not.toHaveBeenCalled()
     })
   })
 
