@@ -34,6 +34,8 @@ vi.mock('electron', () => ({
     decryptString: vi.fn((buffer: Buffer) =>
       buffer.toString().replace('encrypted:', '')
     ),
+    // getSelectedStorageBackend is only available on Linux
+    getSelectedStorageBackend: vi.fn(() => 'gnome_libsecret'),
   },
   app: {
     getPath: vi.fn((name: string) => {

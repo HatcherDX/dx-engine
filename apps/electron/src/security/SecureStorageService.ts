@@ -345,7 +345,11 @@ export class SecureStorageService {
       console.error('[SecureStorage] ❌ Encryption not available')
 
       if (this.platform === 'linux') {
-        const backend = safeStorage.getSelectedStorageBackend()
+        // getSelectedStorageBackend is only available on Linux
+        const backend =
+          typeof safeStorage.getSelectedStorageBackend === 'function'
+            ? safeStorage.getSelectedStorageBackend()
+            : 'unknown'
         console.log(`[SecureStorage] 🐧 Linux Backend Detected: ${backend}`)
 
         if (backend === 'basic_text') {
@@ -404,7 +408,11 @@ export class SecureStorageService {
     } else {
       // Success logging with platform-specific details
       if (this.platform === 'linux') {
-        const backend = safeStorage.getSelectedStorageBackend()
+        // getSelectedStorageBackend is only available on Linux
+        const backend =
+          typeof safeStorage.getSelectedStorageBackend === 'function'
+            ? safeStorage.getSelectedStorageBackend()
+            : 'unknown'
         console.log(
           `[SecureStorage] ✅ Linux encryption validated with ${backend}`
         )
