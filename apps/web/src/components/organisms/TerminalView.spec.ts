@@ -38,23 +38,20 @@ const createMockTerminalInstance = () => ({
 // Store mock instance at module level
 let mockTerminalInstance = createMockTerminalInstance()
 
-// Mock the terminal-system dist files directly
-vi.mock(
-  '/Users/chrissmejia/Sites/dx-engine/universal/terminal-system/dist/browser.js',
-  () => ({
-    XTerminalFactory: {
-      createTerminal: vi.fn(() => Promise.resolve(mockTerminalInstance)),
-    },
-    XTermManager: vi.fn(),
-    TerminalBackpressureManager: vi.fn(),
-    TerminalAddonManager: vi.fn(),
-    AddonType: {},
-    WebGLTerminalRenderer: vi.fn(),
-    TerminalResizeManager: vi.fn(),
-    TerminalFocusManager: vi.fn(),
-    createHatcherTerminal: vi.fn(),
-  })
-)
+// Mock the terminal-system browser module
+vi.mock('@hatcherdx/terminal-system/browser', () => ({
+  XTerminalFactory: {
+    createTerminal: vi.fn(() => Promise.resolve(mockTerminalInstance)),
+  },
+  XTermManager: vi.fn(),
+  TerminalBackpressureManager: vi.fn(),
+  TerminalAddonManager: vi.fn(),
+  AddonType: {},
+  WebGLTerminalRenderer: vi.fn(),
+  TerminalResizeManager: vi.fn(),
+  TerminalFocusManager: vi.fn(),
+  createHatcherTerminal: vi.fn(),
+}))
 
 // Now import the component after mocks are set up
 import TerminalView from './TerminalView.vue'
@@ -153,7 +150,7 @@ describe('TerminalView', () => {
 
     it('should initialize terminal on mount', async () => {
       const { XTerminalFactory } = await vi.importMock(
-        '/Users/chrissmejia/Sites/dx-engine/universal/terminal-system/dist/browser.js'
+        '@hatcherdx/terminal-system/browser'
       )
 
       wrapper = mount(TerminalView, {
@@ -419,7 +416,7 @@ describe('TerminalView', () => {
 
     it('should handle terminal creation failure', async () => {
       const { XTerminalFactory } = await vi.importMock(
-        '/Users/chrissmejia/Sites/dx-engine/universal/terminal-system/dist/browser.js'
+        '@hatcherdx/terminal-system/browser'
       )
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mock function type assertion required for test setup
       ;(XTerminalFactory.createTerminal as any).mockRejectedValueOnce(
