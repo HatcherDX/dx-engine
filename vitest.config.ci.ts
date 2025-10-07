@@ -34,6 +34,20 @@ export default defineConfig({
       { find: '@/universal', replacement: resolve(__dirname, 'universal') },
       { find: '@', replacement: resolve(__dirname, 'src') },
       { find: '/assets', replacement: resolve(__dirname, 'apps/web/public') },
+      {
+        find: '@hatcherdx/terminal-system/browser',
+        replacement: resolve(
+          __dirname,
+          'universal/terminal-system/src/browser.ts'
+        ),
+      },
+      {
+        find: '@hatcherdx/terminal-system',
+        replacement: resolve(
+          __dirname,
+          'universal/terminal-system/src/index.ts'
+        ),
+      },
     ],
   },
   define: {
@@ -195,6 +209,14 @@ export default defineConfig({
       '/assets': resolve(__dirname, 'apps/web/public'),
       '/@/': resolve(__dirname, 'apps/electron/src/'),
       '/logo-dark.svg': resolve(__dirname, 'apps/web/public/logo-dark.svg'),
+      '@hatcherdx/terminal-system/browser': resolve(
+        __dirname,
+        'universal/terminal-system/src/browser.ts'
+      ),
+      '@hatcherdx/terminal-system': resolve(
+        __dirname,
+        'universal/terminal-system/src/index.ts'
+      ),
     },
 
     // Istanbul coverage configuration - automatic
