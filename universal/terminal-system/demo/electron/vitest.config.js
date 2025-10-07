@@ -4,9 +4,6 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    // Skip all tests when running from root workspace
-    // Demo tests require built package which isn't available in CI
-    include: [],
     coverage: {
       provider: 'istanbul',
       reporter: ['text', 'json', 'html', 'lcov'],
