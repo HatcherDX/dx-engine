@@ -1663,6 +1663,7 @@ describe('Main Window Management', () => {
     })
 
     it('should find and use existing icon file', async () => {
+      // Reset module cache to ensure fresh imports
       vi.resetModules()
 
       const mockWindow = {
@@ -1688,6 +1689,7 @@ describe('Main Window Management', () => {
         })
       mockBrowserWindowConstructor.getAllWindows = vi.fn().mockReturnValue([])
 
+      // Setup all mocks using vi.doMock (not hoisted) for dynamic imports
       vi.doMock('electron', () => ({
         BrowserWindow: mockBrowserWindowConstructor,
         session: {
@@ -1704,21 +1706,15 @@ describe('Main Window Management', () => {
         },
       }))
 
-      // Mock fs.existsSync to return true for icon paths
-      // This handles path normalization differences across environments
+      // Mock fs.existsSync to return true for FIRST icon path only
       vi.doMock('node:fs', async (importOriginal) => {
         const actual = await importOriginal<typeof import('node:fs')>()
-        let iconCallCount = 0
         return {
           ...actual,
-          existsSync: vi.fn().mockImplementation((path: string) => {
-            // Return true for first path containing build/icon
-            // This simulates finding the first icon in the array
-            if (typeof path === 'string' && path.includes('build/icon')) {
-              iconCallCount++
-              return iconCallCount === 1
-            }
-            return false
+          existsSync: vi.fn((path: string) => {
+            // Return true for first build/icon path found
+            // Using includes to handle path normalization across platforms
+            return typeof path === 'string' && path.includes('build/icon.png')
           }),
         }
       })
@@ -1727,10 +1723,7 @@ describe('Main Window Management', () => {
         const actual = await importOriginal<typeof import('node:path')>()
         return {
           ...actual,
-          join: vi.fn().mockImplementation((...args: string[]) => {
-            // Use the actual join to normalize paths properly
-            return actual.join(...args)
-          }),
+          join: (...args: string[]) => args.join('/'),
         }
       })
 
@@ -1753,11 +1746,11 @@ describe('Main Window Management', () => {
         },
       }))
 
+      // Dynamic import AFTER all mocks are set up
       const { restoreOrCreateWindow } = await import('./mainWindow')
       await restoreOrCreateWindow()
 
       expect(mockBrowserWindowConstructor).toHaveBeenCalled()
-      // Verify that the icon was included in the config
       expect(capturedConfig).toBeDefined()
       expect(capturedConfig.icon).toBeDefined()
       expect(capturedConfig.icon).toContain('build/icon')

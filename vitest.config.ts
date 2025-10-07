@@ -22,7 +22,14 @@ export default defineConfig({
         find: '@hatcherdx/terminal-system/browser',
         replacement: resolve(
           __dirname,
-          'universal/terminal-system/dist/browser.js'
+          'universal/terminal-system/src/browser.ts'
+        ),
+      },
+      {
+        find: '@hatcherdx/terminal-system',
+        replacement: resolve(
+          __dirname,
+          'universal/terminal-system/src/index.ts'
         ),
       },
     ],
@@ -171,11 +178,9 @@ export default defineConfig({
       '**/build/**',
       '**/docs/**',
       'apps/docs/**',
-      // Explicitly exclude demo files
-      '**/demo/**',
     ],
 
-    // Test alias configuration
+    // Test alias configuration (must match resolve.alias above)
     alias: {
       '@/apps/web': resolve(__dirname, 'apps/web/src'),
       '@/apps/electron': resolve(__dirname, 'apps/electron/src'),
@@ -185,6 +190,14 @@ export default defineConfig({
       '/assets': resolve(__dirname, 'apps/web/public'),
       '/@/': resolve(__dirname, 'apps/electron/src/'),
       '/logo-dark.svg': resolve(__dirname, 'apps/web/public/logo-dark.svg'),
+      '@hatcherdx/terminal-system/browser': resolve(
+        __dirname,
+        'universal/terminal-system/src/browser.ts'
+      ),
+      '@hatcherdx/terminal-system': resolve(
+        __dirname,
+        'universal/terminal-system/src/index.ts'
+      ),
     },
 
     // Istanbul coverage configuration - automatic

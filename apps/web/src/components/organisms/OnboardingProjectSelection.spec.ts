@@ -1008,7 +1008,8 @@ describe('OnboardingProjectSelection.vue', () => {
     })
 
     it('should format old dates with month/day', async () => {
-      const oldDate = new Date('2023-06-15')
+      // Use local date constructor to avoid timezone issues (month is 0-indexed)
+      const oldDate = new Date(2023, 5, 15) // June 15, 2023 in local timezone
       mockGetRecentProjects.mockResolvedValue([
         {
           id: '1',

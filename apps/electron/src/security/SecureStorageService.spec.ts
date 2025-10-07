@@ -165,21 +165,38 @@ describe('SecureStorageService', () => {
      * Test initialization error handling
      */
     it('should handle initialization errors when encryption is not available', async () => {
+      // Reset modules to ensure clean state
+      vi.resetModules()
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Test requires flexible typing for Electron mock validation
       const electron = (await vi.importMock('electron')) as any
       const { safeStorage, app, dialog } = electron
-      safeStorage.isEncryptionAvailable.mockReturnValue(false)
 
-      // Mock app.quit and dialog to prevent actual quit/dialog
+      // Configure mocks BEFORE creating service instance
+      safeStorage.isEncryptionAvailable.mockReturnValue(false)
       app.quit.mockImplementation(() => {})
       dialog.showErrorBox.mockImplementation(() => {})
 
-      // Create a new service instance with the updated mock
-      const testService = new SecureStorageService()
+      // For Linux, mock backend as basic_text to trigger error path
+      if (process.platform === 'linux') {
+        safeStorage.getSelectedStorageBackend.mockReturnValue('basic_text')
+      }
 
-      await expect(testService.initialize()).rejects.toThrow(
-        `Encryption not available on ${process.platform}`
+      // Import SecureStorageService dynamically AFTER mocks are configured
+      const { SecureStorageService: TestSecureStorageService } = await import(
+        './SecureStorageService'
       )
+
+      // Create service instance with mocked electron APIs
+      const testService = new TestSecureStorageService()
+
+      // Expected error message depends on platform
+      const expectedError =
+        process.platform === 'linux'
+          ? 'Linux secure keyring not available'
+          : `Encryption not available on ${process.platform}`
+
+      await expect(testService.initialize()).rejects.toThrow(expectedError)
     })
   })
 
