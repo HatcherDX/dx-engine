@@ -4,11 +4,12 @@ import { app, BrowserWindow, ipcMain } from 'electron'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
 // Import all modules from main export (Electron app can use Node.js APIs)
+// Direct import from source - this is a demo so we reference source directly
 import {
   EnhancedTerminalFactory,
   BackendDetector,
   IPCBridge,
-} from '@hatcherdx/terminal-system'
+} from '../../src/index.ts'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)

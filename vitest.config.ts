@@ -181,7 +181,6 @@ export default defineConfig({
       '**/build/**',
       '**/docs/**',
       'apps/docs/**',
-      '**/demo/**', // Exclude demo files - they have their own vitest.config.js
     ],
 
     // Test alias configuration (must match resolve.alias above)

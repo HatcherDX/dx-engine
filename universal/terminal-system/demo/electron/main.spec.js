@@ -116,8 +116,8 @@ vi.mock('electron', () => ({
   ipcMain: mocks.mockIpcMain,
 }))
 
-// Mock terminal system
-vi.mock('@hatcherdx/terminal-system', () => ({
+// Mock terminal system - direct import from source
+vi.mock('../../src/index.ts', () => ({
   BackendDetector: vi.fn(() => mocks.mockBackendDetector),
   EnhancedTerminalFactory: vi.fn(() => mocks.mockTerminalFactory),
   IPCBridge: mocks.mockIPCBridge,
