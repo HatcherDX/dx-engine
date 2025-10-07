@@ -1,5 +1,5 @@
 import { config, RouterLinkStub } from '@vue/test-utils'
-import { vi } from 'vitest'
+import { afterEach, vi } from 'vitest'
 
 // Mock CSS imports - must be at top level
 vi.mock('xterm/css/xterm.css', () => ({
