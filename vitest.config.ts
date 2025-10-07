@@ -171,6 +171,7 @@ export default defineConfig({
       '**/build/**',
       '**/docs/**',
       'apps/docs/**',
+      '**/demo/**',
     ],
 
     // Test alias configuration
