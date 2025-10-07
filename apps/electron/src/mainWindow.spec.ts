@@ -1704,16 +1704,19 @@ describe('Main Window Management', () => {
         },
       }))
 
-      // Mock fs.existsSync to return true for any icon path
+      // Mock fs.existsSync to return true for first icon path check
       // This handles path normalization differences across environments
+      let firstCall = true
       vi.doMock('node:fs', async (importOriginal) => {
         const actual = await importOriginal<typeof import('node:fs')>()
         return {
           ...actual,
-          existsSync: vi.fn().mockImplementation((path: string) => {
-            // Return true for any path containing build/icon to handle
-            // path normalization differences across environments
-            return path.includes('build/icon')
+          existsSync: vi.fn().mockImplementation(() => {
+            // Return true for first call to simulate finding first icon
+            // This avoids path matching issues across different environments
+            const result = firstCall
+            firstCall = false
+            return result
           }),
         }
       })

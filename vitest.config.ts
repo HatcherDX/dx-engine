@@ -157,11 +157,10 @@ export default defineConfig({
       inline: [],
     },
 
-    // Include all tests from monorepo (excluding WIP)
+    // Include all tests from monorepo (excluding WIP and demo files)
     include: [
       'apps/**/*.{test,spec}.{js,ts}',
       'universal/**/*.{test,spec}.{js,ts}',
-      '!universal/terminal-system/demo/**',
       'tooling/**/*.{test,spec}.{js,ts}',
       'scripts/**/*.{test,spec}.{js,ts}',
     ],
@@ -172,8 +171,13 @@ export default defineConfig({
       '**/build/**',
       '**/docs/**',
       'apps/docs/**',
+      // Explicitly exclude demo files
       '**/demo/**',
       'universal/terminal-system/demo/**',
+      'universal/terminal-system/demo/**/*.spec.js',
+      'universal/terminal-system/demo/**/*.spec.ts',
+      'universal/terminal-system/demo/**/*.test.js',
+      'universal/terminal-system/demo/**/*.test.ts',
     ],
 
     // Test alias configuration
