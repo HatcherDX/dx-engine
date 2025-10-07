@@ -1026,7 +1026,7 @@ describe('OnboardingProjectSelection.vue', () => {
 
       const dateText = wrapper.find('.project-date').text()
       expect(dateText).toContain('Jun')
-      expect(dateText).toContain('14') // Adjusted to match actual date formatting
+      expect(dateText).toContain('15') // Date is June 15th
     })
   })
 

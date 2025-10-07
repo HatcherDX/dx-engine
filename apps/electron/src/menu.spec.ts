@@ -1303,6 +1303,12 @@ describe('Menu Module', () => {
     it('should test openSettings function with valid window', async () => {
       vi.resetModules()
 
+      // Set platform BEFORE importing and calling setupApplicationMenu
+      Object.defineProperty(process, 'platform', {
+        value: 'darwin',
+        writable: true,
+      })
+
       const mockWindow = {
         webContents: { send: vi.fn() },
         isDestroyed: vi.fn(() => false),
@@ -1315,11 +1321,6 @@ describe('Menu Module', () => {
       const menuTemplate = mockMenu.buildFromTemplate.mock.calls[0][0]
 
       // Find Settings menu item (macOS)
-      Object.defineProperty(process, 'platform', {
-        value: 'darwin',
-        writable: true,
-      })
-
       const appMenu = menuTemplate.find(
         (item: Record<string, unknown>) => item.label === 'Hatcher'
       )
@@ -1338,6 +1339,12 @@ describe('Menu Module', () => {
     it('should test openSettings function with destroyed window', async () => {
       vi.resetModules()
 
+      // Set platform BEFORE importing and calling setupApplicationMenu
+      Object.defineProperty(process, 'platform', {
+        value: 'darwin',
+        writable: true,
+      })
+
       const mockWindow = {
         webContents: { send: vi.fn() },
         isDestroyed: vi.fn(() => true), // Window is destroyed
@@ -1348,11 +1355,6 @@ describe('Menu Module', () => {
       setupApplicationMenu(mockWindow as any)
 
       const menuTemplate = mockMenu.buildFromTemplate.mock.calls[0][0]
-
-      Object.defineProperty(process, 'platform', {
-        value: 'darwin',
-        writable: true,
-      })
 
       const appMenu = menuTemplate.find(
         (item: Record<string, unknown>) => item.label === 'Hatcher'

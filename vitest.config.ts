@@ -172,6 +172,7 @@ export default defineConfig({
       '**/docs/**',
       'apps/docs/**',
       '**/demo/**',
+      'universal/terminal-system/demo/**/*.{test,spec}.{js,ts}',
     ],
 
     // Test alias configuration
