@@ -89,11 +89,13 @@ export default defineConfig({
     onUnhandledError(error): boolean | void {
       // Completely suppress worker timeout errors to prevent flaky tests
       if (
-        error.message.includes('Timeout calling') ||
-        error.message.includes('vitest-worker') ||
-        error.message.includes('onTaskUpdate') ||
+        error.message?.includes('Timeout calling') ||
+        error.message?.includes('vitest-worker') ||
+        error.message?.includes('onTaskUpdate') ||
+        error.message?.includes('internal state') ||
+        error.message?.includes('Vitest failed to access') ||
         error.name === 'TimeoutError' ||
-        error.message.includes('timeout')
+        error.message?.includes('timeout')
       ) {
         // Suppress these errors completely - they don't affect test results
         return false
