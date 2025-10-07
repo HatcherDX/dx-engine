@@ -144,7 +144,7 @@ export default defineConfig({
     server: {
       deps: {
         external: [/node_modules/],
-        inline: [],
+        inline: ['@hatcherdx/terminal-system'],
       },
       // Debug worker communication issues
       debug: {
@@ -159,9 +159,12 @@ export default defineConfig({
         ssr: {
           enabled: true,
         },
+        web: {
+          include: ['@hatcherdx/terminal-system'],
+        },
       },
       external: [/node_modules/],
-      inline: [],
+      inline: ['@hatcherdx/terminal-system'],
     },
 
     // Include all tests from monorepo (excluding WIP and demo files)

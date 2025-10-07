@@ -11,8 +11,8 @@
  */
 
 import vue from '@vitejs/plugin-vue'
-import { defineConfig } from 'vitest/config'
 import { resolve } from 'path'
+import { defineConfig } from 'vitest/config'
 
 // Force CI environment for proper mocking
 process.env.CI = 'true'
@@ -160,7 +160,7 @@ export default defineConfig({
     server: {
       deps: {
         external: [/node_modules/],
-        inline: [],
+        inline: ['@hatcherdx/terminal-system'],
       },
       // Debug worker communication issues
       debug: {
@@ -175,9 +175,13 @@ export default defineConfig({
         ssr: {
           enabled: true,
         },
+        web: {
+          // Include terminal-system package for proper resolution
+          include: ['@hatcherdx/terminal-system'],
+        },
       },
       external: [/node_modules/],
-      inline: [],
+      inline: ['@hatcherdx/terminal-system'],
     },
 
     // Include all tests from monorepo but exclude SQLite/integration tests in CI
