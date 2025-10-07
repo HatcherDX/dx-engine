@@ -161,6 +161,7 @@ export default defineConfig({
     include: [
       'apps/**/*.{test,spec}.{js,ts}',
       'universal/**/*.{test,spec}.{js,ts}',
+      '!universal/terminal-system/demo/**',
       'tooling/**/*.{test,spec}.{js,ts}',
       'scripts/**/*.{test,spec}.{js,ts}',
     ],
@@ -172,7 +173,7 @@ export default defineConfig({
       '**/docs/**',
       'apps/docs/**',
       '**/demo/**',
-      'universal/terminal-system/demo/**/*.{test,spec}.{js,ts}',
+      'universal/terminal-system/demo/**',
     ],
 
     // Test alias configuration
