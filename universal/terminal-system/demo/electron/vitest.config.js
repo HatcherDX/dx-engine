@@ -21,6 +21,10 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    // Context7 pattern: test.alias for module resolution in test context
+    alias: {
+      '@hatcherdx/terminal-system': resolve(__dirname, '../../src/index.ts'),
+    },
     coverage: {
       provider: 'istanbul',
       reporter: ['text', 'json', 'html', 'lcov'],
