@@ -1,6 +1,6 @@
 import vue from '@vitejs/plugin-vue'
-import { defineConfig } from 'vitest/config'
 import { resolve } from 'path'
+import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
   plugins: [vue()],
@@ -157,7 +157,7 @@ export default defineConfig({
       inline: [],
     },
 
-    // Include all tests from monorepo (excluding WIP)
+    // Include all tests from monorepo (excluding WIP and demo files)
     include: [
       'apps/**/*.{test,spec}.{js,ts}',
       'universal/**/*.{test,spec}.{js,ts}',
@@ -171,6 +171,7 @@ export default defineConfig({
       '**/build/**',
       '**/docs/**',
       'apps/docs/**',
+      // Explicitly exclude demo files
       '**/demo/**',
     ],
 
