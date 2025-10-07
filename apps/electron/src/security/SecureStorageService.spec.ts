@@ -170,7 +170,7 @@ describe('SecureStorageService', () => {
       safeStorage.isEncryptionAvailable.mockReturnValue(false)
 
       await expect(service.initialize()).rejects.toThrow(
-        'Encryption not available on darwin'
+        `Encryption not available on ${process.platform}`
       )
     })
   })
@@ -189,7 +189,7 @@ describe('SecureStorageService', () => {
 
       expect(securityInfo).toHaveProperty('platform')
       expect(securityInfo).toHaveProperty('encryptionAvailable')
-      expect(securityInfo.platform).toBe('darwin')
+      expect(securityInfo.platform).toBe(process.platform)
       expect(securityInfo.encryptionAvailable).toBe(true)
     })
   })

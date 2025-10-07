@@ -1374,15 +1374,16 @@ describe('Menu Module', () => {
     it('should test openSettings function with no window reference', async () => {
       vi.resetModules()
 
-      const { setupApplicationMenu } = await import('./menu')
-      setupApplicationMenu() // No window provided
-
-      const menuTemplate = mockMenu.buildFromTemplate.mock.calls[0][0]
-
+      // Set platform BEFORE importing and calling setupApplicationMenu
       Object.defineProperty(process, 'platform', {
         value: 'darwin',
         writable: true,
       })
+
+      const { setupApplicationMenu } = await import('./menu')
+      setupApplicationMenu() // No window provided
+
+      const menuTemplate = mockMenu.buildFromTemplate.mock.calls[0][0]
 
       const appMenu = menuTemplate.find(
         (item: Record<string, unknown>) => item.label === 'Hatcher'
@@ -1402,6 +1403,12 @@ describe('Menu Module', () => {
     it('should test closeTask function with valid window', async () => {
       vi.resetModules()
 
+      // Set platform BEFORE importing and calling setupApplicationMenu
+      Object.defineProperty(process, 'platform', {
+        value: 'darwin',
+        writable: true,
+      })
+
       const mockWindow = {
         webContents: { send: vi.fn() },
         isDestroyed: vi.fn(() => false),
@@ -1412,11 +1419,6 @@ describe('Menu Module', () => {
       setupApplicationMenu(mockWindow as any)
 
       const menuTemplate = mockMenu.buildFromTemplate.mock.calls[0][0]
-
-      Object.defineProperty(process, 'platform', {
-        value: 'darwin',
-        writable: true,
-      })
 
       const appMenu = menuTemplate.find(
         (item: Record<string, unknown>) => item.label === 'Hatcher'
@@ -1436,6 +1438,12 @@ describe('Menu Module', () => {
     it('should test closeTask function with fallback to focused window', async () => {
       vi.resetModules()
 
+      // Set platform BEFORE importing and calling setupApplicationMenu
+      Object.defineProperty(process, 'platform', {
+        value: 'darwin',
+        writable: true,
+      })
+
       const mockFocusedWindow = {
         webContents: { send: vi.fn() },
         isDestroyed: vi.fn(() => false),
@@ -1447,11 +1455,6 @@ describe('Menu Module', () => {
       setupApplicationMenu() // No window provided, should use focused window
 
       const menuTemplate = mockMenu.buildFromTemplate.mock.calls[0][0]
-
-      Object.defineProperty(process, 'platform', {
-        value: 'darwin',
-        writable: true,
-      })
 
       const appMenu = menuTemplate.find(
         (item: Record<string, unknown>) => item.label === 'Hatcher'
@@ -1473,17 +1476,18 @@ describe('Menu Module', () => {
     it('should test closeTask function with no valid window', async () => {
       vi.resetModules()
 
+      // Set platform BEFORE importing and calling setupApplicationMenu
+      Object.defineProperty(process, 'platform', {
+        value: 'darwin',
+        writable: true,
+      })
+
       mockBrowserWindow.getFocusedWindow.mockReturnValue(null)
 
       const { setupApplicationMenu } = await import('./menu')
       setupApplicationMenu() // No window provided
 
       const menuTemplate = mockMenu.buildFromTemplate.mock.calls[0][0]
-
-      Object.defineProperty(process, 'platform', {
-        value: 'darwin',
-        writable: true,
-      })
 
       const appMenu = menuTemplate.find(
         (item: Record<string, unknown>) => item.label === 'Hatcher'

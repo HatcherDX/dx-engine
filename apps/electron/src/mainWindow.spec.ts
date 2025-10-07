@@ -1711,12 +1711,9 @@ describe('Main Window Management', () => {
         return {
           ...actual,
           existsSync: vi.fn().mockImplementation((path: string) => {
-            // Return true for any path that ends with apps/electron/build/icon.png
-            // This handles path normalization differences across environments
-            return (
-              path.includes('apps/electron/build/icon.png') ||
-              path.includes('apps/electron/build/icon.icns')
-            )
+            // Return true for any path containing build/icon to handle
+            // path normalization differences across environments
+            return path.includes('build/icon')
           }),
         }
       })
