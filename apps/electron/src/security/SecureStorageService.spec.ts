@@ -165,11 +165,19 @@ describe('SecureStorageService', () => {
      * Test initialization error handling
      */
     it('should handle initialization errors when encryption is not available', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Test requires flexible typing for validation testing
-      const { safeStorage } = (await vi.importMock('electron')) as any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Test requires flexible typing for Electron mock validation
+      const electron = (await vi.importMock('electron')) as any
+      const { safeStorage, app, dialog } = electron
       safeStorage.isEncryptionAvailable.mockReturnValue(false)
 
-      await expect(service.initialize()).rejects.toThrow(
+      // Mock app.quit and dialog to prevent actual quit/dialog
+      app.quit.mockImplementation(() => {})
+      dialog.showErrorBox.mockImplementation(() => {})
+
+      // Create a new service instance with the updated mock
+      const testService = new SecureStorageService()
+
+      await expect(testService.initialize()).rejects.toThrow(
         `Encryption not available on ${process.platform}`
       )
     })
