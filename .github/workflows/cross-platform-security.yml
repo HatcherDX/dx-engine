@@ -19,8 +19,8 @@ on:
   workflow_dispatch:
 
 env:
-  NODE_VERSION: '18'
-  PNPM_VERSION: '8'
+  NODE_VERSION: '22.14.0'
+  PNPM_VERSION: '10.6.1'
 
 jobs:
   # =============================================================================
@@ -140,9 +140,9 @@ jobs:
 
       - name: Install Node.js
         run: |
-          # Install Node.js 18.x
-          curl -fsSL https://deb.nodesource.com/setup_18.x | bash - || \
-          curl -fsSL https://rpm.nodesource.com/setup_18.x | bash - || \
+          # Install Node.js 22.x
+          curl -fsSL https://deb.nodesource.com/setup_22.x | bash - || \
+          curl -fsSL https://rpm.nodesource.com/setup_22.x | bash - || \
           (apk add --no-cache nodejs npm && exit 0)
 
           if command -v apt-get >/dev/null 2>&1; then
