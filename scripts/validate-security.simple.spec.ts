@@ -100,8 +100,9 @@ describe('validate-security.ts simple coverage', () => {
     expect(content).toContain('async function validateEncryptionRoundTrip()')
     expect(content).toContain('function printSummary(')
 
-    // Check for require.main check
-    expect(content).toContain('if (require.main === module)')
+    // Check for ES module main check
+    expect(content).toContain('const isMainModule =')
+    expect(content).toContain('import.meta.url')
 
     // Check for all exports
     expect(content).toContain('export {')

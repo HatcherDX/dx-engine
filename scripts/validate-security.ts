@@ -485,7 +485,12 @@ function printSummary(result: SecurityValidationResult): void {
 }
 
 // Run the validation if this script is executed directly
-if (require.main === module) {
+// ES module detection: check if import.meta.url matches the file being run
+const isMainModule =
+  import.meta.url === `file://${process.argv[1]}` ||
+  import.meta.url.endsWith(process.argv[1])
+
+if (isMainModule) {
   main().catch((error) => {
     console.error('Validation script error:', error)
     process.exit(1)
