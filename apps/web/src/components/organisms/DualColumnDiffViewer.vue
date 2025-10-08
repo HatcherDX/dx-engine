@@ -1,6 +1,6 @@
 <!-- eslint-disable vue/no-v-html -->
 <template>
-  <div class="webgl-diff-viewer">
+  <div class="dual-column-diff-viewer">
     <!-- Show header only when there's content -->
     <template v-if="isLoading || diffData || currentFile">
       <div class="diff-header">
@@ -352,7 +352,7 @@ interface PartialExpansionState {
 }
 
 /**
- * Properties for WebGL diff viewer component.
+ * Properties for dual-column diff viewer component (DOM-based).
  *
  * @public
  */
@@ -455,14 +455,14 @@ const highlightedRows = ref<Map<number, { old?: string; new?: string }>>(
 const initializeSyntaxHighlighter = async (): Promise<void> => {
   if (!props.currentFile) {
     console.log(
-      '[WebGL Diff Viewer] No current file, skipping highlighter initialization'
+      '[Diff Viewer] No current file, skipping highlighter initialization'
     )
     return
   }
 
   try {
     console.log(
-      '[WebGL Diff Viewer] Initializing syntax highlighter for:',
+      '[Diff Viewer] Initializing syntax highlighter for:',
       props.currentFile
     )
 
@@ -471,14 +471,14 @@ const initializeSyntaxHighlighter = async (): Promise<void> => {
     const detectedLang = newHighlighter.getLanguage()
 
     console.log(
-      `[WebGL Diff Viewer] Detected language: ${detectedLang} for file: ${props.currentFile}`
+      `[Diff Viewer] Detected language: ${detectedLang} for file: ${props.currentFile}`
     )
 
     // Test the highlighter with a simple example
     // const testResult = newHighlighter.highlightLine('const test = "hello";')
-    // console.log('[WebGL Diff Viewer] Test highlight result:', testResult)
+    // console.log('[Diff Viewer] Test highlight result:', testResult)
     // console.log(
-    //   '[WebGL Diff Viewer] Test has inline styles:',
+    //   '[Diff Viewer] Test has inline styles:',
     //   testResult.includes('style=')
     // )
 
@@ -487,12 +487,10 @@ const initializeSyntaxHighlighter = async (): Promise<void> => {
 
     // Clear cache when file changes
     highlightCache.value.clear()
-    console.log(
-      '[WebGL Diff Viewer] ✅ Syntax highlighter initialized successfully'
-    )
+    console.log('[Diff Viewer] ✅ Syntax highlighter initialized successfully')
   } catch (error) {
     console.warn(
-      '[WebGL Diff Viewer] Failed to initialize syntax highlighter:',
+      '[Diff Viewer] Failed to initialize syntax highlighter:',
       error
     )
     diffHighlighter.value = null
@@ -545,14 +543,14 @@ const highlightContent = (content: string): string => {
     const highlighted = diffHighlighter.value.highlightLine(content)
     if (highlighted && highlighted.includes('style=')) {
       // console.log(
-      //   '[WebGL Diff Viewer] ✅ Content highlighted with inline styles for:',
+      //   '[Diff Viewer] ✅ Content highlighted with inline styles for:',
       //   content.substring(0, 30)
       // )
       highlightCache.value.set(cacheKey, highlighted)
       return highlighted
     } else {
       console.log(
-        '[WebGL Diff Viewer] ⚠️ No highlighting applied for:',
+        '[Diff Viewer] ⚠️ No highlighting applied for:',
         content.substring(0, 30)
       )
       const escaped = escapeHtml(content)
@@ -560,7 +558,7 @@ const highlightContent = (content: string): string => {
       return escaped
     }
   } catch (error) {
-    console.warn('[WebGL Diff Viewer] Failed to highlight content:', error)
+    console.warn('[Diff Viewer] Failed to highlight content:', error)
     return escapeHtml(content)
   }
 }
@@ -586,24 +584,20 @@ const escapeHtml = (text: string): string => {
  */
 const highlightVisibleRows = async () => {
   if (!diffHighlighter.value) {
-    console.log(
-      '[WebGL Diff Viewer] No highlighter available, skipping highlighting'
-    )
+    console.log('[Diff Viewer] No highlighter available, skipping highlighting')
     return
   }
 
   // Guard check for alignedDiffRows initialization
   if (!alignedDiffRows.value || alignedDiffRows.value.length === 0) {
     console.log(
-      '[WebGL Diff Viewer] No aligned diff rows available, skipping highlighting'
+      '[Diff Viewer] No aligned diff rows available, skipping highlighting'
     )
     return
   }
 
   const rows = alignedDiffRows.value
-  console.log(
-    `[WebGL Diff Viewer] Starting to highlight ${rows.length} rows...`
-  )
+  console.log(`[Diff Viewer] Starting to highlight ${rows.length} rows...`)
 
   const newHighlightedRows = new Map<number, { old?: string; new?: string }>()
   let highlightedCount = 0
@@ -626,7 +620,7 @@ const highlightVisibleRows = async () => {
           ) {
             highlightedCount++
             // console.log(
-            //   `[WebGL Diff Viewer] ✅ Old side highlighted for row ${row.rowIndex}:`,
+            //   `[Diff Viewer] ✅ Old side highlighted for row ${row.rowIndex}:`,
             //   originalContent.substring(0, 30)
             // )
           }
@@ -641,7 +635,7 @@ const highlightVisibleRows = async () => {
           ) {
             highlightedCount++
             // console.log(
-            //   `[WebGL Diff Viewer] ✅ New side highlighted for row ${row.rowIndex}:`,
+            //   `[Diff Viewer] ✅ New side highlighted for row ${row.rowIndex}:`,
             //   originalContent.substring(0, 30)
             // )
           }
@@ -661,7 +655,7 @@ const highlightVisibleRows = async () => {
 
   highlightedRows.value = newHighlightedRows
   console.log(
-    `[WebGL Diff Viewer] ✅ Completed highlighting: ${highlightedCount} highlighted lines out of ${rows.length} total rows`
+    `[Diff Viewer] ✅ Completed highlighting: ${highlightedCount} highlighted lines out of ${rows.length} total rows`
   )
 
   // Force a reactivity update
@@ -688,7 +682,7 @@ const getHighlightedContent = (
 
   if (highlightedContent && highlightedContent.includes('style=')) {
     console.log(
-      `[WebGL Diff Viewer] ✅ Serving highlighted ${side} content for row ${rowIndex}`
+      `[Diff Viewer] ✅ Serving highlighted ${side} content for row ${rowIndex}`
     )
     return highlightedContent
   }
@@ -698,7 +692,7 @@ const getHighlightedContent = (
     const onDemandHighlight = highlightContent(originalContent)
     if (onDemandHighlight.includes('style=')) {
       // console.log(
-      //   `[WebGL Diff Viewer] ✅ On-demand highlight for ${side} row ${rowIndex}`
+      //   `[Diff Viewer] ✅ On-demand highlight for ${side} row ${rowIndex}`
       // )
       return onDemandHighlight
     }
@@ -728,13 +722,13 @@ watch(
   [() => props.diffData, diffHighlighter, expansionTrigger],
   async () => {
     console.log(
-      '[WebGL Diff Viewer] Diff data or highlighter changed, re-highlighting...'
+      '[Diff Viewer] Diff data or highlighter changed, re-highlighting...'
     )
     if (props.diffData && diffHighlighter.value) {
       await highlightVisibleRows()
     } else {
       console.log(
-        '[WebGL Diff Viewer] Skipping highlighting - missing diffData or highlighter'
+        '[Diff Viewer] Skipping highlighting - missing diffData or highlighter'
       )
     }
   },
@@ -1865,10 +1859,14 @@ const hasLinesDown = (hunkIndex: number | undefined): boolean => {
   return canExpandDown(hunkIndex)
 }
 
-// No WebGL initialization needed for DOM-based diff viewer
+// DOM-based rendering (not WebGL) for better text selection and accessibility
 
 /**
  * Handle mouse wheel events for scrolling.
+ *
+ * @remarks
+ * Uses native browser scrolling for smooth performance with DOM elements.
+ * WebGL rendering would be in GitRenderer.ts for commit graph visualization.
  *
  * @param _event - Wheel event
  * @private
@@ -1999,7 +1997,7 @@ defineExpose({
 </script>
 
 <style scoped>
-.webgl-diff-viewer {
+.dual-column-diff-viewer {
   width: 100%;
   height: 100%;
   max-width: 100%;
@@ -2475,7 +2473,7 @@ defineExpose({
 }
 
 /* Force single column at root level */
-.webgl-diff-viewer > .empty-state-container {
+.dual-column-diff-viewer > .empty-state-container {
   display: flex !important;
   flex-direction: column !important;
   width: 100% !important;
@@ -2532,7 +2530,7 @@ defineExpose({
     justify-content: center !important;
   }
 
-  .webgl-diff-viewer > .empty-state-container {
+  .dual-column-diff-viewer > .empty-state-container {
     display: flex !important;
     flex-direction: column !important;
   }
