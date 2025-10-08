@@ -233,24 +233,21 @@ if (typeof window !== 'undefined') {
   })
 }
 
-// Auto unmount - only enable once
-import { enableAutoUnmount } from '@vue/test-utils'
-// Use try-catch to handle multiple calls gracefully
-// This can happen when running tests in parallel or with certain pool configurations
-try {
-  // Only call if not in CI or if explicitly needed
-  if (!globalThis.__vueTestUtilsAutoUnmountEnabled) {
-    enableAutoUnmount(afterEach)
-    globalThis.__vueTestUtilsAutoUnmountEnabled = true
+// Manual auto-unmount using flushPromises pattern
+// Context7 pattern: enableAutoUnmount causes "Vitest failed to access its internal state"
+// errors in CI because it tries to access vitest context during cleanup phase.
+// Use manual afterEach instead for better control and CI compatibility.
+import { flushPromises } from '@vue/test-utils'
+
+afterEach(async () => {
+  // Flush all pending promises to ensure Vue components are fully unmounted
+  await flushPromises()
+
+  // Clear any remaining DOM content
+  if (typeof document !== 'undefined') {
+    document.body.innerHTML = ''
   }
-} catch (error) {
-  // Silently ignore if already enabled - this is expected in some configurations
-  // The error "enableAutoUnmount cannot be called more than once" is harmless
-  if (!error.message?.includes('cannot be called more than once')) {
-    // Re-throw if it's a different error
-    throw error
-  }
-}
+})
 
 // CRITICAL SAFETY: Environment variable stubbing for Git safety
 process.env.NODE_ENV = 'test'
