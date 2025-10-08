@@ -65,13 +65,13 @@ describe('useFileWatcher', () => {
       expect(status.watcherId).toBe(null)
     })
 
-    it('should handle missing electronAPI', () => {
+    it('should handle missing electronAPI', async () => {
       // Remove electronAPI
       window.electronAPI = undefined
 
       const { startWatching } = useFileWatcher()
 
-      expect(startWatching('/test/path')).rejects.toThrow(
+      await expect(startWatching('/test/path')).rejects.toThrow(
         'ElectronAPI not available - not in Electron environment'
       )
     })
@@ -819,14 +819,14 @@ describe('useFileWatcher', () => {
   })
 
   describe('error handling', () => {
-    it('should handle missing window object', () => {
+    it('should handle missing window object', async () => {
       const originalWindow = global.window
       // @ts-expect-error -- Testing missing window scenario
       delete global.window
 
       const { startWatching } = useFileWatcher()
 
-      expect(startWatching('/test/path')).rejects.toThrow()
+      await expect(startWatching('/test/path')).rejects.toThrow()
 
       // Restore
       global.window = originalWindow
