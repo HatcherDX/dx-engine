@@ -1,5 +1,28 @@
 import { config, RouterLinkStub } from '@vue/test-utils'
-import { afterEach, vi } from 'vitest'
+
+/**
+ * @fileoverview Global test setup file for Vitest.
+ *
+ * @description
+ * CRITICAL: This file is loaded as setupFiles in vitest.config.ts.
+ * DO NOT import from 'vitest' here (vi, afterEach, etc.) as it causes
+ * "Vitest failed to access its internal state" errors in CI environments.
+ *
+ * With globals: true enabled in vitest.config.ts, all vitest utilities
+ * (vi, describe, it, expect, afterEach, etc.) are available globally.
+ *
+ * @see https://vitest.dev/config/#globals
+ * @see https://vitest.dev/config/#setupfiles
+ *
+ * @author Hatcher DX Team
+ * @since 1.0.0
+ */
+
+// Access vi and afterEach from global context (available via globals: true)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const vi = (globalThis as any).vi
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const afterEach = (globalThis as any).afterEach
 
 // Mock CSS imports - must be at top level
 vi.mock('xterm/css/xterm.css', () => ({

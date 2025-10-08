@@ -5,12 +5,24 @@
  * Global test setup for DOM environment and common mocks.
  * Provides necessary mocks for browser APIs and DOM elements.
  *
+ * CRITICAL: This file is loaded as setupFiles in vitest.config.ts.
+ * DO NOT import from 'vitest' here (vi, afterEach, etc.) as it causes
+ * "Vitest failed to access its internal state" errors in CI environments.
+ *
+ * With globals: true enabled in vitest.config.ts, all vitest utilities
+ * (vi, describe, it, expect, afterEach, etc.) are available globally.
+ *
+ * @see https://vitest.dev/config/#globals
+ * @see https://vitest.dev/config/#setupfiles
+ *
  * @author Hatcher DX Team
  * @since 1.0.0
  * @internal
  */
 
-import { vi } from 'vitest'
+// Access vi from global context (available via globals: true)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const vi = (globalThis as any).vi
 
 // Mock console methods for test coverage
 // Logger tests will restore these in their beforeEach

@@ -6,6 +6,13 @@
  * different operating systems. Ensures proper command execution,
  * path handling, and file operations on all platforms.
  *
+ * CRITICAL: This file is loaded as setupFiles in vitest.integration.config.ts.
+ * DO NOT import from 'vitest' here (vi, afterEach, etc.) as it causes
+ * "Vitest failed to access its internal state" errors in CI environments.
+ *
+ * With globals: true enabled in vitest configs, all vitest utilities
+ * (vi, describe, it, expect, afterEach, etc.) are available globally.
+ *
  * @remarks
  * This setup configures the environment for testing real build script
  * operations including shell commands, file manipulations, and path handling.
@@ -16,15 +23,21 @@
  * // Tests will work with real file system and shell operations
  * ```
  *
+ * @see https://vitest.dev/config/#globals
+ * @see https://vitest.dev/config/#setupfiles
+ *
  * @author Hatcher DX Team
  * @since 1.0.0
  * @internal
  */
 
-import { vi } from 'vitest'
 import { existsSync, mkdirSync, rmSync } from 'fs'
 import { join, sep } from 'path'
 import { tmpdir } from 'os'
+
+// Access vi from global context (available via globals: true)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const vi = (globalThis as any).vi
 
 // Mark that we're using integration tests
 process.env.VITEST_SCRIPTS_INTEGRATION = 'true'

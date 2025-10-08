@@ -6,6 +6,13 @@
  * This allows tests to execute in CI environments without requiring
  * actual Git operations or repository access.
  *
+ * CRITICAL: This file is loaded as setupFiles in vitest.ci.config.ts.
+ * DO NOT import from 'vitest' here (vi, afterEach, etc.) as it causes
+ * "Vitest failed to access its internal state" errors in CI environments.
+ *
+ * With globals: true enabled in vitest.ci.config.ts, all vitest utilities
+ * (vi, describe, it, expect, afterEach, etc.) are available globally.
+ *
  * @remarks
  * This setup forces mocking of simple-git to ensure tests can run in
  * any CI environment regardless of Git availability or configuration.
@@ -17,12 +24,17 @@
  * import simpleGit from 'simple-git' // Returns mock
  * ```
  *
+ * @see https://vitest.dev/config/#globals
+ * @see https://vitest.dev/config/#setupfiles
+ *
  * @author Hatcher DX Team
  * @since 1.0.0
  * @internal
  */
 
-import { vi } from 'vitest'
+// Access vi from global context (available via globals: true)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const vi = (globalThis as any).vi
 
 // Force CI environment
 process.env.CI = 'true'

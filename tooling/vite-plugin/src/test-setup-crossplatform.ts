@@ -6,6 +6,13 @@
  * different operating systems, particularly temp directory handling
  * and path resolution.
  *
+ * CRITICAL: This file is loaded as setupFiles in vitest.crossplatform.config.ts.
+ * DO NOT import from 'vitest' here (vi, afterEach, etc.) as it causes
+ * "Vitest failed to access its internal state" errors in CI environments.
+ *
+ * With globals: true enabled in vitest configs, all vitest utilities
+ * (vi, describe, it, expect, afterEach, etc.) are available globally.
+ *
  * @remarks
  * This setup ensures proper temp directory creation and path handling
  * on Windows, macOS, and Linux for the Vite plugin.
@@ -16,15 +23,21 @@
  * // Tests will work with real temp directories and paths
  * ```
  *
+ * @see https://vitest.dev/config/#globals
+ * @see https://vitest.dev/config/#setupfiles
+ *
  * @author Hatcher DX Team
  * @since 1.0.0
  * @internal
  */
 
-import { vi } from 'vitest'
 import { existsSync, mkdirSync, rmSync } from 'fs'
 import { join, sep, resolve } from 'path'
 import { tmpdir, homedir } from 'os'
+
+// Access vi from global context (available via globals: true)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const vi = (globalThis as any).vi
 
 // Mark that we're using cross-platform tests
 process.env.VITEST_CROSSPLATFORM = 'true'

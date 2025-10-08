@@ -6,6 +6,13 @@
  * actual OS features. This setup ensures proper environment configuration
  * for cross-platform Electron testing.
  *
+ * CRITICAL: This file is loaded as setupFiles in vitest.integration.config.ts.
+ * DO NOT import from 'vitest' here (vi, afterEach, etc.) as it causes
+ * "Vitest failed to access its internal state" errors in CI environments.
+ *
+ * With globals: true enabled in vitest configs, all vitest utilities
+ * (vi, describe, it, expect, afterEach, etc.) are available globally.
+ *
  * @remarks
  * This setup is used when running integration tests with real Electron features.
  * It configures the environment to test actual platform-specific behavior
@@ -17,12 +24,19 @@
  * // Tests will have access to real or mocked Electron APIs based on environment
  * ```
  *
+ * @see https://vitest.dev/config/#globals
+ * @see https://vitest.dev/config/#setupfiles
+ *
  * @author Hatcher DX Team
  * @since 1.0.0
  * @internal
  */
 
-import { vi } from 'vitest'
+// Access vi and it from global context (available via globals: true)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const vi = (globalThis as any).vi
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const it = (globalThis as any).it
 
 // Mark that we're using integration tests
 process.env.VITEST_ELECTRON_INTEGRATION = 'true'

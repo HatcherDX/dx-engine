@@ -6,6 +6,13 @@
  * actual repositories. This setup ensures proper environment configuration
  * for cross-platform Git testing.
  *
+ * CRITICAL: This file is loaded as setupFiles in vitest.integration.config.ts.
+ * DO NOT import from 'vitest' here (vi, afterEach, etc.) as it causes
+ * "Vitest failed to access its internal state" errors in CI environments.
+ *
+ * With globals: true enabled in vitest configs, all vitest utilities
+ * (vi, describe, it, expect, afterEach, etc.) are available globally.
+ *
  * @remarks
  * This setup is used when running integration tests with real Git operations.
  * It configures the environment to use actual simple-git instead of mocks,
@@ -20,14 +27,20 @@
  * await git.clone('https://github.com/example/repo.git')
  * ```
  *
+ * @see https://vitest.dev/config/#globals
+ * @see https://vitest.dev/config/#setupfiles
+ *
  * @author Hatcher DX Team
  * @since 1.0.0
  * @internal
  */
 
-import { vi } from 'vitest'
 import { existsSync, mkdirSync, rmSync } from 'fs'
 import { join } from 'path'
+
+// Access vi from global context (available via globals: true)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const vi = (globalThis as any).vi
 
 // Mark that we're using real Git for tests
 process.env.VITEST_USE_REAL_GIT = 'true'
