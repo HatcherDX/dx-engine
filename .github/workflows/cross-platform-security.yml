@@ -98,7 +98,7 @@ jobs:
           # Alpine Linux (musl libc)
           - name: 'Alpine Linux'
             image: 'alpine:latest'
-            packages: 'gnome-keyring libsecret xvfb dbus-x11 nodejs npm build-base python3 nss atk at-spi2-core cups-libs libdrm libxkbcommon libxcomposite libxdamage libxfixes libxrandr mesa-gbm alsa-lib'
+            packages: 'gnome-keyring libsecret xvfb dbus-x11 build-base python3 nss atk at-spi2-core cups-libs libdrm libxkbcommon libxcomposite libxdamage libxfixes libxrandr mesa-gbm alsa-lib'
             keyring: 'gnome-keyring-daemon'
 
           # KDE-focused distribution
@@ -163,8 +163,8 @@ jobs:
             # openSUSE - use official repo
             zypper install -y nodejs22 npm22 || zypper install -y nodejs npm
           elif command -v apk >/dev/null 2>&1; then
-            # Alpine - already installed in packages list
-            echo "Node.js already installed from packages"
+            # Alpine - install from official repos
+            apk add --no-cache nodejs npm
           fi
 
           # Verify Node.js installation
