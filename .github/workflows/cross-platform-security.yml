@@ -38,73 +38,73 @@ jobs:
           # Ubuntu LTS versions
           - name: 'Ubuntu 20.04'
             image: 'ubuntu:20.04'
-            packages: 'gnome-keyring libsecret-1-0 dbus-x11 xvfb build-essential python3'
+            packages: 'gnome-keyring libsecret-1-0 dbus-x11 xvfb build-essential python3 libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2'
             keyring: 'gnome-keyring-daemon'
           - name: 'Ubuntu 22.04'
             image: 'ubuntu:22.04'
-            packages: 'gnome-keyring libsecret-1-0 dbus-x11 xvfb build-essential python3'
+            packages: 'gnome-keyring libsecret-1-0 dbus-x11 xvfb build-essential python3 libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2'
             keyring: 'gnome-keyring-daemon'
           - name: 'Ubuntu 24.04'
             image: 'ubuntu:24.04'
-            packages: 'gnome-keyring libsecret-1-0 dbus-x11 xvfb build-essential python3'
+            packages: 'gnome-keyring libsecret-1-0 dbus-x11 xvfb build-essential python3 libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2'
             keyring: 'gnome-keyring-daemon'
 
           # Debian versions
           - name: 'Debian 11 (Bullseye)'
             image: 'debian:11'
-            packages: 'gnome-keyring libsecret-1-0 dbus-x11 xvfb curl ca-certificates build-essential python3'
+            packages: 'gnome-keyring libsecret-1-0 dbus-x11 xvfb curl ca-certificates build-essential python3 libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2'
             keyring: 'gnome-keyring-daemon'
           - name: 'Debian 12 (Bookworm)'
             image: 'debian:12'
-            packages: 'gnome-keyring libsecret-1-0 dbus-x11 xvfb curl ca-certificates build-essential python3'
+            packages: 'gnome-keyring libsecret-1-0 dbus-x11 xvfb curl ca-certificates build-essential python3 libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2'
             keyring: 'gnome-keyring-daemon'
 
           # Fedora versions
           - name: 'Fedora 38'
             image: 'fedora:38'
-            packages: 'gnome-keyring libsecret xorg-x11-server-Xvfb dbus-x11 gcc gcc-c++ make python3'
+            packages: 'gnome-keyring libsecret xorg-x11-server-Xvfb dbus-x11 gcc gcc-c++ make python3 nss atk at-spi2-atk cups-libs libdrm libxkbcommon libXcomposite libXdamage libXfixes libXrandr mesa-libgbm alsa-lib'
             keyring: 'gnome-keyring-daemon'
           - name: 'Fedora 39'
             image: 'fedora:39'
-            packages: 'gnome-keyring libsecret xorg-x11-server-Xvfb dbus-x11 gcc gcc-c++ make python3'
+            packages: 'gnome-keyring libsecret xorg-x11-server-Xvfb dbus-x11 gcc gcc-c++ make python3 nss atk at-spi2-atk cups-libs libdrm libxkbcommon libXcomposite libXdamage libXfixes libXrandr mesa-libgbm alsa-lib'
             keyring: 'gnome-keyring-daemon'
 
           # CentOS/RHEL compatible
           - name: 'Rocky Linux 9'
             image: 'rockylinux:9'
-            packages: 'gnome-keyring libsecret xorg-x11-server-Xvfb dbus-x11 gcc gcc-c++ make python3'
+            packages: 'gnome-keyring libsecret xorg-x11-server-Xvfb dbus-x11 gcc gcc-c++ make python3 nss atk at-spi2-atk cups-libs libdrm libxkbcommon libXcomposite libXdamage libXfixes libXrandr mesa-libgbm alsa-lib'
             keyring: 'gnome-keyring-daemon'
           - name: 'AlmaLinux 9'
             image: 'almalinux:9'
-            packages: 'gnome-keyring libsecret xorg-x11-server-Xvfb dbus-x11 gcc gcc-c++ make python3'
+            packages: 'gnome-keyring libsecret xorg-x11-server-Xvfb dbus-x11 gcc gcc-c++ make python3 nss atk at-spi2-atk cups-libs libdrm libxkbcommon libXcomposite libXdamage libXfixes libXrandr mesa-libgbm alsa-lib'
             keyring: 'gnome-keyring-daemon'
 
           # Arch Linux
           - name: 'Arch Linux'
             image: 'archlinux:latest'
-            packages: 'gnome-keyring libsecret xorg-server-xvfb dbus base-devel python'
+            packages: 'gnome-keyring libsecret xorg-server-xvfb dbus base-devel python nss atk at-spi2-atk libcups libdrm libxkbcommon libxcomposite libxdamage libxfixes libxrandr mesa alsa-lib'
             keyring: 'gnome-keyring-daemon'
 
           # openSUSE
           - name: 'openSUSE Leap'
             image: 'opensuse/leap:15.5'
-            packages: 'gnome-keyring libsecret-1-0 xvfb dbus-1-x11 gcc gcc-c++ make python3'
+            packages: 'gnome-keyring libsecret-1-0 xvfb dbus-1-x11 gcc gcc-c++ make python3 mozilla-nss libatk-1_0-0 at-spi2-core cups-libs libdrm2 libxkbcommon0 libXcomposite1 libXdamage1 libXfixes3 libXrandr2 Mesa-libGLESv2-2 alsa'
             keyring: 'gnome-keyring-daemon'
           - name: 'openSUSE Tumbleweed'
             image: 'opensuse/tumbleweed:latest'
-            packages: 'gnome-keyring libsecret-1-0 xvfb dbus-1-x11 gcc gcc-c++ make python3'
+            packages: 'gnome-keyring libsecret-1-0 xvfb dbus-1-x11 gcc gcc-c++ make python3 mozilla-nss libatk-1_0-0 at-spi2-core cups-libs libdrm2 libxkbcommon0 libXcomposite1 libXdamage1 libXfixes3 libXrandr2 Mesa-libGLESv2-2 alsa'
             keyring: 'gnome-keyring-daemon'
 
           # Alpine Linux (musl libc)
           - name: 'Alpine Linux'
             image: 'alpine:latest'
-            packages: 'gnome-keyring libsecret xvfb dbus-x11 nodejs npm build-base python3'
+            packages: 'gnome-keyring libsecret xvfb dbus-x11 nodejs npm build-base python3 nss atk at-spi2-core cups-libs libdrm libxkbcommon libxcomposite libxdamage libxfixes libxrandr mesa-gbm alsa-lib'
             keyring: 'gnome-keyring-daemon'
 
           # KDE-focused distribution
           - name: 'KDE neon (KWallet)'
             image: 'ubuntu:22.04'
-            packages: 'kwalletd5 kwallet-kf5 dbus-x11 xvfb build-essential python3'
+            packages: 'kwalletd5 kwallet-kf5 dbus-x11 xvfb build-essential python3 libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2'
             keyring: 'kwalletd5'
 
     container:
