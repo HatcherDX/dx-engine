@@ -96,3 +96,4 @@ debug-*.mjs
 fix-*.mjs
 check-*.mjs
 ensure-*.mjs
+/logs
