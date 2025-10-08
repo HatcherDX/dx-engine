@@ -13,7 +13,7 @@
  * **CURRENT WORKING ARCHITECTURE:**
  *
  * Basic diff functionality is FULLY FUNCTIONAL via:
- * - {@link WebGLDiffViewer} (apps/web/src/components/organisms/WebGLDiffViewer.vue) - 2,636 lines, production-ready
+ * - {@link DualColumnDiffViewer} (apps/web/src/components/organisms/DualColumnDiffViewer.vue) - 2,636 lines, production-ready
  * - {@link useGitIntegration} (apps/web/src/composables/useGitIntegration.ts) - IPC → git commands
  * - {@link prismHighlighter} (apps/web/src/utils/prismHighlighter.ts) - 517 lines, 25+ languages
  *
@@ -36,7 +36,7 @@
  * </script>
  *
  * <template>
- *   <WebGLDiffViewer :diff="diff" />
+ *   <DualColumnDiffViewer :diff="diff" />
  * </template>
  * ```
  *
@@ -55,7 +55,7 @@ import type { DiffViewData, DiffViewFileChange } from '../types/timeline'
  * **This is a placeholder for future semantic analysis capabilities.**
  *
  * Current diff functionality is fully operational via:
- * - WebGLDiffViewer.vue (2,636 lines) - Dual-column diff rendering
+ * - DualColumnDiffViewer.vue (2,636 lines) - Dual-column diff rendering
  * - useGitIntegration composable - Git operations via IPC
  * - prismHighlighter.ts (517 lines) - Syntax highlighting for 25+ languages
  *
@@ -70,7 +70,7 @@ import type { DiffViewData, DiffViewFileChange } from '../types/timeline'
  *
  * | Feature | Current System | Future DiffEngine |
  * |---------|----------------|-------------------|
- * | Text diffs | ✅ WebGLDiffViewer | N/A (already works) |
+ * | Text diffs | ✅ DualColumnDiffViewer | N/A (already works) |
  * | Syntax highlighting | ✅ prismHighlighter | N/A (already works) |
  * | Git operations | ✅ useGitIntegration | N/A (already works) |
  * | AST-based analysis | ❌ | 🔮 Future |
@@ -82,11 +82,11 @@ import type { DiffViewData, DiffViewFileChange } from '../types/timeline'
  * ```typescript
  * // In your Vue component
  * import { useGitIntegration } from '@/composables/useGitIntegration'
- * import WebGLDiffViewer from '@/components/organisms/WebGLDiffViewer.vue'
+ * import DualColumnDiffViewer from '@/components/organisms/DualColumnDiffViewer.vue'
  *
  * const { getFileDiff } = useGitIntegration()
  * const diff = await getFileDiff('src/App.vue', 'HEAD', 'HEAD~1')
- * // Then render with <WebGLDiffViewer :diff="diff" />
+ * // Then render with <DualColumnDiffViewer :diff="diff" />
  * ```
  *
  * @internal
@@ -96,11 +96,11 @@ export class DiffEngine {
    * FUTURE: Generates semantic diff data with AST analysis.
    *
    * @remarks
-   * **Use {@link useGitIntegration.getFileDiff} and {@link WebGLDiffViewer} instead.**
+   * **Use {@link useGitIntegration.getFileDiff} and {@link DualColumnDiffViewer} instead.**
    *
    * This method is a placeholder for future semantic analysis. The current working
    * architecture provides full diff functionality via IPC to git commands and
-   * WebGLDiffViewer component.
+   * DualColumnDiffViewer component.
    *
    * **Future capabilities (when implemented):**
    * - AST-based diff generation (understanding code structure)
@@ -113,7 +113,7 @@ export class DiffEngine {
    * @returns Promise resolving to semantic diff view data
    *
    * @throws {@link Error}
-   * Always throws - use WebGLDiffViewer.vue + useGitIntegration.ts instead
+   * Always throws - use DualColumnDiffViewer.vue + useGitIntegration.ts instead
    *
    * @internal
    */
@@ -123,7 +123,7 @@ export class DiffEngine {
   : Promise<DiffViewData> {
     throw new Error(
       'DiffEngine is a FUTURE placeholder for semantic analysis (2026+). ' +
-        'Use the current working system: WebGLDiffViewer.vue (apps/web/src/components/organisms/WebGLDiffViewer.vue) ' +
+        'Use the current working system: DualColumnDiffViewer.vue (apps/web/src/components/organisms/DualColumnDiffViewer.vue) ' +
         '+ useGitIntegration composable (apps/web/src/composables/useGitIntegration.ts). ' +
         'See DiffEngine.ts @fileoverview for details.'
     )
