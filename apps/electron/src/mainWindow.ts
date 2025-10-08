@@ -1,8 +1,17 @@
-import { BrowserWindow, session } from 'electron'
+import { BrowserWindow, session, screen } from 'electron'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { isDev, isPackaged } from './utils'
 import { setupApplicationMenu } from './menu'
+import { registerTrustedSender } from './ipc/storageHandlers'
+import { terminalKeyboardHandler } from './terminalKeyboardHandler'
+
+// Store reference to main window for menu access
+let mainWindowRef: BrowserWindow | null = null
+
+export function getMainWindow(): BrowserWindow | null {
+  return mainWindowRef
+}
 
 /**
  * Configure Content Security Policy headers
@@ -41,10 +50,18 @@ async function createWindow() {
 
   const iconPath = iconPaths.find((path) => existsSync(path))
 
+  // Get screen dimensions for optimal sizing
+  const { width: screenWidth, height: screenHeight } =
+    screen.getPrimaryDisplay().workAreaSize
+
+  // Set window size: 1440x900 or 85% of screen size, whichever is smaller
+  const targetWidth = Math.min(1440, Math.floor(screenWidth * 0.85))
+  const targetHeight = Math.min(900, Math.floor(screenHeight * 0.85))
+
   const browserWindow = new BrowserWindow({
-    // Default window size
-    width: 1024,
-    height: 768,
+    // Optimal window size based on screen dimensions
+    width: targetWidth,
+    height: targetHeight,
     // Use 'ready-to-show' event to show window
     show: false,
     // Set the application icon if found
@@ -73,18 +90,46 @@ async function createWindow() {
     },
   })
 
+  // Store reference to main window
+  mainWindowRef = browserWindow
+
+  // Register this window as a trusted sender for storage IPC IMMEDIATELY
+  // This must happen before the page loads to avoid authorization errors
+  registerTrustedSender(browserWindow.webContents)
+  console.log(
+    '[MAIN] ✅ Window pre-registered as trusted sender for storage IPC'
+  )
+
   /**
    * @see https://github.com/electron/electron/issues/25012
    */
   browserWindow.on('ready-to-show', () => {
     browserWindow?.show()
 
-    // Setup application menu
-    setupApplicationMenu()
+    // Setup application menu with window reference
+    setupApplicationMenu(browserWindow)
+
+    // Initialize terminal keyboard handler
+    terminalKeyboardHandler.initialize(browserWindow)
 
     // Only auto-open DevTools in development mode
     if (isDev) {
       browserWindow?.webContents.openDevTools({ mode: 'detach' })
+
+      // Debug: Log when preload has finished loading
+      browserWindow?.webContents.on('did-finish-load', () => {
+        console.log('[Main Window] Renderer finished loading')
+      })
+
+      // Debug: Listen for console messages from renderer
+      browserWindow?.webContents.on(
+        'console-message',
+        (event, level, message) => {
+          if (message.includes('Preload') || message.includes('terminal')) {
+            console.log(`[Renderer Console] ${message}`)
+          }
+        }
+      )
     }
   })
 
@@ -109,6 +154,12 @@ export async function restoreOrCreateWindow() {
 
   if (window === undefined) {
     window = await createWindow()
+  } else {
+    // Update the main window reference
+    mainWindowRef = window
+    // Re-initialize terminal keyboard handler for existing window
+    // This ensures it's properly set up even when restoring
+    terminalKeyboardHandler.initialize(window)
   }
 
   if (window.isMinimized()) {

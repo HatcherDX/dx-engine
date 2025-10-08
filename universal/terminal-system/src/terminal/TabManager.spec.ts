@@ -526,6 +526,35 @@ describe('TabManager', () => {
       expect(tabManager.getActiveTabId()).toBeNull()
       expect(tabManager.getTabCount()).toBe(0)
     })
+
+    /**
+     * Tests activating a tab when no tab is currently active.
+     *
+     * @returns void
+     * Should activate tab without deactivating when no tab is currently active
+     *
+     * @public
+     */
+    it('should activate tab when no tab is currently active', async () => {
+      // Create a new tab manager with no auto-activation
+      const newTabManager = new TabManager()
+
+      // Mock v4 for controlled IDs
+      const { v4 } = await import('uuid')
+      vi.mocked(v4).mockReturnValue('new-tab-id')
+
+      // Create a tab without auto-activation by manually setting _activeTabId to null after creation
+      await newTabManager.createTab({ name: 'Test Tab' })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Accessing private property for testing
+      ;(newTabManager as any)._activeTabId = null
+
+      // Now activate the tab when no other tab is active
+      const result = newTabManager.activateTab('new-tab-id')
+
+      expect(result).toBe(true)
+      expect(newTabManager.getActiveTabId()).toBe('new-tab-id')
+      expect(mockTerminalInstance.focus).toHaveBeenCalled()
+    })
   })
 
   describe('Disposal', () => {
@@ -1276,6 +1305,34 @@ describe('TabManager', () => {
     })
 
     /**
+     * Tests terminal data event when tab is active.
+     *
+     * @returns void
+     * Should update lastActiveAt but not mark as modified when tab is active
+     *
+     * @public
+     */
+    it('should handle data event when tab is active', async () => {
+      // Get the data event handler
+      const dataCall = mockTerminalInstance.on.mock.calls.find(
+        (call) => call[0] === 'data'
+      )
+      expect(dataCall).toBeDefined()
+
+      const dataHandler = dataCall?.[1]
+
+      // Ensure tab is active
+      tabManager.activateTab('tab-1')
+
+      // Call data handler when tab is active
+      dataHandler()
+
+      // Tab should not be marked as modified since it's active
+      const tabs = tabManager.getTabsInOrder()
+      expect(tabs[0].isActive).toBe(true)
+    })
+
+    /**
      * Tests terminal instance focus event handling.
      *
      * @returns void
@@ -1329,6 +1386,39 @@ describe('TabManager', () => {
       expect(exitCall).toBeDefined()
       expect(exitCall?.[0]).toBe('exit')
       expect(typeof exitCall?.[1]).toBe('function')
+    })
+
+    /**
+     * Tests terminal exit event auto-removal with setTimeout.
+     *
+     * @returns void
+     * Should call setTimeout to auto-remove tab when terminal exits
+     *
+     * @public
+     */
+    it('should auto-remove tab when terminal exits', () => {
+      // Mock setTimeout
+      const setTimeoutSpy = vi.spyOn(global, 'setTimeout')
+
+      // Get the exit event handler
+      const exitCall = mockTerminalInstance.on.mock.calls.find(
+        (call) => call[0] === 'exit'
+      )
+      expect(exitCall).toBeDefined()
+
+      const exitHandler = exitCall?.[1]
+
+      // Trigger the exit event
+      exitHandler()
+
+      // Verify setTimeout was called with correct delay
+      expect(setTimeoutSpy).toHaveBeenCalledWith(expect.any(Function), 1000)
+
+      // Verify the setTimeout callback references removeTab
+      const timeoutCallback = setTimeoutSpy.mock.calls[0][0]
+      expect(timeoutCallback.toString()).toContain('removeTab')
+
+      setTimeoutSpy.mockRestore()
     })
   })
 

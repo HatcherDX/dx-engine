@@ -1,35 +1,38 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import { useTheme } from './composables/useTheme'
 import { useBreadcrumbContext } from './composables/useBreadcrumbContext'
 import { useChatSidebar } from './composables/useChatSidebar'
 import { useOnboarding } from './composables/useOnboarding'
 import { useTerminalModeDetector } from './composables/useTerminalModeDetector'
 import { useProjectContext } from './composables/useProjectContext'
+// import { useNotifications } from './composables/useNotifications'
 import UnifiedFrame from './components/templates/UnifiedFrame.vue'
+import QuantumPipeline from './components/molecules/QuantumPipeline.vue'
 import ModeSelector from './components/molecules/ModeSelector.vue'
 import AddressBar from './components/molecules/AddressBar.vue'
 import BaseIcon from './components/atoms/BaseIcon.vue'
-import BaseLogo from './components/atoms/BaseLogo.vue'
 import BaseButton from './components/atoms/BaseButton.vue'
 import PlayButton from './components/atoms/PlayButton.vue'
+import ProjectBreadcrumb from './components/atoms/ProjectBreadcrumb.vue'
 import GenerativeSidebar from './components/organisms/GenerativeSidebar.vue'
 import VisualSidebar from './components/organisms/VisualSidebar.vue'
 import CodeSidebar from './components/organisms/CodeSidebar.vue'
 import TimelineSidebar from './components/organisms/TimelineSidebar.vue'
 import GitTimelineView from './views/GitTimelineView.vue'
+import SettingsView from './views/SettingsView.vue'
 import ChatPanel from './components/organisms/ChatPanel.vue'
 import TerminalPanel from './components/organisms/TerminalPanel.vue'
-import OnboardingWelcome from './components/organisms/OnboardingWelcome.vue'
-import OnboardingProjectSelection from './components/organisms/OnboardingProjectSelection.vue'
-import OnboardingTaskSelection from './components/organisms/OnboardingTaskSelection.vue'
-import OnboardingTaskDetail from './components/organisms/OnboardingTaskDetail.vue'
-import OnboardingTransition from './components/organisms/OnboardingTransition.vue'
+import GlobalTerminalFooter from './components/organisms/GlobalTerminalFooter.vue'
+import TerminalTabBar from './components/molecules/TerminalTabBar.vue'
 import NotificationContainer from './components/organisms/NotificationContainer.vue'
+import LoadingScreen from './components/organisms/LoadingScreen.vue'
+import { useTaskManager } from './composables/useTaskManager'
 import type { ModeType } from './components/molecules/ModeSelector.vue'
 
 // Initialize theme system
 const { platform } = useTheme()
+console.log('[App] Platform from useTheme:', platform.value)
 
 // Initialize terminal mode detector
 const terminalModeDetector = useTerminalModeDetector()
@@ -37,10 +40,33 @@ const terminalModeDetector = useTerminalModeDetector()
 // Initialize breadcrumb context
 const { getContextForMode, simulateFileChange } = useBreadcrumbContext()
 
+// Get current project and branch info for header breadcrumb
+const currentContext = computed(() => getContextForMode(currentMode.value))
+const projectName = computed(() => {
+  // Use the project name from code mode context (address bar)
+  const codeContext = getContextForMode('code') as Record<string, unknown>
+  const codeProjectName = codeContext?.projectName as string
+
+  if (codeProjectName && codeProjectName !== '') {
+    return codeProjectName
+  }
+
+  // Fallback to current mode context
+  const context = currentContext.value as Record<string, unknown>
+  return (context?.projectName as string) || 'dx-engine'
+})
+const branchName = computed(() => {
+  const context = currentContext.value as Record<string, unknown>
+  return (
+    (context?.gitBranch as string) ||
+    (context?.currentBranch as string) ||
+    'main'
+  )
+})
+
 // Initialize chat sidebar
 const {
   width: chatWidth,
-  resizeCursor: chatResizeCursor,
   shouldShowResizeHandle,
   isGenerativeMode,
   isResizing,
@@ -49,20 +75,63 @@ const {
 } = useChatSidebar()
 
 // Initialize onboarding
-const { isOnboardingActive, currentStep, selectedProject } = useOnboarding()
+const {
+  isOnboardingActive,
+  isCheckingWorkspace,
+  selectedProject,
+  clearOnboardingStorage,
+  completeOnboarding,
+} = useOnboarding()
 
 // Initialize project context
-const { loadProject } = useProjectContext()
+const { loadProject, isLoading: isProjectLoading } = useProjectContext()
+
+// Initialize task manager for close workspace
+const { closeWorkspace } = useTaskManager()
+
+// Initialize notifications system (available for future use)
+// const { notify } = useNotifications()
 
 // Application state
 const currentMode = ref<ModeType>('generative')
 const addressValue = ref('')
+const showSettings = ref(false)
+
+// Terminal state for GlobalTerminalFooter
+const terminalCount = ref(0)
+const terminalStatus = ref('')
+const terminalPanelRef = ref<InstanceType<typeof TerminalPanel> | null>(null)
+const globalTerminalFooterRef = ref<InstanceType<
+  typeof GlobalTerminalFooter
+> | null>(null)
+
+// App version
+const appVersion =
+  (window as typeof window & { __APP_VERSION__?: string }).__APP_VERSION__ ||
+  '0.0.0'
+
+// Listen for settings menu command from Electron
+onMounted(() => {
+  if (window.electronAPI?.on) {
+    window.electronAPI.on('open-settings', (() => {
+      console.log('[App] Opening settings from menu')
+      showSettings.value = true
+    }) as (...args: unknown[]) => void)
+  }
+})
+
+// Handle closing settings
+const closeSettings = () => {
+  showSettings.value = false
+}
+
+// Handle onboarding completion - not needed anymore as UnifiedFrame handles it internally
 
 // Watch for project selection completion in onboarding
 watch(
   selectedProject,
   async (newProject) => {
-    if (newProject && newProject.path) {
+    if (newProject && newProject.path && !isProjectLoading.value) {
       try {
         console.log(
           '[App] Loading project from onboarding selection:',
@@ -73,6 +142,11 @@ watch(
       } catch (error) {
         console.error('[App] Failed to load project from onboarding:', error)
       }
+    } else if (isProjectLoading.value) {
+      console.log(
+        '[App] Skipping project load - loading already in progress:',
+        newProject?.path
+      )
     }
   },
   { immediate: true }
@@ -82,6 +156,69 @@ watch(
 onMounted(async () => {
   // Application initialized silently
   // Initial AI context will be set based on onboarding completion
+
+  // Check for saved workspace and restore project if exists
+  console.log('[App] onMounted - Checking for saved workspace...')
+  console.log(
+    '[App] onMounted - window.storageAPI exists:',
+    !!window.storageAPI
+  )
+
+  if (window.storageAPI) {
+    try {
+      const workspace = await window.storageAPI.getWorkspace()
+      console.log('[App] onMounted - Retrieved workspace:', workspace)
+
+      if (workspace && workspace.project) {
+        console.log(
+          '[App] Found saved workspace, restoring project:',
+          workspace.project.name
+        )
+
+        // The onboarding will already be marked as completed by useOnboarding
+        // when it detects the workspace, so we just need to load the project
+
+        // Load the saved project
+        await loadProject(workspace.project.path)
+        console.log('[App] Project restored successfully')
+
+        // Ensure onboarding is marked as completed
+        completeOnboarding()
+        console.log('[App] Onboarding marked as completed')
+      } else {
+        console.log('[App] No workspace found in storage')
+        console.log('[App] Onboarding state will handle the flow')
+      }
+    } catch (error) {
+      console.error('[App] Failed to restore workspace:', error)
+    }
+  } else {
+    console.log('[App] StorageAPI not available')
+  }
+
+  // Log final onboarding state
+  console.log('[App] Final onboarding active state:', isOnboardingActive.value)
+
+  // Debug: Expose onboarding reset to window for testing
+  if (window) {
+    window.resetOnboarding = clearOnboardingStorage
+    console.log('[App] Debug: window.resetOnboarding() available for testing')
+    console.log('[App] Current onboarding active:', isOnboardingActive.value)
+  }
+
+  // Listen for close-task message from Electron menu
+  if (window.electronAPI && window.electronAPI.on) {
+    window.electronAPI.on('close-task', async () => {
+      console.log('[App] Received close-task message from Electron menu')
+      try {
+        await closeWorkspace()
+        console.log('[App] Workspace closed successfully')
+      } catch (error) {
+        console.error('[App] Failed to close workspace:', error)
+      }
+    })
+    console.log('[App] Registered close-task listener')
+  }
 
   // Initialize terminal mode detector
   try {
@@ -97,14 +234,82 @@ onMounted(async () => {
 })
 
 // Mode handling
-const handleModeChange = (mode: ModeType) => {
+const handleModeChange = async (mode: ModeType) => {
+  console.log(`[App] Mode change: ${currentMode.value} -> ${mode}`)
   currentMode.value = mode
+
   // Update chat sidebar mode
   setChatMode(mode)
   // Clear address bar when switching modes
   addressValue.value = ''
+
+  // Initialize terminals when switching to code mode
+  if (mode === 'code') {
+    console.log(
+      '[App] Switching to code mode - ensuring terminal initialization'
+    )
+    try {
+      // Re-run terminal mode detector to ensure connection
+      await terminalModeDetector.detectModeWithFallback()
+      console.log('[App] Terminal mode detector refreshed for code mode')
+    } catch (error) {
+      console.error('[App] Failed to refresh terminal mode detector:', error)
+    }
+  }
+
   // Simulate context change for demo
   simulateFileChange(mode)
+}
+
+// Terminal panel initialization handler
+const handleTerminalPanelInitialized = () => {
+  console.log('[App] Terminal panel initialized successfully')
+}
+
+// Terminal status handlers
+const handleTerminalStatusChange = (status: string) => {
+  terminalStatus.value = status
+}
+
+const handleTerminalCountChange = (count: number) => {
+  terminalCount.value = count
+}
+
+// Handle terminal tab clicks to expand the footer
+const handleTerminalTabClick = (terminalId: string) => {
+  // First, tell the terminal panel to switch to the clicked terminal
+  if (terminalPanelRef.value) {
+    terminalPanelRef.value.setActiveTerminal(terminalId)
+  }
+  // Then expand the terminal footer if it's not already expanded
+  if (globalTerminalFooterRef.value) {
+    globalTerminalFooterRef.value.expandTerminal()
+  }
+}
+
+const handleTerminalTabClose = (terminalId: string) => {
+  if (terminalPanelRef.value) {
+    terminalPanelRef.value.closeTerminal(terminalId)
+  }
+}
+
+const handleTerminalTabContextMenu = (
+  terminalId: string,
+  event: MouseEvent
+) => {
+  // Handle context menu if needed
+  void terminalId
+  void event
+}
+
+const handleNewTerminal = () => {
+  if (terminalPanelRef.value) {
+    terminalPanelRef.value.createTerminal()
+  }
+  // Expand the terminal footer when creating a new terminal
+  if (globalTerminalFooterRef.value) {
+    globalTerminalFooterRef.value.expandTerminal()
+  }
 }
 
 // Command execution
@@ -152,11 +357,13 @@ const executeTimelineCommand = (command: string) => {
 
 // Play button handlers
 const handlePlay = () => {
-  // TODO: Implement play functionality for current mode
+  // TODO: Implement actual play functionality
+  // For now, this is a placeholder for future development
 }
 
 const handleStop = () => {
-  // TODO: Implement stop functionality
+  // TODO: Implement actual stop functionality
+  // For now, this is a placeholder for future development
 }
 
 // GitHub link handler
@@ -173,294 +380,410 @@ const openGitHub = () => {
 </script>
 
 <template>
-  <!-- Onboarding Overlay -->
-  <div v-if="isOnboardingActive" class="onboarding-overlay">
-    <OnboardingWelcome v-if="currentStep === 'welcome'" />
-    <OnboardingProjectSelection
-      v-else-if="currentStep === 'project-selection'"
-    />
-    <OnboardingTaskSelection v-else-if="currentStep === 'task-selection'" />
-    <OnboardingTaskDetail v-else-if="currentStep === 'task-detail'" />
-    <OnboardingTransition v-else-if="currentStep === 'transition'" />
+  <!-- Loading Screen -->
+  <Transition name="fade" mode="out-in">
+    <LoadingScreen v-if="isCheckingWorkspace" />
+  </Transition>
+
+  <!-- Main Application Container -->
+  <div v-if="!isCheckingWorkspace" class="app-container">
+    <UnifiedFrame
+      :current-mode="currentMode"
+      :platform="platform"
+      :project-name="projectName"
+      :branch-name="branchName"
+      @mode-change="handleModeChange"
+      @execute="handleExecuteCommand"
+      @play="handlePlay"
+      @stop="handleStop"
+      @open-github="openGitHub"
+    >
+      <!-- Pass through all the necessary data as props or slots -->
+      <template v-if="!isOnboardingActive" #sidebar-header>
+        <div class="sidebar-header-content">
+          <!-- Left section -->
+          <div class="sidebar-header-left">
+            <!-- Mac: empty space for traffic lights -->
+            <!-- Windows/Linux: Project breadcrumb in sidebar -->
+            <ProjectBreadcrumb
+              v-if="platform !== 'macos'"
+              :project-name="projectName"
+              :branch-name="branchName"
+            />
+          </div>
+
+          <!-- Right section -->
+          <div class="sidebar-header-right">
+            <PlayButton @play="handlePlay" @stop="handleStop" />
+          </div>
+        </div>
+      </template>
+
+      <template v-if="!isOnboardingActive" #sidebar-content>
+        <!-- Dynamic sidebar content based on current mode -->
+        <GenerativeSidebar v-show="currentMode === 'generative'" />
+        <VisualSidebar v-show="currentMode === 'visual'" />
+        <CodeSidebar v-show="currentMode === 'code'" />
+        <TimelineSidebar v-show="currentMode === 'timeline'" />
+      </template>
+
+      <!-- Navigation in header -->
+      <template v-if="!isOnboardingActive" #navigation>
+        <ModeSelector
+          :current-mode="currentMode"
+          @mode-change="handleModeChange"
+        />
+      </template>
+
+      <!-- Address bar in header -->
+      <template v-if="!isOnboardingActive" #address-bar>
+        <AddressBar
+          v-model:value="addressValue"
+          :current-mode="currentMode"
+          :breadcrumb-context="getContextForMode(currentMode)"
+          @execute="handleExecuteCommand"
+        />
+      </template>
+
+      <!-- Main content area -->
+      <template v-if="!isOnboardingActive" #default>
+        <div
+          class="main-content"
+          :class="{
+            'content-centered': currentMode !== 'timeline',
+            'content-timeline': currentMode === 'timeline',
+          }"
+        >
+          <!-- Generative Mode Content -->
+          <div
+            v-show="currentMode === 'generative'"
+            class="mode-content-container"
+          >
+            <div class="mode-content">
+              <h1 class="mode-title">Generative Mode</h1>
+              <p class="mode-subtitle">AI-Powered Command Line Replacement</p>
+
+              <div class="mode-description">
+                <p>
+                  Welcome to <strong>Generative Mode</strong> - the heart of
+                  Hatcher's AI engine. This mode replaces traditional
+                  command-line interfaces with natural language interactions
+                  that understand your development context.
+                </p>
+
+                <p>
+                  Simply describe what you want to accomplish, and Hatcher will
+                  generate the appropriate commands, code, or configurations.
+                  From file operations to complex deployment tasks, communicate
+                  with your development environment as naturally as you would
+                  with a colleague.
+                </p>
+              </div>
+
+              <div class="mode-cta">
+                <p class="cta-text">Ready to revolutionize your workflow?</p>
+                <p class="cta-hint">
+                  Try typing:
+                  <em>"Create a new React component called UserProfile"</em>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Visual Mode Content -->
+          <div v-show="currentMode === 'visual'" class="mode-content-container">
+            <div class="mode-content">
+              <h1 class="mode-title">Visual Mode</h1>
+              <p class="mode-subtitle">
+                Advanced Visual Interaction (Coming Soon)
+              </p>
+
+              <div class="mode-description">
+                <p>
+                  This is where
+                  <strong>'Controlled Amplification'</strong> comes to life.
+                  Visual Mode will transform how you move from design to code.
+                  You will be able to click on any component in your UI, give it
+                  natural language instructions like
+                  <em
+                    >"make this background 10% darker and add a subtle
+                    border"</em
+                  >, and watch as Hatcher translates your intent into clean,
+                  precise code.
+                </p>
+
+                <p>
+                  We will begin by shipping powerful responsive debugging tools,
+                  including a <strong>'360 View'</strong> to preview your
+                  components across multiple devices simultaneously, laying the
+                  groundwork for the revolutionary Visual-to-Code capability.
+                </p>
+              </div>
+
+              <div class="mode-cta">
+                <p class="cta-text">
+                  Have ideas for the future of visual development?
+                </p>
+                <BaseButton
+                  variant="outline"
+                  size="sm"
+                  class="github-button"
+                  @click="openGitHub"
+                >
+                  <BaseIcon name="GitBranch" size="xs" />
+                  Join the discussion on our GitHub
+                </BaseButton>
+              </div>
+            </div>
+          </div>
+
+          <!-- Code Mode Content -->
+          <div v-show="currentMode === 'code'" class="mode-content-container">
+            <div class="mode-content">
+              <h1 class="mode-title">Code Mode</h1>
+              <p class="mode-subtitle">The AI-Powered Editor (Coming Soon)</p>
+
+              <div class="mode-description">
+                <p>
+                  More than just a text editor. Hatcher's
+                  <strong>Code Mode</strong> will be your environment for
+                  achieving an uninterrupted flow state. The AI will not only
+                  autocomplete; it will act as your personal co-pilot.
+                </p>
+
+                <p>
+                  You'll be able to ask it to refactor complex functions,
+                  explain code snippets, generate documentation automatically,
+                  and suggest performance improvements, all without leaving your
+                  editor. The goal is simple: to empower your expertise and
+                  eliminate repetitive tasks so you can focus on solving hard
+                  problems.
+                </p>
+              </div>
+
+              <div class="mode-cta">
+                <p class="cta-text">
+                  What's a must-have feature in your ideal editor?
+                </p>
+                <BaseButton
+                  variant="outline"
+                  size="sm"
+                  class="github-button"
+                  @click="openGitHub"
+                >
+                  <BaseIcon name="GitBranch" size="xs" />
+                  Tell us your ideas
+                </BaseButton>
+              </div>
+            </div>
+          </div>
+
+          <!-- Timegraph Mode Content -->
+          <GitTimelineView v-show="currentMode === 'timeline'" />
+        </div>
+      </template>
+
+      <!-- Terminal Panel removed - now in GlobalTerminalFooter -->
+
+      <!-- Chat Panel - Persistent across all modes -->
+      <template v-if="!isOnboardingActive" #chat-panel>
+        <ChatPanel
+          :current-mode="currentMode"
+          :effective-width="`${chatWidth}px`"
+          :should-show-resize-handle="shouldShowResizeHandle"
+          :is-generative-mode="isGenerativeMode"
+          :is-resizing="isResizing"
+          :start-resize="startResize"
+        />
+      </template>
+
+      <!-- Footer slot removed - replaced by GlobalTerminalFooter -->
+    </UnifiedFrame>
+
+    <!-- Global Terminal Footer - Always present at bottom -->
+    <GlobalTerminalFooter
+      ref="globalTerminalFooterRef"
+      :app-version="appVersion"
+      :terminal-count="terminalCount"
+      :current-status="terminalStatus"
+    >
+      <template #terminal-tabs>
+        <TerminalTabBar
+          v-if="terminalPanelRef"
+          :terminals="terminalPanelRef?.terminals || []"
+          :system-terminals="terminalPanelRef?.systemTerminals || []"
+          :active-terminal-id="terminalPanelRef?.activeTerminalId"
+          @tab-click="handleTerminalTabClick"
+          @tab-close="handleTerminalTabClose"
+          @tab-context-menu="handleTerminalTabContextMenu"
+          @new-terminal="handleNewTerminal"
+        />
+      </template>
+      <template #terminal>
+        <KeepAlive>
+          <TerminalPanel
+            ref="terminalPanelRef"
+            :key="'terminal-panel-global'"
+            @initialized="handleTerminalPanelInitialized"
+            @status-change="handleTerminalStatusChange"
+            @count-change="handleTerminalCountChange"
+          />
+        </KeepAlive>
+      </template>
+    </GlobalTerminalFooter>
+
+    <!-- Global Actions Pipeline - Always visible and floating -->
+    <div v-if="!isOnboardingActive" class="global-actions-pipeline">
+      <QuantumPipeline :is-expanded="currentMode === 'generative'" />
+    </div>
   </div>
 
-  <!-- Main Application -->
-  <UnifiedFrame v-show="!isOnboardingActive" :current-mode="currentMode">
-    <!-- Sidebar content -->
-    <template #sidebar-header>
-      <div class="sidebar-header-content">
-        <!-- Left section -->
-        <div class="sidebar-header-left">
-          <!-- Mac: empty space for traffic lights -->
-          <!-- PC: Logo matching the Mac header -->
-          <template v-if="platform !== 'macos'">
-            <BaseLogo size="sm" variant="egg-white" />
-          </template>
-        </div>
-
-        <!-- Right section -->
-        <div class="sidebar-header-right">
-          <PlayButton @play="handlePlay" @stop="handleStop" />
-        </div>
-      </div>
-    </template>
-
-    <template #sidebar-content>
-      <!-- Dynamic sidebar content based on current mode -->
-      <GenerativeSidebar v-show="currentMode === 'generative'" />
-      <VisualSidebar v-show="currentMode === 'visual'" />
-      <CodeSidebar v-show="currentMode === 'code'" />
-      <TimelineSidebar v-show="currentMode === 'timeline'" />
-    </template>
-
-    <template #sidebar-footer>
-      <div class="sidebar-footer-content">
-        <BaseIcon name="Eye" size="xs" />
-        <span>{{ currentMode }} mode</span>
-      </div>
-    </template>
-
-    <!-- Navigation in header -->
-    <template #navigation>
-      <ModeSelector
-        :current-mode="currentMode"
-        @mode-change="handleModeChange"
-      />
-    </template>
-
-    <!-- Address bar in header -->
-    <template #address-bar>
-      <AddressBar
-        v-model:value="addressValue"
-        :current-mode="currentMode"
-        :breadcrumb-context="getContextForMode(currentMode)"
-        @execute="handleExecuteCommand"
-      />
-    </template>
-
-    <!-- Main content area -->
-    <div
-      class="main-content"
-      :class="{
-        'content-centered': currentMode !== 'timeline',
-        'content-timeline': currentMode === 'timeline',
-      }"
-    >
-      <!-- Generative Mode Content -->
-      <div v-show="currentMode === 'generative'" class="mode-content-container">
-        <div class="mode-content">
-          <h1 class="mode-title">Generative Mode</h1>
-          <p class="mode-subtitle">AI-Powered Command Line Replacement</p>
-
-          <div class="mode-description">
-            <p>
-              Welcome to <strong>Generative Mode</strong> - the heart of
-              Hatcher's AI engine. This mode replaces traditional command-line
-              interfaces with natural language interactions that understand your
-              development context.
-            </p>
-
-            <p>
-              Simply describe what you want to accomplish, and Hatcher will
-              generate the appropriate commands, code, or configurations. From
-              file operations to complex deployment tasks, communicate with your
-              development environment as naturally as you would with a
-              colleague.
-            </p>
-          </div>
-
-          <div class="mode-cta">
-            <p class="cta-text">Ready to revolutionize your workflow?</p>
-            <p class="cta-hint">
-              Try typing:
-              <em>"Create a new React component called UserProfile"</em>
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Visual Mode Content -->
-      <div v-show="currentMode === 'visual'" class="mode-content-container">
-        <div class="mode-content">
-          <h1 class="mode-title">Visual Mode</h1>
-          <p class="mode-subtitle">Advanced Visual Interaction (Coming Soon)</p>
-
-          <div class="mode-description">
-            <p>
-              This is where <strong>'Controlled Amplification'</strong> comes to
-              life. Visual Mode will transform how you move from design to code.
-              You will be able to click on any component in your UI, give it
-              natural language instructions like
-              <em>"make this background 10% darker and add a subtle border"</em
-              >, and watch as Hatcher translates your intent into clean, precise
-              code.
-            </p>
-
-            <p>
-              We will begin by shipping powerful responsive debugging tools,
-              including a <strong>'360 View'</strong> to preview your components
-              across multiple devices simultaneously, laying the groundwork for
-              the revolutionary Visual-to-Code capability.
-            </p>
-          </div>
-
-          <div class="mode-cta">
-            <p class="cta-text">
-              Have ideas for the future of visual development?
-            </p>
-            <BaseButton
-              variant="outline"
-              size="sm"
-              class="github-button"
-              @click="openGitHub"
-            >
-              <BaseIcon name="GitBranch" size="xs" />
-              Join the discussion on our GitHub
-            </BaseButton>
-          </div>
-        </div>
-      </div>
-
-      <!-- Code Mode Content -->
-      <div v-show="currentMode === 'code'" class="mode-content-container">
-        <div class="mode-content">
-          <h1 class="mode-title">Code Mode</h1>
-          <p class="mode-subtitle">The AI-Powered Editor (Coming Soon)</p>
-
-          <div class="mode-description">
-            <p>
-              More than just a text editor. Hatcher's
-              <strong>Code Mode</strong> will be your environment for achieving
-              an uninterrupted flow state. The AI will not only autocomplete; it
-              will act as your personal co-pilot.
-            </p>
-
-            <p>
-              You'll be able to ask it to refactor complex functions, explain
-              code snippets, generate documentation automatically, and suggest
-              performance improvements, all without leaving your editor. The
-              goal is simple: to empower your expertise and eliminate repetitive
-              tasks so you can focus on solving hard problems.
-            </p>
-          </div>
-
-          <div class="mode-cta">
-            <p class="cta-text">
-              What's a must-have feature in your ideal editor?
-            </p>
-            <BaseButton
-              variant="outline"
-              size="sm"
-              class="github-button"
-              @click="openGitHub"
-            >
-              <BaseIcon name="GitBranch" size="xs" />
-              Tell us your ideas
-            </BaseButton>
-          </div>
-        </div>
-      </div>
-
-      <!-- Timeline Mode Content -->
-      <GitTimelineView v-show="currentMode === 'timeline'" />
-    </div>
-
-    <!-- Terminal Panel - Persistent across mode changes with KeepAlive -->
-    <template #terminal-panel>
-      <KeepAlive>
-        <TerminalPanel v-if="currentMode === 'code'" />
-      </KeepAlive>
-    </template>
-
-    <!-- Chat Panel - Persistent across all modes -->
-    <template #chat-panel>
-      <ChatPanel
-        :current-mode="currentMode"
-        :effective-width="`${chatWidth}px`"
-        :should-show-resize-handle="shouldShowResizeHandle"
-        :is-generative-mode="isGenerativeMode"
-        :is-resizing="isResizing"
-        :start-resize="startResize"
-        :resize-cursor="chatResizeCursor"
-      />
-    </template>
-
-    <!-- Footer -->
-    <template #footer>
-      <span
-        >Hatcher DX Engine v0.3.5 •
-        {{ currentMode.charAt(0).toUpperCase() + currentMode.slice(1) }}
-        Mode</span
-      >
-    </template>
-  </UnifiedFrame>
-
-  <!-- Floating Notifications -->
+  <!-- Global Notification Container -->
   <NotificationContainer />
+
+  <!-- Settings View Overlay -->
+  <Teleport to="body">
+    <SettingsView v-if="showSettings" @close="closeSettings" />
+  </Teleport>
 </template>
 
 <style scoped>
-.main-content {
-  flex: 1;
-  display: flex;
+/* Transition for loading screen fade out */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.4s ease-out;
 }
 
-/* Centered content for generative, code, and visual modes */
-.main-content.content-centered {
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* Transition for content fade in */
+.fade-content-enter-active {
+  transition: opacity 0.5s ease-in 0.2s;
+}
+
+.fade-content-enter-from {
+  opacity: 0;
+}
+
+/* Application container */
+.app-container {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  background: linear-gradient(
+    135deg,
+    var(--bg-primary) 0%,
+    var(--bg-secondary) 100%
+  );
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Removed view transitions - now handled internally by UnifiedFrame */
+
+/* Main content styles */
+.main-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: relative;
+}
+
+.content-centered {
   align-items: center;
   justify-content: center;
-  padding: 24px;
 }
 
-/* Timeline mode uses full space without padding */
-.main-content.content-timeline {
+.content-timeline {
   padding: 0;
-  width: 100%;
-  max-width: 100%;
-  overflow: hidden;
 }
 
-.welcome-container {
+/* Mode content container */
+.mode-content-container {
+  width: 100%;
+  max-width: 800px;
+  padding: 48px 32px;
   text-align: center;
-  max-width: 600px;
   animation: fade-in 0.6s ease-out;
 }
 
-.welcome-content {
-  background-color: var(--bg-secondary);
-  padding: 32px;
-  border-radius: 12px;
-  border: 1px solid var(--border-primary);
+.mode-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
-.welcome-title {
-  font-size: 24px;
-  font-weight: 600;
+.mode-title {
+  font-size: 48px;
+  font-weight: 700;
   color: var(--text-primary);
-  margin-bottom: 12px;
+  margin: 0;
 }
 
-.welcome-description {
-  font-size: 16px;
+.mode-subtitle {
+  font-size: 20px;
+  font-weight: 500;
   color: var(--text-secondary);
-  margin-bottom: 8px;
+  margin: 0;
 }
 
-.welcome-hint {
-  font-size: 14px;
-  color: var(--text-tertiary);
+.mode-description {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  text-align: left;
+  color: var(--text-secondary);
+  line-height: 1.6;
 }
 
-strong {
+.mode-description p {
+  margin: 0;
+}
+
+.mode-description strong {
   color: var(--accent-primary);
   font-weight: 600;
 }
 
-.sidebar-hint {
-  font-size: 12px;
+.mode-description em {
   color: var(--text-tertiary);
-  margin-top: 12px;
   font-style: italic;
+}
+
+.mode-cta {
+  margin-top: 24px;
+  padding: 24px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: 12px;
+}
+
+.cta-text {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 12px 0;
+}
+
+.cta-hint {
+  font-size: 14px;
+  color: var(--text-tertiary);
+  margin: 0;
+}
+
+.cta-hint em {
+  color: var(--accent-primary);
+  font-style: normal;
+  font-weight: 500;
+}
+
+.github-button {
+  margin-top: 16px;
+  gap: 8px;
 }
 
 /* Sidebar content styles */
@@ -471,145 +794,52 @@ strong {
   width: 100%;
   height: 100%;
   color: var(--text-primary);
+  /* Allow drag by default - specific interactive elements will override */
+  -webkit-app-region: drag;
 }
 
 .sidebar-header-left {
   display: flex;
   align-items: center;
-  flex-shrink: 0;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  margin-right: 12px;
+  /* Allow drag through empty left area */
+  -webkit-app-region: drag;
 }
 
 .sidebar-header-right {
   display: flex;
   align-items: center;
   flex-shrink: 0;
-}
-
-.sidebar-footer-content {
-  display: flex;
-  align-items: center;
   gap: 6px;
+  /* Disable drag for interactive buttons */
+  -webkit-app-region: no-drag;
+}
+
+/* Footer styles */
+.version-text {
+  font-size: 12px;
   color: var(--text-tertiary);
-}
-
-/* Sidebar content logo styling */
-.sidebar-content-logo {
-  height: 48px !important; /* h-12 equivalent (3rem = 48px) */
-  width: auto !important;
-  margin: 16px auto;
-  display: block;
-}
-
-/* Dynamic sidebar components handle their own styling */
-
-/* Visual Mode Content */
-.mode-content-container {
-  text-align: center;
-  max-width: 700px;
-  animation: fade-in 0.6s ease-out;
-}
-
-.mode-content {
-  background-color: var(--bg-secondary);
-  padding: 40px;
-  border-radius: 12px;
-  border: 1px solid var(--border-primary);
-}
-
-.mode-title {
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 8px;
-}
-
-.mode-subtitle {
-  font-size: 18px;
-  color: var(--accent-primary);
-  margin-bottom: 24px;
   font-weight: 500;
-}
-
-.mode-description {
-  text-align: left;
-  margin-bottom: 32px;
-}
-
-.mode-description p {
-  font-size: 16px;
-  line-height: 1.6;
-  color: var(--text-secondary);
-  margin-bottom: 16px;
-}
-
-.mode-description p:last-child {
-  margin-bottom: 0;
-}
-
-.mode-description strong {
-  color: var(--accent-primary);
-  font-weight: 600;
-}
-
-.mode-description em {
-  color: var(--text-primary);
-  font-style: italic;
-}
-
-.mode-cta {
-  text-align: center;
-  padding-top: 24px;
-  border-top: 1px solid var(--border-primary);
-}
-
-.cta-text {
-  font-size: 16px;
-  color: var(--text-secondary);
-  margin-bottom: 16px;
-}
-
-.cta-hint {
-  font-size: 14px;
-  color: var(--text-tertiary);
-  margin: 12px 0 0 0;
-  font-style: italic;
-}
-
-.cta-hint em {
-  color: var(--accent-primary);
-  background: var(--bg-tertiary);
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
-  font-size: 13px;
-  font-style: normal;
-}
-
-.github-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  transition: all var(--transition-fast);
-  color: var(--text-primary) !important;
-  border-color: var(--border-secondary) !important;
-}
-
-.github-button:hover {
-  transform: translateY(-1px);
-  background-color: var(--hover-bg-light) !important;
-  color: var(--text-primary) !important;
-}
-
-.dark .github-button:hover {
-  background-color: var(--hover-bg-dark) !important;
+  letter-spacing: 0;
 }
 
 /* Animations */
 @keyframes fade-in {
   from {
     opacity: 0;
-    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
   }
   to {
     opacity: 1;
@@ -617,44 +847,16 @@ strong {
   }
 }
 
-/* Onboarding Overlay */
-.onboarding-overlay {
+/* Global Actions Pipeline */
+.global-actions-pipeline {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  z-index: 9999;
-  background-color: var(--bg-primary);
-}
-
-@media (max-width: 768px) {
-  .main-content {
-    padding: 16px;
-  }
-
-  .welcome-content {
-    padding: 24px;
-  }
-
-  .welcome-title {
-    font-size: 20px;
-  }
-
-  .mode-content {
-    padding: 24px;
-  }
-
-  .mode-title {
-    font-size: 24px;
-  }
-
-  .mode-subtitle {
-    font-size: 16px;
-  }
-
-  .mode-description p {
-    font-size: 15px;
-  }
+  top: 80px;
+  right: 0;
+  bottom: 40px; /* Space for footer */
+  width: 320px;
+  z-index: 1000;
+  pointer-events: auto;
+  display: flex;
+  justify-content: flex-end; /* Align pipeline to the right */
 }
 </style>

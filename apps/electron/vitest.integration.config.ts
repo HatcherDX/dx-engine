@@ -40,7 +40,7 @@ export default defineConfig({
     poolOptions: {
       forks: {
         singleFork: true, // Run tests in a single fork to avoid fork conflicts
-        isolate: true, // Isolate each test file
+        isolate: false, // Disable isolation for real Git operations
       },
     },
     // Run tests sequentially to avoid race conditions
@@ -54,6 +54,7 @@ export default defineConfig({
       '**/mainWindow.spec.ts',
       '**/mainWindow.*.spec.ts',
       '**/ipc.spec.ts',
+      '**/ipc.integration.spec.ts', // Git security integration tests
       '**/ptyManager.spec.ts',
       '**/terminalStrategy.spec.ts',
     ],

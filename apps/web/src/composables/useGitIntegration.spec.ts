@@ -642,9 +642,8 @@ index 1234567..abcdefg 100644
         '[Git Integration] Getting status for:',
         '/test/project'
       )
-      expect(mockConsole.log).toHaveBeenCalledWith(
-        '[Git Integration] Found 4 changed files'
-      )
+      // Note: The implementation only logs file count for > 50 files to reduce console noise
+      expect(mockConsole.log).toHaveBeenCalledTimes(1)
     })
   })
 

@@ -169,7 +169,7 @@ export class TerminalInstance extends EventEmitter<TerminalInstanceEvents> {
 
       // Load fit addon if available
       try {
-        const { FitAddon } = await import('xterm-addon-fit')
+        const { FitAddon } = await import('@xterm/addon-fit')
         const fitAddon = new FitAddon()
         this._xtermTerminal!.loadAddon?.(fitAddon)
         fitAddon.fit()

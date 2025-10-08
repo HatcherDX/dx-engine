@@ -20,13 +20,6 @@
       </slot>
     </div>
 
-    <!-- Footer del sidebar -->
-    <div class="sidebar-footer">
-      <slot name="sidebar-footer">
-        <div class="sidebar-status">Ready</div>
-      </slot>
-    </div>
-
     <!-- Resize handle -->
     <div
       class="resize-handle"
@@ -44,7 +37,7 @@
  *
  * @description
  * A resizable sidebar component that supports platform-specific styling and behavior.
- * Provides slots for header, content, and footer sections with built-in resize functionality.
+ * Provides slots for header and content sections with built-in resize functionality.
  *
  * @example
  * ```vue
@@ -61,9 +54,6 @@
  *     </template>
  *     <template #sidebar-content>
  *       <nav><!-- Navigation items --></nav>
- *     </template>
- *     <template #sidebar-footer>
- *       <div>Status: Ready</div>
  *     </template>
  *   </Sidebar>
  * </template>
@@ -178,35 +168,38 @@ const handleHeaderDoubleClick = () => {
   flex-shrink: 0;
   height: var(--header-height);
   background-color: var(--bg-sidebar-header);
-  border-bottom: 1px solid var(--border-sidebar);
+  border-bottom: none;
   display: flex;
   align-items: center;
   padding: 0 16px;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-primary);
   /* Enable window dragging */
   -webkit-app-region: drag;
   user-select: none;
+  /* Enhanced shadow for better depth */
+  box-shadow:
+    0 1px 0 0 rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.02);
+  /* Subtle gradient for depth */
+  background: linear-gradient(
+    180deg,
+    var(--bg-sidebar-header) 0%,
+    color-mix(in srgb, var(--bg-sidebar-header) 97%, black) 100%
+  );
+  letter-spacing: -0.01em;
 }
 
 .sidebar-content {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 0; /* Mode-specific components handle their own padding */
-}
-
-.sidebar-footer {
-  flex-shrink: 0;
-  background-color: var(--bg-sidebar-header);
-  border-top: 1px solid var(--border-sidebar);
-  padding: 8px 16px;
-  font-size: 12px;
-  color: var(--text-secondary);
-  display: flex;
-  align-items: center;
-  min-height: 32px;
+  padding: 0;
+  /* Subtle inner shadow for depth */
+  box-shadow: inset 0 4px 8px -4px rgba(0, 0, 0, 0.1);
+  /* Smooth scrolling */
+  scroll-behavior: smooth;
 }
 
 .sidebar-placeholder {
@@ -222,17 +215,12 @@ const handleHeaderDoubleClick = () => {
   color: var(--text-primary);
 }
 
-.sidebar-status {
-  font-size: 12px;
-  color: var(--text-tertiary);
-}
-
 /* Resize handle - replicates terminal-resize-handle behavior */
 .resize-handle {
   position: absolute;
   top: 0;
   right: 0;
-  width: 6px;
+  width: 8px;
   height: 100%;
   background: transparent;
   cursor: col-resize;
@@ -240,59 +228,73 @@ const handleHeaderDoubleClick = () => {
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: background-color 0.15s ease;
 }
 
 .resize-handle:hover {
-  background: rgba(59, 130, 246, 0.1);
+  background: color-mix(in srgb, var(--resize-handle-hover) 25%, transparent);
 }
 
 .resize-handle.is-resizing {
-  background: rgba(59, 130, 246, 0.1);
+  background: color-mix(in srgb, var(--resize-handle-hover) 35%, transparent);
 }
 
-/* Resize handle line indicator - visually centered in content area */
+/* Enhanced resize handle line indicator */
 .resize-handle::after {
   content: '';
   position: absolute;
   top: calc(50% + var(--header-height) / 2);
-  right: 2px;
+  right: 3px;
   transform: translateY(-50%);
   width: 2px;
-  height: 40px;
-  background: var(--border-primary);
+  height: 32px;
+  background: var(--resize-handle-color);
   border-radius: 1px;
-  transition: all 0.2s ease;
-  opacity: 1;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0.8;
 }
 
 .resize-handle:hover::after {
-  background: var(--accent-primary);
+  background: var(--resize-handle-hover);
   width: 2px;
-  height: 60px;
+  height: 48px;
+  opacity: 1;
+  box-shadow: 0 0 6px
+    color-mix(in srgb, var(--resize-handle-hover) 20%, transparent);
 }
 
 .resize-handle.is-resizing::after {
-  background: var(--accent-primary);
+  background: var(--resize-handle-hover);
   width: 2px;
-  height: 60px;
+  height: 48px;
+  opacity: 1;
+  box-shadow: 0 0 8px
+    color-mix(in srgb, var(--resize-handle-hover) 30%, transparent);
 }
 
-/* Scrollbar styling for sidebar content */
+/* Enhanced scrollbar styling for sidebar content */
 .sidebar-content::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
 }
 
 .sidebar-content::-webkit-scrollbar-track {
-  background: var(--bg-sidebar);
+  background: transparent;
+  border-radius: 4px;
 }
 
 .sidebar-content::-webkit-scrollbar-thumb {
-  background: var(--border-sidebar);
-  border-radius: 3px;
+  background: color-mix(in srgb, var(--border-sidebar) 70%, transparent);
+  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--bg-sidebar) 90%, transparent);
+  transition: background-color 0.2s ease;
 }
 
 .sidebar-content::-webkit-scrollbar-thumb:hover {
-  background: var(--text-tertiary);
+  background: color-mix(in srgb, var(--border-sidebar) 90%, transparent);
+}
+
+.sidebar-content::-webkit-scrollbar-thumb:active {
+  background: var(--border-sidebar);
 }
 
 /* Responsive adjustments */
@@ -307,10 +309,6 @@ const handleHeaderDoubleClick = () => {
 
   .sidebar-header {
     padding: 0 12px;
-  }
-
-  .sidebar-footer {
-    padding: 6px 12px;
   }
 }
 </style>

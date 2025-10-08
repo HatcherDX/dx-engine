@@ -301,4 +301,237 @@ describe('GitRunner', () => {
       expect(isRepo).toBe(true)
     })
   })
+
+  describe('Advanced Coverage Tests', () => {
+    describe('Safety Detection Edge Cases', () => {
+      it('should handle test environment safety configuration', async () => {
+        // Mock environment to trigger safety detector configuration
+        process.env.VITEST = 'true'
+
+        // Test safety detector configuration paths
+        const result = await gitRunner.status()
+        expect(result).toBeDefined()
+      })
+
+      it('should handle enhanced detection when available', async () => {
+        // Create new runner to trigger initialization
+        const runner = new GitRunner()
+
+        // Mock enhanced detection scenario with branch info
+        mockExecute.mockResolvedValueOnce({
+          success: true,
+          exitCode: 0,
+          stdout: 'main',
+          stderr: '',
+          duration: 100,
+          command: 'git branch --show-current',
+        })
+        mockExecute.mockResolvedValueOnce({
+          success: true,
+          exitCode: 0,
+          stdout: '0\t0',
+          stderr: '',
+          duration: 100,
+          command: 'git rev-list --left-right --count main...origin/main',
+        })
+        mockExecute.mockResolvedValueOnce({
+          success: true,
+          exitCode: 0,
+          stdout: 'M  file.txt\nA  new-file.txt',
+          stderr: '',
+          duration: 100,
+          command: 'git status --porcelain',
+        })
+
+        const result = await runner.status()
+        expect(result.branch).toBe('main')
+      })
+    })
+
+    describe('Error Handling Coverage', () => {
+      it('should handle status parsing with empty output', async () => {
+        // Mock all three calls that status() makes
+        mockExecute.mockResolvedValueOnce({
+          success: true,
+          exitCode: 0,
+          stdout: 'main',
+          stderr: '',
+          duration: 100,
+          command: 'git branch --show-current',
+        })
+        mockExecute.mockResolvedValueOnce({
+          success: true,
+          exitCode: 0,
+          stdout: '0\t0',
+          stderr: '',
+          duration: 100,
+          command: 'git rev-list --left-right --count main...origin/main',
+        })
+        mockExecute.mockResolvedValueOnce({
+          success: true,
+          exitCode: 0,
+          stdout: '',
+          stderr: '',
+          duration: 100,
+          command: 'git status --porcelain',
+        })
+
+        const result = await gitRunner.status()
+        expect(result.modified).toEqual([])
+        expect(result.staged).toEqual([])
+        expect(result.untracked).toEqual([])
+      })
+
+      it('should handle complex status output', async () => {
+        // Mock all three calls that status() makes
+        mockExecute.mockResolvedValueOnce({
+          success: true,
+          exitCode: 0,
+          stdout: 'main',
+          stderr: '',
+          duration: 100,
+          command: 'git branch --show-current',
+        })
+        mockExecute.mockResolvedValueOnce({
+          success: true,
+          exitCode: 0,
+          stdout: '0\t0',
+          stderr: '',
+          duration: 100,
+          command: 'git rev-list --left-right --count main...origin/main',
+        })
+        mockExecute.mockResolvedValueOnce({
+          success: true,
+          exitCode: 0,
+          stdout:
+            '?? untracked.txt\n M modified.txt\nA  added.txt\nD  deleted.txt\nR  renamed.txt -> new-name.txt',
+          stderr: '',
+          duration: 100,
+          command: 'git status --porcelain',
+        })
+
+        const result = await gitRunner.status()
+        expect(result.untracked.length).toBeGreaterThan(0)
+        expect(result.modified.length).toBeGreaterThan(0)
+        expect(result.staged.length).toBeGreaterThan(0)
+      })
+
+      it('should handle git command failures gracefully', async () => {
+        mockExecute.mockResolvedValueOnce({
+          success: false,
+          exitCode: 1,
+          stdout: '',
+          stderr: 'fatal: not a git repository',
+          duration: 100,
+          command: 'git branch --show-current',
+        })
+
+        const result = await gitRunner.status()
+        expect(result.branch).toBe('main') // defaults to 'main' on empty stdout
+      })
+    })
+
+    describe('Branch Detection Coverage', () => {
+      it('should handle empty branch name in status', async () => {
+        mockExecute.mockResolvedValueOnce({
+          success: true,
+          exitCode: 0,
+          stdout: '',
+          stderr: '',
+          duration: 100,
+          command: 'git branch --show-current',
+        })
+        mockExecute.mockResolvedValueOnce({
+          success: true,
+          exitCode: 0,
+          stdout: '0\t0',
+          stderr: '',
+          duration: 100,
+          command: 'git rev-list --left-right --count',
+        })
+        mockExecute.mockResolvedValueOnce({
+          success: true,
+          exitCode: 0,
+          stdout: '',
+          stderr: '',
+          duration: 100,
+          command: 'git status --porcelain',
+        })
+
+        const result = await gitRunner.status()
+        expect(result.branch).toBe('main') // defaults to main when empty
+      })
+
+      it('should handle branch listing', async () => {
+        mockExecute.mockResolvedValueOnce({
+          success: true,
+          exitCode: 0,
+          stdout: '  main\n* feature-branch\n  develop\n',
+          stderr: '',
+          duration: 100,
+          command: 'git branch',
+        })
+
+        const result = await gitRunner.branch()
+        expect(result.length).toBeGreaterThan(0)
+        expect(result).toContain('main')
+        expect(result).toContain('feature-branch')
+      })
+    })
+
+    describe('Async Initialization Coverage', () => {
+      it('should handle async logging system initialization', async () => {
+        // Clean up any existing logger
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Accessing global gitCommandLogger for testing cleanup
+        delete (global as any).gitCommandLogger
+
+        // Create new instance to trigger initialization
+        const newRunner = new GitRunner()
+
+        // Wait for async initialization
+        await new Promise((resolve) => setTimeout(resolve, 50))
+
+        const result = await newRunner.status()
+        expect(result).toBeDefined()
+      })
+    })
+
+    describe('Environment Detection Coverage', () => {
+      it('should handle different CI environments', async () => {
+        // Test CI environment detection
+        const originalCI = process.env.CI
+        process.env.CI = 'true'
+
+        try {
+          const runner = new GitRunner()
+          const result = await runner.status()
+          expect(result).toBeDefined()
+        } finally {
+          if (originalCI) {
+            process.env.CI = originalCI
+          } else {
+            delete process.env.CI
+          }
+        }
+      })
+
+      it('should handle Node environment variations', async () => {
+        const originalNodeEnv = process.env.NODE_ENV
+        process.env.NODE_ENV = 'test'
+
+        try {
+          const runner = new GitRunner()
+          // Use correct method name
+          const result = await runner.isRepository()
+          expect(typeof result).toBe('boolean')
+        } finally {
+          if (originalNodeEnv) {
+            process.env.NODE_ENV = originalNodeEnv
+          } else {
+            delete process.env.NODE_ENV
+          }
+        }
+      })
+    })
+  })
 })

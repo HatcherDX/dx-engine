@@ -1,0 +1,153 @@
+/**
+ * Luxury tooltip styles for Tippy.js
+ * Premium glassmorphism design with subtle animations
+ */
+
+/* Base luxury theme for tooltips - Light mode by default */
+.tippy-box[data-theme~='luxury'] {
+  /* Light mode glassmorphism */
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  color: rgba(71, 85, 105, 0.95);
+  font-size: 11px;
+  font-weight: 450;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto,
+    Oxygen, Ubuntu, sans-serif;
+  letter-spacing: 0.15px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  /* Subtle glass border */
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  /* Premium shadow for depth */
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.08),
+    0 0 0 0.5px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+/* Dark mode luxury theme - glassmorphism with dark panels */
+.dark .tippy-box[data-theme~='luxury'] {
+  /* Dark glassmorphism matching sidebar panels */
+  background: rgba(30, 30, 35, 0.85);
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  color: rgba(255, 255, 255, 0.9);
+  /* Glass effect border */
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  /* Premium dark shadow */
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.4),
+    0 0 0 0.5px rgba(255, 255, 255, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+/* Ensure dark theme applies to html.dark descendants */
+html.dark .tippy-box[data-theme~='luxury'] {
+  background: rgba(30, 30, 35, 0.85);
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.4),
+    0 0 0 0.5px rgba(255, 255, 255, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+/* Arrow styling for luxury theme */
+.tippy-box[data-theme~='luxury'] .tippy-arrow::before {
+  transform: scale(0.8);
+}
+
+/* Light mode arrow colors (default) */
+.tippy-box[data-theme~='luxury'][data-placement^='top'] > .tippy-arrow::before {
+  border-top-color: rgba(255, 255, 255, 0.92);
+}
+
+.tippy-box[data-theme~='luxury'][data-placement^='bottom']
+  > .tippy-arrow::before {
+  border-bottom-color: rgba(255, 255, 255, 0.92);
+}
+
+.tippy-box[data-theme~='luxury'][data-placement^='left']
+  > .tippy-arrow::before {
+  border-left-color: rgba(255, 255, 255, 0.92);
+}
+
+.tippy-box[data-theme~='luxury'][data-placement^='right']
+  > .tippy-arrow::before {
+  border-right-color: rgba(255, 255, 255, 0.92);
+}
+
+/* Dark mode arrow colors */
+.dark
+  .tippy-box[data-theme~='luxury'][data-placement^='top']
+  > .tippy-arrow::before,
+html.dark
+  .tippy-box[data-theme~='luxury'][data-placement^='top']
+  > .tippy-arrow::before {
+  border-top-color: rgba(30, 30, 35, 0.85);
+}
+
+.dark
+  .tippy-box[data-theme~='luxury'][data-placement^='bottom']
+  > .tippy-arrow::before,
+html.dark
+  .tippy-box[data-theme~='luxury'][data-placement^='bottom']
+  > .tippy-arrow::before {
+  border-bottom-color: rgba(30, 30, 35, 0.85);
+}
+
+.dark
+  .tippy-box[data-theme~='luxury'][data-placement^='left']
+  > .tippy-arrow::before,
+html.dark
+  .tippy-box[data-theme~='luxury'][data-placement^='left']
+  > .tippy-arrow::before {
+  border-left-color: rgba(30, 30, 35, 0.85);
+}
+
+.dark
+  .tippy-box[data-theme~='luxury'][data-placement^='right']
+  > .tippy-arrow::before,
+html.dark
+  .tippy-box[data-theme~='luxury'][data-placement^='right']
+  > .tippy-arrow::before {
+  border-right-color: rgba(30, 30, 35, 0.85);
+}
+
+/* Prevent flickering by disabling pointer events on tooltip root */
+[data-tippy-root] {
+  pointer-events: none;
+}
+
+/* Re-enable pointer events for interactive tooltips */
+.tippy-box[data-interactive] {
+  pointer-events: auto;
+}
+
+/* Interactive states */
+.tippy-box[data-theme~='luxury'][data-interactive] {
+  cursor: default;
+  user-select: text;
+}
+
+/* Content styling within tooltip - kept minimal */
+.tippy-box[data-theme~='luxury'] strong {
+  font-weight: 500;
+}
+
+.tippy-box[data-theme~='luxury'] code {
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', monospace;
+  font-size: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.light .tippy-box[data-theme~='luxury'] code,
+:not(.dark) .tippy-box[data-theme~='luxury'] code {
+  background: rgba(0, 0, 0, 0.04);
+}

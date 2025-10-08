@@ -28,7 +28,7 @@ export function useSidebarResize() {
     const isAtMaxWidth = proposedWidth >= maxWidth
 
     if (isAtMinWidth && isAtMaxWidth) {
-      document.body.style.cursor = 'not-allowed'
+      document.body.style.cursor = 'default'
     } else if (isAtMinWidth) {
       document.body.style.cursor = 'e-resize' // Can only resize to the right
     } else if (isAtMaxWidth) {
@@ -87,7 +87,7 @@ export function useSidebarResize() {
     const isAtMaxWidth = sidebarWidth.value >= maxWidth
 
     if (isAtMinWidth && isAtMaxWidth) {
-      return 'not-allowed' // Can't resize either direction
+      return 'default' // Can't resize either direction
     } else if (isAtMinWidth) {
       return 'e-resize' // Can only resize to the right (increase width)
     } else if (isAtMaxWidth) {

@@ -57,9 +57,9 @@ export function useChatSidebar() {
     const isAtMaxWidth = width.value >= MAX_WIDTH
 
     if (isGenerativeMode.value) {
-      return 'not-allowed' // No resize in generative mode
+      return 'default' // No resize in generative mode
     } else if (isAtMinWidth && isAtMaxWidth) {
-      return 'not-allowed' // Can't resize either direction
+      return 'default' // Can't resize either direction
     } else if (isAtMinWidth) {
       return 'w-resize' // Can only resize to the left (increase width)
     } else if (isAtMaxWidth) {
@@ -77,7 +77,7 @@ export function useChatSidebar() {
   // Update cursor based on resize constraints during drag
   const updateDragCursor = (proposedWidth: number) => {
     if (isGenerativeMode.value) {
-      document.body.style.cursor = 'not-allowed'
+      document.body.style.cursor = 'default'
       return
     }
 
@@ -86,7 +86,7 @@ export function useChatSidebar() {
 
     // For chat sidebar (right side), cursor directions are inverted
     if (isAtMinWidth && isAtMaxWidth) {
-      document.body.style.cursor = 'not-allowed'
+      document.body.style.cursor = 'default'
     } else if (isAtMinWidth) {
       document.body.style.cursor = 'w-resize' // Can only resize to the left (increase width)
     } else if (isAtMaxWidth) {

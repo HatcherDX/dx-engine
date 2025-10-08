@@ -473,7 +473,7 @@ describe('TimelineSidebar.vue', () => {
     it('should compute commitButtonText correctly when no files staged', () => {
       const wrapper = mount(TimelineSidebar)
       const vm = wrapper.vm as unknown as TimelineSidebarComponent
-      expect(vm.commitButtonText).toBe('No files staged')
+      expect(vm.commitButtonText).toBe('Commit to main')
     })
 
     it('should compute changedFiles from gitFiles', async () => {

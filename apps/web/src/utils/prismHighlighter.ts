@@ -368,13 +368,13 @@ function escapeHtml(text: string): string {
  */
 export function highlightCode(code: string, language: string): string {
   try {
-    console.log(
-      `[Prism Highlighter] Highlighting "${code.substring(0, 30)}..." as ${language}`
-    )
-    console.log(
-      `[Prism Highlighter] Available languages:`,
-      Object.keys(Prism.languages)
-    )
+    // console.log(
+    //   `[Prism Highlighter] Highlighting "${code.substring(0, 30)}..." as ${language}`
+    // )
+    // console.log(
+    //   `[Prism Highlighter] Available languages:`,
+    //   Object.keys(Prism.languages)
+    // )
 
     // Check if language is supported
     const grammar = Prism.languages[language]
@@ -407,18 +407,18 @@ export function highlightCode(code: string, language: string): string {
 
     // Tokenize the code
     const tokens = Prism.tokenize(code, grammar)
-    console.log(`[Prism Highlighter] Tokenized into ${tokens.length} tokens`)
-    console.log(`[Prism Highlighter] First few tokens:`, tokens.slice(0, 3))
+    // console.log(`[Prism Highlighter] Tokenized into ${tokens.length} tokens`)
+    // console.log(`[Prism Highlighter] First few tokens:`, tokens.slice(0, 3))
 
     // Convert tokens to HTML with inline styles
     const html = tokens.map(tokenToHTML).join('')
 
-    console.log(`[Prism Highlighter] ✅ Generated HTML with inline styles`)
-    console.log(
-      `[Prism Highlighter] Result has styles:`,
-      html.includes('style=')
-    )
-    console.log(`[Prism Highlighter] Sample:`, html.substring(0, 200))
+    // console.log(`[Prism Highlighter] ✅ Generated HTML with inline styles`)
+    // console.log(
+    //   `[Prism Highlighter] Result has styles:`,
+    //   html.includes('style=')
+    // )
+    // console.log(`[Prism Highlighter] Sample:`, html.substring(0, 200))
 
     return html
   } catch (error) {

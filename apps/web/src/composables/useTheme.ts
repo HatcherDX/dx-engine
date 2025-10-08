@@ -31,11 +31,26 @@ const platform = ref<'macos' | 'windows' | 'linux'>('linux')
 // Detect platform on initialization
 if (typeof window !== 'undefined') {
   const userAgent = window.navigator.userAgent.toLowerCase()
-  if (userAgent.includes('mac')) {
+  const appPlatform = window.navigator.platform?.toLowerCase() || ''
+
+  console.log('[useTheme] Platform detection:', {
+    userAgent,
+    platform: window.navigator.platform,
+    appPlatform,
+  })
+
+  // Check both userAgent and platform for better detection
+  if (
+    userAgent.includes('mac') ||
+    appPlatform.includes('mac') ||
+    userAgent.includes('darwin')
+  ) {
     platform.value = 'macos'
-  } else if (userAgent.includes('win')) {
+  } else if (userAgent.includes('win') || appPlatform.includes('win')) {
     platform.value = 'windows'
   }
+
+  console.log('[useTheme] Detected platform:', platform.value)
 
   // Apply platform class to document
   document.documentElement.classList.add(`platform-${platform.value}`)
@@ -45,7 +60,6 @@ if (typeof window !== 'undefined') {
     window.electronAPI.on('simulate-platform', ((
       newPlatform: 'macos' | 'windows' | 'linux'
     ) => {
-      console.log('Platform simulation received:', newPlatform)
       // Remove old platform class
       document.documentElement.classList.remove(`platform-${platform.value}`)
       // Set new platform

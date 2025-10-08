@@ -1,6 +1,6 @@
 import vue from '@vitejs/plugin-vue'
-import { defineConfig } from 'vitest/config'
 import { resolve } from 'path'
+import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
   plugins: [vue()],
@@ -18,6 +18,20 @@ export default defineConfig({
       { find: '@/universal', replacement: resolve(__dirname, 'universal') },
       { find: '@', replacement: resolve(__dirname, 'src') },
       { find: '/assets', replacement: resolve(__dirname, 'apps/web/public') },
+      {
+        find: '@hatcherdx/terminal-system/browser',
+        replacement: resolve(
+          __dirname,
+          'universal/terminal-system/src/browser.ts'
+        ),
+      },
+      {
+        find: '@hatcherdx/terminal-system',
+        replacement: resolve(
+          __dirname,
+          'universal/terminal-system/src/index.ts'
+        ),
+      },
     ],
   },
   define: {
@@ -59,6 +73,8 @@ export default defineConfig({
         error.message?.includes('Timeout calling') ||
         error.message?.includes('vitest-worker') ||
         error.message?.includes('onTaskUpdate') ||
+        error.message?.includes('failed to access its internal state') ||
+        error.message?.includes('onAfterRunSuite') ||
         error.name === 'TimeoutError' ||
         error.message?.includes('timeout') ||
         error.message?.includes('Worker') ||
@@ -85,10 +101,13 @@ export default defineConfig({
         maxForks: 1, // Single fork to completely avoid race conditions
         minForks: 1,
 
+        // Memory limit to prevent heap out of memory errors
+        memoryLimit: '1024MB',
+
         // Process cleanup and communication timeouts
         execArgv: [
           '--no-warnings',
-          '--max-old-space-size=512',
+          '--max-old-space-size=1024',
           '--unhandled-rejections=warn', // Don't crash on unhandled rejections
         ],
 
@@ -111,7 +130,7 @@ export default defineConfig({
     sequence: {
       shuffle: false,
       concurrent: false,
-      hooks: 'stack',
+      hooks: 'list', // Use 'list' instead of 'stack' to prevent cleanup timing issues
       setupFiles: 'parallel',
     },
 
@@ -127,7 +146,7 @@ export default defineConfig({
     server: {
       deps: {
         external: [/node_modules/],
-        inline: [],
+        inline: ['@hatcherdx/terminal-system'],
       },
       // Debug worker communication issues
       debug: {
@@ -142,12 +161,15 @@ export default defineConfig({
         ssr: {
           enabled: true,
         },
+        web: {
+          include: ['@hatcherdx/terminal-system'],
+        },
       },
       external: [/node_modules/],
-      inline: [],
+      inline: ['@hatcherdx/terminal-system'],
     },
 
-    // Include all tests from monorepo (excluding WIP)
+    // Include all tests from monorepo (excluding WIP and demo files)
     include: [
       'apps/**/*.{test,spec}.{js,ts}',
       'universal/**/*.{test,spec}.{js,ts}',
@@ -163,7 +185,7 @@ export default defineConfig({
       'apps/docs/**',
     ],
 
-    // Test alias configuration
+    // Test alias configuration (must match resolve.alias above)
     alias: {
       '@/apps/web': resolve(__dirname, 'apps/web/src'),
       '@/apps/electron': resolve(__dirname, 'apps/electron/src'),
@@ -173,6 +195,14 @@ export default defineConfig({
       '/assets': resolve(__dirname, 'apps/web/public'),
       '/@/': resolve(__dirname, 'apps/electron/src/'),
       '/logo-dark.svg': resolve(__dirname, 'apps/web/public/logo-dark.svg'),
+      '@hatcherdx/terminal-system/browser': resolve(
+        __dirname,
+        'universal/terminal-system/src/browser.ts'
+      ),
+      '@hatcherdx/terminal-system': resolve(
+        __dirname,
+        'universal/terminal-system/src/index.ts'
+      ),
     },
 
     // Istanbul coverage configuration - automatic
@@ -187,7 +217,7 @@ export default defineConfig({
       // Include all source code (excluding WIP)
       include: [
         'apps/**/*.{js,ts,vue}',
-        'universal/**/*.{js,ts}',
+        'universal/**/*.{js,ts,mjs}',
         'tooling/**/*.{js,ts}',
         'scripts/**/*.{js,ts}',
         '!apps/docs/**',
@@ -216,6 +246,9 @@ export default defineConfig({
         '**/test-global-setup.ts',
         '**/test-global-teardown.ts',
         '**/*.integration.ts',
+        '**/demo/electron-preload.js',
+        '**/demo/electron-main*.js',
+        '**/demo/**/*.spec.js',
       ],
     },
   },

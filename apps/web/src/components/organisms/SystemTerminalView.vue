@@ -114,7 +114,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick, onMounted } from 'vue'
+import { ref, watch, nextTick } from 'vue'
 import BaseIcon from '../atoms/BaseIcon.vue'
 import { useSystemTerminals } from '../../composables/useSystemTerminals'
 
@@ -279,10 +279,8 @@ watch(
   }
 )
 
-// Initialize terminals on mount
-onMounted(() => {
-  initializeTerminals()
-})
+// Terminals are initialized by the parent component (TerminalPanel)
+// to avoid duplicate initialization
 </script>
 
 <style scoped>
@@ -393,7 +391,7 @@ onMounted(() => {
   font-size: 13px;
   line-height: 1.4;
   padding: 8px;
-  background-color: #161b22; /* Match xterm dark theme background */
+  background-color: var(--terminal-bg);
 }
 
 .terminal-output.auto-scroll {

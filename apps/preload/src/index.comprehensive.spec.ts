@@ -23,6 +23,8 @@ const mockIpcRenderer = {
   off: vi.fn(),
   send: vi.fn(),
   invoke: vi.fn().mockResolvedValue({ success: true }),
+  removeListener: vi.fn(),
+  removeAllListeners: vi.fn(),
 }
 
 vi.mock('electron', () => ({
@@ -38,6 +40,43 @@ const mockIPCRendererInstance = {
 
 vi.mock('./ipcRenderer.js', () => ({
   IPCRenderer: vi.fn().mockImplementation(() => mockIPCRendererInstance),
+}))
+
+// Mock storage module to prevent side effects
+vi.mock('./storage.js', () => ({
+  // Export storageAPI as it's used in index.ts
+  storageAPI: {
+    getRecentProjects: vi.fn().mockResolvedValue([]),
+    addRecentProject: vi.fn().mockResolvedValue(undefined),
+    updateProjectLastOpened: vi.fn().mockResolvedValue(undefined),
+    removeRecentProject: vi.fn().mockResolvedValue(undefined),
+    clearRecentProjects: vi.fn().mockResolvedValue(undefined),
+    getWorkspace: vi.fn().mockResolvedValue(null),
+    setWorkspace: vi.fn().mockResolvedValue(undefined),
+    clearWorkspace: vi.fn().mockResolvedValue(undefined),
+    addTask: vi.fn().mockResolvedValue(undefined),
+    removeTask: vi.fn().mockResolvedValue(undefined),
+    setCurrentTask: vi.fn().mockResolvedValue(undefined),
+    updateTaskState: vi.fn().mockResolvedValue(undefined),
+    getIDEConfig: vi.fn().mockResolvedValue({
+      version: '1.0.0',
+      ui: { theme: 'dark', sidebarWidth: 250, terminalHeight: 300 },
+      editor: {
+        fontSize: 14,
+        fontFamily: 'monospace',
+        tabSize: 2,
+        wordWrap: false,
+      },
+      projectHistoryLimit: 10,
+    }),
+    updateIDEConfig: vi.fn().mockResolvedValue(undefined),
+    getSecurityInfo: vi.fn().mockResolvedValue({
+      platform: 'test',
+      encryptionAvailable: true,
+    }),
+    validateProjectPath: vi.fn().mockResolvedValue({ valid: true }),
+    checkPath: vi.fn().mockResolvedValue({ exists: true, isDirectory: true }),
+  },
 }))
 
 describe('Preload Script - Comprehensive Coverage', () => {
@@ -80,7 +119,8 @@ describe('Preload Script - Comprehensive Coverage', () => {
     it('should expose electronAPI to main world with complete interface', async () => {
       await import('./index.js')
 
-      expect(mockContextBridge.exposeInMainWorld).toHaveBeenCalledTimes(1)
+      // exposeInMainWorld is called twice: once for electronAPI and once for storageAPI
+      expect(mockContextBridge.exposeInMainWorld).toHaveBeenCalledTimes(2)
       expect(mockContextBridge.exposeInMainWorld).toHaveBeenCalledWith(
         'electronAPI',
         expect.objectContaining({
@@ -99,6 +139,7 @@ describe('Preload Script - Comprehensive Coverage', () => {
           readFile: expect.any(Function),
           scanDirectory: expect.any(Function),
           getGitStatus: expect.any(Function),
+          getGitBranches: expect.any(Function),
           getGitDiff: expect.any(Function),
           off: expect.any(Function),
           systemTerminal: expect.any(Object),
@@ -128,6 +169,34 @@ describe('Preload Script - Comprehensive Coverage', () => {
         })
       )
     })
+
+    it('should expose storageAPI to main world with complete interface', async () => {
+      await import('./index.js')
+
+      // storageAPI is exposed as the second call to exposeInMainWorld
+      expect(mockContextBridge.exposeInMainWorld).toHaveBeenCalledWith(
+        'storageAPI',
+        expect.objectContaining({
+          getRecentProjects: expect.any(Function),
+          addRecentProject: expect.any(Function),
+          updateProjectLastOpened: expect.any(Function),
+          removeRecentProject: expect.any(Function),
+          clearRecentProjects: expect.any(Function),
+          getWorkspace: expect.any(Function),
+          setWorkspace: expect.any(Function),
+          clearWorkspace: expect.any(Function),
+          addTask: expect.any(Function),
+          removeTask: expect.any(Function),
+          setCurrentTask: expect.any(Function),
+          updateTaskState: expect.any(Function),
+          getIDEConfig: expect.any(Function),
+          updateIDEConfig: expect.any(Function),
+          getSecurityInfo: expect.any(Function),
+          validateProjectPath: expect.any(Function),
+          checkPath: expect.any(Function),
+        })
+      )
+    })
   })
 
   describe('Core API Methods', () => {
@@ -153,6 +222,9 @@ describe('Preload Script - Comprehensive Coverage', () => {
       it('should provide on method that wraps native ipcRenderer.on', () => {
         const testListener = vi.fn()
 
+        // Clear any previous mock calls to ensure we're testing the right one
+        mockIpcRenderer.on.mockClear()
+
         electronAPI.on('test-channel', testListener)
 
         expect(mockIpcRenderer.on).toHaveBeenCalledWith(
@@ -160,11 +232,18 @@ describe('Preload Script - Comprehensive Coverage', () => {
           expect.any(Function)
         )
 
-        // Test the wrapper function
+        // Since we cleared the mock, there should be exactly one call for our test-channel
+        expect(mockIpcRenderer.on).toHaveBeenCalledTimes(1)
+
+        // Test the wrapper function - get the actual wrapper that was passed to mockIpcRenderer.on
         const wrapperFn = mockIpcRenderer.on.mock.calls[0][1]
         const mockEvent = { sender: 'test' }
+
+        // Simulate the wrapper function being called with event and args
+        // The wrapper should strip the event and only pass the args to the listener
         wrapperFn(mockEvent, 'arg1', 'arg2')
 
+        // Verify that the testListener was called with just the args (without the event)
         expect(testListener).toHaveBeenCalledWith('arg1', 'arg2')
         expect(testListener).not.toHaveBeenCalledWith(mockEvent, 'arg1', 'arg2')
       })
@@ -479,6 +558,11 @@ describe('Preload Script - Comprehensive Coverage', () => {
     })
 
     describe('Event Listeners', () => {
+      beforeEach(() => {
+        // Clear mocks before each event listener test
+        vi.clearAllMocks()
+      })
+
       it('should register onEvent listener', () => {
         const callback = vi.fn()
 

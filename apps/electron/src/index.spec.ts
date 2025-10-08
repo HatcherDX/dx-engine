@@ -32,6 +32,8 @@ const { mockApp } = vi.hoisted(() => ({
     quit: vi.fn(),
     on: vi.fn(),
     whenReady: vi.fn(),
+    isReady: vi.fn(),
+    getPath: vi.fn((name: string) => `/mock/app/path/${name}`),
     exit: vi.fn(),
     dock: {
       setIcon: vi.fn(),
@@ -60,6 +62,23 @@ const { mockSetupDevConsoleFilter } = vi.hoisted(() => ({
   mockSetupDevConsoleFilter: vi.fn(),
 }))
 
+const { mockSecureStorageService } = vi.hoisted(() => ({
+  mockSecureStorageService: {
+    initialize: vi.fn().mockResolvedValue(undefined),
+    getSecurityInfo: vi.fn().mockReturnValue({
+      platform: process.platform,
+      encryptionAvailable: true,
+    }),
+  },
+}))
+
+const { mockRegisterStorageHandlers, mockCleanupStorageHandlers } = vi.hoisted(
+  () => ({
+    mockRegisterStorageHandlers: vi.fn(),
+    mockCleanupStorageHandlers: vi.fn(),
+  })
+)
+
 // Mock Electron app
 vi.mock('electron', () => ({
   app: mockApp,
@@ -68,7 +87,31 @@ vi.mock('electron', () => ({
     removeHandler: vi.fn(),
     removeAllListeners: vi.fn(),
   },
+  safeStorage: {
+    isEncryptionAvailable: vi.fn(() => true),
+    encryptString: vi.fn((plainText: string) =>
+      Buffer.from(`encrypted:${plainText}`)
+    ),
+    decryptString: vi.fn((encrypted: Buffer) =>
+      encrypted.toString().replace('encrypted:', '')
+    ),
+  },
 }))
+
+// Mock fs/promises
+vi.mock('fs/promises', async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    mkdir: vi.fn(() => Promise.resolve()),
+    rm: vi.fn(() => Promise.resolve()),
+    writeFile: vi.fn(() => Promise.resolve()),
+    readFile: vi.fn(() => Promise.resolve(Buffer.from('mock-key-data'))),
+    access: vi.fn(() =>
+      Promise.reject(new Error('ENOENT: no such file or directory'))
+    ),
+  }
+})
 
 // Mock Node.js modules
 vi.mock('node:fs', async () => {
@@ -108,6 +151,24 @@ vi.mock('./utils/devConsoleFilter', () => ({
   setupDevConsoleFilter: mockSetupDevConsoleFilter,
 }))
 
+// Mock SecureStorageService
+vi.mock('./security/SecureStorageService', () => ({
+  SecureStorageService: class MockSecureStorageService {
+    async initialize() {
+      return mockSecureStorageService.initialize()
+    }
+    getSecurityInfo() {
+      return mockSecureStorageService.getSecurityInfo()
+    }
+  },
+}))
+
+// Mock storage handlers
+vi.mock('./ipc/storageHandlers', () => ({
+  registerStorageHandlers: mockRegisterStorageHandlers,
+  cleanupStorageHandlers: mockCleanupStorageHandlers,
+}))
+
 describe('Electron Main Process Index', () => {
   describe('Module Import and Execution', () => {
     it('should import and execute the main index module', async () => {
@@ -117,6 +178,7 @@ describe('Electron Main Process Index', () => {
       // Setup mocks before importing
       mockApp.requestSingleInstanceLock.mockReturnValue(true)
       mockApp.whenReady.mockResolvedValue(undefined)
+      mockApp.isReady.mockReturnValue(false) // App not ready, so whenReady will be called
       mockExistsSync.mockReturnValue(false)
 
       // Import the module to execute it
@@ -308,6 +370,12 @@ describe('Electron Main Process Index', () => {
       vi.resetModules()
 
       mockApp.requestSingleInstanceLock.mockReturnValue(true)
+      mockApp.isReady.mockReturnValue(false) // App not ready, so whenReady will be called
+
+      // Reset mock functions after vi.resetModules()
+      mockInitializeTerminalSystem.mockResolvedValue(undefined)
+      mockInitializeSystemTerminalIPC.mockReturnValue(undefined)
+      mockRestoreOrCreateWindow.mockResolvedValue(undefined)
 
       // Create a promise we can resolve manually
       let readyResolve: () => void
@@ -333,6 +401,11 @@ describe('Electron Main Process Index', () => {
       vi.resetModules()
 
       mockApp.requestSingleInstanceLock.mockReturnValue(true)
+      mockApp.isReady.mockReturnValue(false) // App not ready, so whenReady will be called
+
+      // Reset mock functions after vi.resetModules()
+      mockInitializeTerminalSystem.mockResolvedValue(undefined)
+      mockInitializeSystemTerminalIPC.mockReturnValue(undefined)
       mockRestoreOrCreateWindow.mockRejectedValue(
         new Error('Window creation failed')
       )
@@ -350,7 +423,7 @@ describe('Electron Main Process Index', () => {
       await importPromise
 
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'Failed to create window:',
+        '❌ [MAIN] Failed to initialize systems:',
         expect.any(Error)
       )
     })

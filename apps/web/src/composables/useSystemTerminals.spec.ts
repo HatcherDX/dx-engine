@@ -184,6 +184,7 @@ vi.stubGlobal('window', mockWindow)
 
 import {
   useSystemTerminals,
+  resetSharedState,
   type UseSystemTerminalsConfig,
 } from './useSystemTerminals'
 
@@ -198,6 +199,9 @@ const mockConsole = {
 beforeEach(() => {
   // Reset all mocks
   vi.clearAllMocks()
+
+  // Reset shared state from the composable
+  resetSharedState()
 
   // Clear IPC event callbacks
   onActivatedCallback = null
@@ -402,6 +406,9 @@ describe('useSystemTerminals', () => {
      * Tests auto-initialization when setting active terminal.
      */
     it('should auto-initialize when setting active terminal on uninitialized state', async () => {
+      // Reset shared state for this test
+      resetSharedState()
+
       const newTerminals = useSystemTerminals({
         isElectronOverride: true,
         electronAPI: mockElectronAPI,
@@ -691,15 +698,16 @@ describe('useSystemTerminals', () => {
       const config: UseSystemTerminalsConfig = {
         autoInit: false,
         console: mockConsole,
+        isElectronOverride: true,
+        electronAPI: mockElectronAPI,
       }
 
       const terminals = useSystemTerminals(config)
-      await terminals.initializeTerminals()
-
-      expect(terminals.isInitialized.value).toBe(false)
-      expect(terminals.initError.value).toBe(
+      await expect(terminals.initializeTerminals()).rejects.toThrow(
         'System terminals not returned from initialization'
       )
+
+      expect(terminals.isInitialized.value).toBe(false)
     })
 
     it('should test all branches in setActiveTerminal with different scenarios', async () => {
@@ -1284,7 +1292,7 @@ describe('useSystemTerminals', () => {
             terminals,
           }
         },
-        template: '<div>{{ terminals.isInitialized.value }}</div>',
+        template: '<div>{{ terminals.isInitialized }}</div>',
       })
 
       const wrapper = mount(TestComponent)
@@ -1393,10 +1401,11 @@ describe('useSystemTerminals', () => {
       }
 
       const terminals = useSystemTerminals(config)
-      await terminals.initializeTerminals()
+      await expect(terminals.initializeTerminals()).rejects.toThrow(
+        'IPC initialization failed'
+      )
 
       expect(terminals.isInitialized.value).toBe(false)
-      expect(terminals.initError.value).toBe('IPC initialization failed')
     })
 
     it('should handle missing terminal data in IPC response', async () => {
@@ -1422,12 +1431,11 @@ describe('useSystemTerminals', () => {
       }
 
       const terminals = useSystemTerminals(config)
-      await terminals.initializeTerminals()
-
-      expect(terminals.isInitialized.value).toBe(false)
-      expect(terminals.initError.value).toBe(
+      await expect(terminals.initializeTerminals()).rejects.toThrow(
         'System terminals not returned from initialization'
       )
+
+      expect(terminals.isInitialized.value).toBe(false)
     })
 
     it('should handle Electron IPC operations and error scenarios', async () => {

@@ -4,35 +4,22 @@
       <div class="selection-content">
         <!-- Header Section -->
         <div class="selection-header">
-          <h1 class="selection-title">Choose Your First Task</h1>
+          <h1 class="selection-title">Define Your Task</h1>
           <p class="selection-subtitle">
-            What type of work are you planning to do? This helps Hatcher provide
-            the most relevant assistance for your workflow.
+            Select your work's intent to tailor the AI assistance.
           </p>
         </div>
 
-        <!-- Task Cards Grid -->
+        <!-- Task Options Grid -->
         <div class="tasks-grid">
           <OnboardingTaskCard
-            v-for="task in ONBOARDING_TASKS"
+            v-for="(task, index) in ONBOARDING_TASKS"
             :key="task?.id || ''"
             :task="task"
             :is-selected="selectedTask === task.id"
+            :is-bottom-row="getIsBottomRow(index)"
             @select="handleTaskSelect"
           />
-        </div>
-
-        <!-- Navigation Section -->
-        <div class="navigation-section">
-          <BaseButton
-            variant="ghost"
-            size="md"
-            class="back-button"
-            @click="handleBack"
-          >
-            <BaseIcon name="ArrowRight" size="sm" class="back-icon" />
-            Projects
-          </BaseButton>
         </div>
       </div>
     </div>
@@ -40,14 +27,12 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted, onUnmounted } from 'vue'
 import { useOnboarding } from '../../composables/useOnboarding'
 import type { OnboardingTask } from '../../composables/useOnboarding'
-import BaseButton from '../atoms/BaseButton.vue'
-import BaseIcon from '../atoms/BaseIcon.vue'
 import OnboardingTaskCard from '../molecules/OnboardingTaskCard.vue'
 
-const { selectedTask, nextStep, previousStep, selectTask, ONBOARDING_TASKS } =
-  useOnboarding()
+const { selectedTask, nextStep, selectTask, ONBOARDING_TASKS } = useOnboarding()
 
 const handleTaskSelect = (taskId: OnboardingTask): void => {
   selectTask(taskId)
@@ -55,44 +40,86 @@ const handleTaskSelect = (taskId: OnboardingTask): void => {
   nextStep()
 }
 
-const handleBack = (): void => {
-  previousStep()
+const handleTaskSelectFromTerminal = (taskId: OnboardingTask): void => {
+  // Only select the task, don't navigate - terminal will handle navigation
+  selectTask(taskId)
 }
+
+// Handle terminal task selection events
+const handleTerminalTaskSelect = (event: { detail?: { taskId?: string } }) => {
+  console.log('[OnboardingTaskSelection] Terminal task selected:', event.detail)
+
+  // Check if detail and taskId exist
+  if (!event.detail?.taskId) {
+    return
+  }
+
+  // Task IDs now match directly, no mapping needed
+  const taskId = event.detail.taskId as OnboardingTask
+  if (ONBOARDING_TASKS.some((t) => t.id === taskId)) {
+    handleTaskSelectFromTerminal(taskId)
+  }
+}
+
+// Determine if a task card is in the bottom row
+const getIsBottomRow = (index: number): boolean => {
+  const totalTasks = ONBOARDING_TASKS.length
+  const isEven = totalTasks % 2 === 0
+
+  if (isEven) {
+    // If even number of tasks, last 2 cards are in bottom row
+    return index >= totalTasks - 2
+  } else {
+    // If odd number of tasks, only the last card is in bottom row
+    return index === totalTasks - 1
+  }
+}
+
+onMounted(() => {
+  // Type assertion needed for custom event handler
+  window.addEventListener(
+    'terminal-select-task',
+    // eslint-disable-next-line no-undef
+    handleTerminalTaskSelect as EventListener
+  )
+})
+
+onUnmounted(() => {
+  // Type assertion needed for custom event handler
+  window.removeEventListener(
+    'terminal-select-task',
+    // eslint-disable-next-line no-undef
+    handleTerminalTaskSelect as EventListener
+  )
+})
 </script>
 
 <style scoped>
 .onboarding-task-selection {
-  position: relative;
+  width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
-  background: linear-gradient(
-    135deg,
-    var(--bg-primary) 0%,
-    var(--bg-secondary) 100%
-  );
-  padding: 24px;
 }
 
 .selection-container {
-  max-width: 1000px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 0;
   width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
   animation: fade-in-up 0.8s ease-out;
 }
 
 .selection-content {
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border-primary);
-  border-radius: 16px;
-  padding: 40px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(8px);
-}
-
-.dark .selection-content {
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  background-color: transparent;
+  padding: 0;
 }
 
 .selection-header {
@@ -120,26 +147,7 @@ const handleBack = (): void => {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
-  margin-bottom: 40px;
   overflow: visible;
-}
-
-.navigation-section {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 16px;
-}
-
-.back-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--text-secondary);
-}
-
-.back-icon {
-  transform: rotate(180deg);
 }
 
 /* Animations */

@@ -1,13 +1,18 @@
 /**
  * Subprocess-based Terminal - C++20 Compatibility Fallback
  * Uses Node.js child_process instead of node-pty for Electron v35 compatibility
+ * Now delegates to SubprocessBackend from terminal-system for consistency
  */
 
-import { spawn, ChildProcess } from 'node:child_process'
-import * as os from 'node:os'
 import { EventEmitter } from 'node:events'
 import type { TerminalInterface } from './terminalStrategy'
 import { TerminalBufferManager } from './terminalBufferManager'
+// Import all modules from main export (Electron app can use Node.js APIs)
+import {
+  SubprocessBackend,
+  type BackendProcess,
+  WelcomeMessageProvider,
+} from '@hatcherdx/terminal-system'
 
 interface SubprocessTerminalOptions {
   shell?: string
@@ -21,7 +26,8 @@ export class SubprocessTerminal
   extends EventEmitter
   implements TerminalInterface
 {
-  private process: ChildProcess | null = null
+  private backend: SubprocessBackend
+  private process: BackendProcess | null = null
   private id: string
   private shell: string
   private cwd: string
@@ -32,10 +38,13 @@ export class SubprocessTerminal
   constructor(id: string, options: SubprocessTerminalOptions = {}) {
     super()
     this.id = id
-    this.shell = options.shell || this.detectShell()
+    this.shell = options.shell || process.env.SHELL || '/bin/bash'
     this.cwd = options.cwd || process.env.HOME || process.cwd()
     this.cols = options.cols || 80
     this.rows = options.rows || 24
+
+    // Initialize the subprocess backend from terminal-system
+    this.backend = new SubprocessBackend()
 
     // Initialize buffer manager with conservative settings for subprocess
     this.bufferManager = new TerminalBufferManager(id, {
@@ -58,88 +67,42 @@ export class SubprocessTerminal
     })
   }
 
-  private detectShell(): string {
-    const platform = os.platform()
-
-    switch (platform) {
-      case 'win32':
-        // Windows: prefer PowerShell, fallback to cmd
-        return process.env.SHELL ||
-          (process.env.COMSPEC && process.env.COMSPEC.includes('powershell'))
-          ? 'powershell.exe'
-          : process.env.COMSPEC || 'cmd.exe'
-
-      case 'darwin':
-        // macOS: prefer zsh (default since Catalina), fallback to bash
-        return process.env.SHELL || '/bin/zsh'
-
-      default:
-        // Linux/Unix: prefer bash
-        return process.env.SHELL || '/bin/bash'
-    }
-  }
-
-  spawn(): void {
+  async spawn(): Promise<void> {
     try {
-      console.log(`[Subprocess Terminal] Spawning shell: ${this.shell}`)
+      console.log(
+        `[Subprocess Terminal] 🚀 SPAWNING SHELL using SubprocessBackend: ${this.shell}`
+      )
 
-      // Prepare environment
-      const env = {
-        ...process.env,
-        TERM: 'xterm-256color',
-        COLORTERM: 'truecolor',
-        COLUMNS: this.cols.toString(),
-        LINES: this.rows.toString(),
-      }
+      // Generate welcome message
+      const welcomeProvider = new WelcomeMessageProvider()
+      const welcomeMessage = welcomeProvider.getWelcomeMessage()
 
-      // Spawn shell process
-      this.process = spawn(this.shell, [], {
+      // Use SubprocessBackend to spawn the shell
+      this.process = await this.backend.spawn({
+        shell: this.shell,
         cwd: this.cwd,
-        env,
-        stdio: ['pipe', 'pipe', 'pipe'],
+        cols: this.cols,
+        rows: this.rows,
+        welcomeMessage,
+        env: {
+          TERM: 'xterm-256color',
+          COLORTERM: 'truecolor',
+          COLUMNS: this.cols.toString(),
+          LINES: this.rows.toString(),
+        },
       })
 
-      if (!this.process.stdin || !this.process.stdout || !this.process.stderr) {
-        throw new Error('Failed to create stdio streams')
-      }
+      console.log(
+        `[Subprocess Terminal] ✅ SPAWN SUCCEEDED with PID: ${this.process.pid}`
+      )
 
-      // Setup data handlers with safety filtering
-      this.process.stdout.on('data', (data: Buffer) => {
-        const dataStr = data.toString()
+      // Setup event handlers
+      this.process.on('data', (data: string) => {
         console.log(
-          `[Subprocess] Raw stdout received (${dataStr.length} chars):`,
-          dataStr.slice(0, 100)
+          `[Subprocess Terminal] Received data from backend (${data.length} chars)`
         )
-        const filteredData = this.filterTerminalOutput(dataStr)
-
-        if (filteredData.trim()) {
-          console.log(
-            '[Subprocess] Stdout filtered and emitted:',
-            filteredData.slice(0, 50)
-          )
-          this.bufferManager.write(filteredData)
-        } else {
-          console.log('[Subprocess] Stdout data was completely filtered out')
-        }
-      })
-
-      this.process.stderr.on('data', (data: Buffer) => {
-        const dataStr = data.toString()
-        console.log(
-          `[Subprocess] Raw stderr received (${dataStr.length} chars):`,
-          dataStr.slice(0, 100)
-        )
-        const filteredData = this.filterTerminalOutput(dataStr)
-
-        if (filteredData.trim()) {
-          console.log(
-            '[Subprocess] Stderr filtered and emitted:',
-            filteredData.slice(0, 50)
-          )
-          this.bufferManager.write(filteredData)
-        } else {
-          console.log('[Subprocess] Stderr data was completely filtered out')
-        }
+        // Send data through buffer manager
+        this.bufferManager.write(data)
       })
 
       this.process.on('error', (error: Error) => {
@@ -147,32 +110,16 @@ export class SubprocessTerminal
         this.emit('error', error)
       })
 
-      this.process.on('exit', (code: number | null, signal: string | null) => {
+      this.process.on('exit', ({ exitCode }: { exitCode: number }) => {
         console.log(
-          `[Subprocess Terminal] Process ${this.id} exited with code ${code}, signal ${signal}`
+          `[Subprocess Terminal] Process ${this.id} exited with code ${exitCode}`
         )
-        this.emit('exit', code || 0, signal)
+        this.emit('exit', exitCode, null)
         this.process = null
       })
 
-      // Send an initial prompt since shell might not generate one immediately
-      setTimeout(() => {
-        console.log(
-          `[Subprocess Terminal] Sending initial prompt for ${this.id}`
-        )
-        // Let the shell settle first, then send a simple prompt to activate the terminal
-        this.emit('data', '$ ')
-      }, 500)
-
-      // Add periodic debug info to verify our changes are working
-      setInterval(() => {
-        console.log(
-          `[Subprocess Debug] Terminal ${this.id} is running with PID ${this.process?.pid}`
-        )
-      }, 10000)
-
       console.log(
-        `[Subprocess Terminal] Successfully spawned terminal ${this.id} with PID ${this.process.pid}`
+        `[Subprocess Terminal] Successfully initialized terminal ${this.id}`
       )
     } catch (error) {
       console.error(
@@ -183,90 +130,30 @@ export class SubprocessTerminal
     }
   }
 
-  private getWelcomeMessage(): string {
-    const hostname = os.hostname()
-    const username = os.userInfo().username
-
-    return `\r\nWelcome to DX Engine Terminal\r\n${username}@${hostname}:${this.cwd}$ `
-  }
-
-  /**
-   * Filter terminal output to remove problematic sequences
-   */
-  private filterTerminalOutput(data: string): string {
-    // Remove null bytes
-    let filtered = data.replace(/\0/g, '')
-
-    // Filter out ANY repeating characters (especially W's)
-    filtered = filtered.replace(/(.)\1{9,}/g, '') // Remove any character repeated 10+ times
-
-    // Remove most escape sequences but keep basic formatting
-    // eslint-disable-next-line no-control-regex
-    filtered = filtered.replace(/\x1b\[[0-9;]*[mK]/g, '') // Color codes
-    // eslint-disable-next-line no-control-regex
-    filtered = filtered.replace(/\x1b\[[ABCD]/g, '') // Cursor movement
-    // eslint-disable-next-line no-control-regex
-    filtered = filtered.replace(/\x1b\[2J/g, '') // Clear screen
-
-    // Remove bell and other control characters
-    // eslint-disable-next-line no-control-regex
-    filtered = filtered.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
-
-    // Keep only printable ASCII + basic whitespace (space, tab, newline, carriage return)
-    filtered = filtered.replace(/[^\x20-\x7E\t\n\r]/g, '')
-
-    // Remove excessive whitespace
-    filtered = filtered.replace(/\n{3,}/g, '\n\n')
-    filtered = filtered.replace(/ {10,}/g, '    ') // Replace long spaces with 4 spaces
-
-    return filtered
-  }
-
   write(data: string): void {
-    if (this.process && this.process.stdin) {
-      console.log(
-        `[Subprocess Terminal] Writing user input to shell:`,
-        JSON.stringify(data)
-      )
-
-      // Echo the input back to the terminal first (simulate terminal echo)
-      // This is needed because zsh in non-interactive mode doesn't echo by default
-      if (data === '\r') {
-        // Handle Enter key - echo newline and execute command
-        this.emit('data', '\r\n')
-        this.process.stdin.write('\n')
-      } else if (data === '\x7f' || data === '\b') {
-        // Handle backspace - move cursor back and erase character
-        this.emit('data', '\b \b')
-      } else if (data.length === 1 && data >= ' ' && data <= '~') {
-        // Echo printable characters back to terminal
-        this.emit('data', data)
-        this.process.stdin.write(data)
-      } else {
-        // Send non-printable characters directly to shell
-        this.process.stdin.write(data)
-      }
-    } else {
+    if (!this.process) {
       console.error(
-        `[Subprocess Terminal] Cannot write - no process or stdin available for terminal ${this.id}`
+        `[Subprocess Terminal] Cannot write - no process available for terminal ${this.id}`
       )
+      return
     }
+
+    console.log(
+      `[Subprocess Terminal] Writing to backend:`,
+      JSON.stringify(data)
+    )
+
+    // SubprocessBackend now handles echo internally
+    this.process.write(data)
   }
 
   resize(cols: number, rows: number): void {
     this.cols = cols
     this.rows = rows
 
-    // Send resize signal if supported (Unix-like systems)
-    if (this.process && this.process.pid && os.platform() !== 'win32') {
-      try {
-        process.kill(this.process.pid, 'SIGWINCH')
-      } catch (error) {
-        console.warn(
-          `[Subprocess Terminal] Failed to send resize signal:`,
-          error
-        )
-      }
+    // SubprocessBackend handles resize
+    if (this.process) {
+      this.process.resize(cols, rows)
     }
   }
 
@@ -277,15 +164,9 @@ export class SubprocessTerminal
       // Cleanup buffer manager first
       this.bufferManager.destroy()
 
+      // Kill the process through backend
       this.process.kill('SIGTERM')
-
-      // Force kill after timeout
-      setTimeout(() => {
-        if (this.process && !this.process.killed) {
-          console.log(`[Subprocess Terminal] Force killing terminal ${this.id}`)
-          this.process.kill('SIGKILL')
-        }
-      }, 5000)
+      this.process = null
     }
   }
 
@@ -294,7 +175,7 @@ export class SubprocessTerminal
   }
 
   get isRunning(): boolean {
-    return this.process !== null && !this.process.killed
+    return this.process !== null
   }
 
   /**

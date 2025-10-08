@@ -430,3 +430,198 @@ describe('DevConsoleFilter Integration Tests', () => {
     }
   })
 })
+
+// 6. TARGETED 100% COVERAGE TESTS (context7 patterns)
+describe('DevConsoleFilter 100% Coverage Tests', () => {
+  let originalConsole: {
+    error: typeof console.error
+    warn: typeof console.warn
+    log: typeof console.log
+  }
+
+  beforeEach(() => {
+    originalConsole = {
+      error: console.error,
+      warn: console.warn,
+      log: console.log,
+    }
+    process.env.NODE_ENV = 'development'
+  })
+
+  afterEach(() => {
+    console.error = originalConsole.error
+    console.warn = originalConsole.warn
+    console.log = originalConsole.log
+    delete process.env.NODE_ENV
+    vi.restoreAllMocks()
+  })
+
+  describe('Line 84 Coverage - console.warn with non-harmless message', () => {
+    it('should call originalConsoleWarn.apply with [MAIN] prefix for non-harmless warn messages', () => {
+      const warnSpy = vi.fn()
+      console.warn = warnSpy
+
+      setupDevConsoleFilter()
+
+      // Test important warning that should NOT be filtered (covers line 84)
+      console.warn('Important application warning message')
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        '[MAIN]',
+        'Important application warning message'
+      )
+    })
+
+    it('should handle multiple arguments in console.warn correctly', () => {
+      const warnSpy = vi.fn()
+      console.warn = warnSpy
+
+      setupDevConsoleFilter()
+
+      // Test warn with multiple arguments (covers line 84)
+      console.warn('Warning:', 'Multiple', 'Arguments', { data: 'test' })
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        '[MAIN]',
+        'Warning:',
+        'Multiple',
+        'Arguments',
+        { data: 'test' }
+      )
+    })
+
+    it('should distinguish between harmless and important warn messages', () => {
+      const warnSpy = vi.fn()
+      console.warn = warnSpy
+
+      setupDevConsoleFilter()
+
+      // Test harmless warning (should be filtered)
+      console.warn('Secure coding is not enabled for restorable state')
+      expect(warnSpy).not.toHaveBeenCalled()
+
+      // Test important warning (should pass through, covers line 84)
+      console.warn('Critical memory leak detected')
+      expect(warnSpy).toHaveBeenCalledWith(
+        '[MAIN]',
+        'Critical memory leak detected'
+      )
+    })
+  })
+
+  describe('Lines 102-104 Coverage - restore function', () => {
+    it('should provide restore function that restores original console methods', () => {
+      const originalError = console.error
+      const originalWarn = console.warn
+      const originalLog = console.log
+
+      // Setup filtering
+      const filter = setupDevConsoleFilter()
+
+      // Verify console methods are wrapped
+      expect(console.error).not.toBe(originalError)
+      expect(console.warn).not.toBe(originalWarn)
+      expect(console.log).not.toBe(originalLog)
+
+      // Call restore function (covers lines 102-104)
+      expect(filter?.restore).toBeDefined()
+      filter?.restore()
+
+      // Verify original methods are restored
+      expect(console.error).toBe(originalError)
+      expect(console.warn).toBe(originalWarn)
+      expect(console.log).toBe(originalLog)
+    })
+
+    it('should handle restore function multiple times safely', () => {
+      const originalError = console.error
+      const originalWarn = console.warn
+      const originalLog = console.log
+
+      const filter = setupDevConsoleFilter()
+
+      // Call restore multiple times (should not throw)
+      expect(() => {
+        filter?.restore()
+        filter?.restore()
+        filter?.restore()
+      }).not.toThrow()
+
+      // Verify methods are still restored correctly
+      expect(console.error).toBe(originalError)
+      expect(console.warn).toBe(originalWarn)
+      expect(console.log).toBe(originalLog)
+    })
+
+    it('should restore console methods when options.enabled is false', () => {
+      // When filtering is disabled, no restore function should be returned
+      const filter = setupDevConsoleFilter({ enabled: false })
+      expect(filter).toBeUndefined()
+    })
+
+    it('should restore console methods when not in development environment', () => {
+      process.env.NODE_ENV = 'production'
+
+      // When not in development, no restore function should be returned
+      const filter = setupDevConsoleFilter()
+      expect(filter).toBeUndefined()
+    })
+
+    it('should test restore function return object structure', () => {
+      const filter = setupDevConsoleFilter()
+
+      expect(filter).toEqual({
+        restore: expect.any(Function),
+      })
+
+      // Ensure restore function works (covers lines 102-104)
+      expect(() => filter?.restore()).not.toThrow()
+    })
+  })
+
+  describe('Edge cases using context7 patterns', () => {
+    it('should handle console interception with vi.spyOn pattern', () => {
+      // Using context7 pattern for spying on console methods
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+      const filter = setupDevConsoleFilter()
+
+      // Test that spies are overwritten by the filter
+      console.error('Test error message')
+      console.warn('Test warning message') // This should cover line 84
+      console.log('Test log message')
+
+      expect(errorSpy).toHaveBeenCalledWith('[MAIN]', 'Test error message')
+      expect(warnSpy).toHaveBeenCalledWith('[MAIN]', 'Test warning message')
+      expect(logSpy).toHaveBeenCalledWith('[MAIN]', 'Test log message')
+
+      // Restore using filter
+      filter?.restore()
+
+      errorSpy.mockRestore()
+      warnSpy.mockRestore()
+      logSpy.mockRestore()
+    })
+
+    it('should handle environment variables using context7 vi.stubEnv pattern', () => {
+      // Using context7 pattern for environment variable stubbing
+      vi.stubEnv('NODE_ENV', 'development')
+
+      const warnSpy = vi.fn()
+      console.warn = warnSpy
+
+      setupDevConsoleFilter()
+
+      // Test non-harmless message (covers line 84)
+      console.warn('Environment specific warning')
+      expect(warnSpy).toHaveBeenCalledWith(
+        '[MAIN]',
+        'Environment specific warning'
+      )
+
+      vi.unstubAllEnvs()
+    })
+  })
+})

@@ -29,7 +29,15 @@ export default defineConfig({
       formats: ['cjs'],
     },
     rollupOptions: {
-      external: ['electron', 'node-pty', 'express', 'express-ws'],
+      external: [
+        'electron',
+        'node-pty',
+        'express',
+        'express-ws',
+        'mock-aws-s3',
+        'aws-sdk',
+        'nock',
+      ],
       output: {
         entryFileNames: '[name].cjs',
         chunkFileNames: '[name].cjs',

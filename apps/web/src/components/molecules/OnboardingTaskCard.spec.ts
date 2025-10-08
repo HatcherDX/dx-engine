@@ -22,35 +22,51 @@ vi.mock('../atoms/BaseButton.vue', () => ({
 
 const mockTask: OnboardingTaskOption = {
   id: 'create-feature',
-  title: '✨ Create a new Feature',
+  title: 'Create a new Feature',
   description:
     'Recommended for building new functionalities, enhancements, or refactoring existing code.',
-  icon: 'Code',
+  icon: 'Plus',
   tooltipDetails:
     'The starting point for creative work that adds direct value to your users.',
   example: 'Example: Add user authentication, implement search functionality',
 }
+
+// Helper to create mount options with directive stub
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Test requires flexible typing for validation testing
+const createMountOptions = (props: any) => ({
+  props,
+  global: {
+    directives: {
+      'disable-terminal': {
+        mounted() {},
+        unmounted() {},
+      },
+    },
+  },
+})
 describe('OnboardingTaskCard.vue', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
   it('should mount and render without errors', () => {
-    const wrapper = mount(OnboardingTaskCard, {
-      props: {
+    const wrapper = mount(
+      OnboardingTaskCard,
+      createMountOptions({
         task: mockTask,
         isSelected: false,
-      },
-    })
+      })
+    )
     expect(wrapper.exists()).toBe(true)
   })
 
   it('should render task card with correct structure', () => {
-    const wrapper = mount(OnboardingTaskCard, {
-      props: {
+    const wrapper = mount(
+      OnboardingTaskCard,
+      createMountOptions({
         task: mockTask,
         isSelected: false,
-      },
-    })
+      })
+    )
 
     expect(wrapper.find('.task-card').exists()).toBe(true)
     expect(wrapper.find('.card-header').exists()).toBe(true)
@@ -59,29 +75,29 @@ describe('OnboardingTaskCard.vue', () => {
   })
 
   it('should render task emoji with correct content', () => {
-    const wrapper = mount(OnboardingTaskCard, {
-      props: {
+    const wrapper = mount(
+      OnboardingTaskCard,
+      createMountOptions({
         task: mockTask,
         isSelected: false,
-      },
-    })
+      })
+    )
 
-    const taskEmoji = wrapper.find('.task-emoji')
-    const arrowIcon = wrapper.findComponent({ name: 'BaseIcon' })
+    const taskIcon = wrapper.find('.task-icon')
+    const arrowIcon = wrapper.find('.arrow-icon')
 
-    expect(taskEmoji.exists()).toBe(true)
-    expect(taskEmoji.text()).toBe('✨') // First emoji from title
-    expect(arrowIcon.props('name')).toBe('ArrowRight')
-    expect(arrowIcon.props('size')).toBe('sm')
+    expect(taskIcon.exists()).toBe(true)
+    expect(arrowIcon.exists()).toBe(true)
   })
 
   it('should render clickable state when not selected', () => {
-    const wrapper = mount(OnboardingTaskCard, {
-      props: {
+    const wrapper = mount(
+      OnboardingTaskCard,
+      createMountOptions({
         task: mockTask,
         isSelected: false,
-      },
-    })
+      })
+    )
 
     const taskCard = wrapper.find('.task-card')
     expect(taskCard.classes()).toContain('task-clickable')
@@ -89,12 +105,13 @@ describe('OnboardingTaskCard.vue', () => {
   })
 
   it('should show selected state when isSelected is true', () => {
-    const wrapper = mount(OnboardingTaskCard, {
-      props: {
+    const wrapper = mount(
+      OnboardingTaskCard,
+      createMountOptions({
         task: mockTask,
         isSelected: true,
-      },
-    })
+      })
+    )
 
     const taskCard = wrapper.find('.task-card')
     expect(taskCard.classes()).toContain('task-selected')
@@ -102,12 +119,13 @@ describe('OnboardingTaskCard.vue', () => {
   })
 
   it('should render task content correctly', () => {
-    const wrapper = mount(OnboardingTaskCard, {
-      props: {
+    const wrapper = mount(
+      OnboardingTaskCard,
+      createMountOptions({
         task: mockTask,
         isSelected: false,
-      },
-    })
+      })
+    )
 
     const title = wrapper.find('.task-title')
     const description = wrapper.find('.task-description')
@@ -119,12 +137,13 @@ describe('OnboardingTaskCard.vue', () => {
   })
 
   it('should show tooltip on hover', async () => {
-    const wrapper = mount(OnboardingTaskCard, {
-      props: {
+    const wrapper = mount(
+      OnboardingTaskCard,
+      createMountOptions({
         task: mockTask,
         isSelected: false,
-      },
-    })
+      })
+    )
 
     // Initially tooltip should not be visible
     expect(wrapper.find('.tooltip').exists()).toBe(false)
@@ -141,12 +160,13 @@ describe('OnboardingTaskCard.vue', () => {
   })
 
   it('should emit select event when card is clicked', async () => {
-    const wrapper = mount(OnboardingTaskCard, {
-      props: {
+    const wrapper = mount(
+      OnboardingTaskCard,
+      createMountOptions({
         task: mockTask,
         isSelected: false,
-      },
-    })
+      })
+    )
 
     await wrapper.find('.task-card').trigger('click')
 
@@ -155,12 +175,13 @@ describe('OnboardingTaskCard.vue', () => {
   })
 
   it('should emit select event even when already selected', async () => {
-    const wrapper = mount(OnboardingTaskCard, {
-      props: {
+    const wrapper = mount(
+      OnboardingTaskCard,
+      createMountOptions({
         task: mockTask,
         isSelected: true,
-      },
-    })
+      })
+    )
 
     await wrapper.find('.task-card').trigger('click')
 
@@ -169,12 +190,13 @@ describe('OnboardingTaskCard.vue', () => {
   })
 
   it('should handle keyboard navigation', async () => {
-    const wrapper = mount(OnboardingTaskCard, {
-      props: {
+    const wrapper = mount(
+      OnboardingTaskCard,
+      createMountOptions({
         task: mockTask,
         isSelected: false,
-      },
-    })
+      })
+    )
 
     const taskCard = wrapper.find('.task-card')
 
@@ -196,40 +218,42 @@ describe('OnboardingTaskCard.vue', () => {
   it('should render with different task data', () => {
     const differentTask: OnboardingTaskOption = {
       id: 'improve-documentation',
-      title: '📛 Improve Documentation',
+      title: 'Improve Documentation',
       description:
         'Recommended for adding or refining comments, READMEs, or other documentation files.',
-      icon: 'Book',
+      icon: 'BookOpen',
       tooltipDetails:
         "This keeps your code history clean and separates documentation improvements from changes to the application's logic.",
       example: 'Example: Update API docs, add code comments',
     }
 
-    const wrapper = mount(OnboardingTaskCard, {
-      props: {
+    const wrapper = mount(
+      OnboardingTaskCard,
+      createMountOptions({
         task: differentTask,
         isSelected: false,
-      },
-    })
+      })
+    )
 
     const title = wrapper.find('.task-title')
     const description = wrapper.find('.task-description')
-    const emoji = wrapper.find('.task-emoji')
+    const taskIcon = wrapper.find('.task-icon')
 
-    expect(title.text()).toBe('Improve Documentation') // Emoji removed from title
+    expect(title.text()).toBe('Improve Documentation')
+    expect(taskIcon.exists()).toBe(true)
     expect(description.text()).toBe(
       'Recommended for adding or refining comments, READMEs, or other documentation files.'
     )
-    expect(emoji.text()).toBe('📛') // Corrected to match the actual emoji in the title
   })
 
   it('should have proper accessibility attributes', () => {
-    const wrapper = mount(OnboardingTaskCard, {
-      props: {
+    const wrapper = mount(
+      OnboardingTaskCard,
+      createMountOptions({
         task: mockTask,
         isSelected: false,
-      },
-    })
+      })
+    )
 
     const taskCard = wrapper.find('.task-card')
 
@@ -263,24 +287,26 @@ describe('OnboardingTaskCard.vue', () => {
   })
 
   it('should handle missing props gracefully', () => {
-    const wrapper = mount(OnboardingTaskCard, {
-      props: {
+    const wrapper = mount(
+      OnboardingTaskCard,
+      createMountOptions({
         task: mockTask,
         // isSelected defaults to false
-      },
-    })
+      })
+    )
 
     expect(wrapper.exists()).toBe(true)
     expect(wrapper.find('.task-card').classes()).toContain('task-clickable')
   })
 
   it('should hide tooltip on mouse leave', async () => {
-    const wrapper = mount(OnboardingTaskCard, {
-      props: {
+    const wrapper = mount(
+      OnboardingTaskCard,
+      createMountOptions({
         task: mockTask,
         isSelected: false,
-      },
-    })
+      })
+    )
 
     // Show tooltip first
     await wrapper.find('.task-card').trigger('mouseenter')

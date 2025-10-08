@@ -42,23 +42,24 @@ defineEmits<Emits>()
   transition: all var(--transition-fast);
   position: relative;
   overflow: hidden;
-  color: white !important;
+  color: var(--text-on-accent) !important;
   background-color: var(--accent-primary) !important;
   border: 1px solid var(--accent-primary) !important;
   min-width: 200px;
   justify-content: center;
-  box-shadow: 0 4px 16px rgba(var(--accent-primary-rgb), 0.3);
+  box-shadow: 0 4px 16px rgba(223, 169, 39, 0.25);
 }
 
 .cta-button:hover:not(:disabled) {
-  background: var(--accent-secondary) !important;
+  background: var(--accent-primary-hover) !important;
+  border-color: var(--accent-primary-hover) !important;
   transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(var(--accent-primary-rgb), 0.4);
+  box-shadow: 0 6px 20px rgba(223, 169, 39, 0.35);
 }
 
 .cta-button:disabled {
   opacity: 0.5;
-  cursor: not-allowed;
+  cursor: default;
   transform: none;
   box-shadow: none;
 }

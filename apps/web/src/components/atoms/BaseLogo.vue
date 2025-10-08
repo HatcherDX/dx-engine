@@ -7,9 +7,9 @@ import { computed } from 'vue'
 import { useTheme } from '../../composables/useTheme'
 
 interface Props {
-  size?: 'sm' | 'md' | 'lg' | 'xl'
+  size?: 'sm' | 'md' | 'lg' | 'xl' | 'xxl'
   alt?: string
-  variant?: 'inline' | 'hero' | 'egg-white'
+  variant?: 'inline' | 'hero' | 'egg-white' | 'word-mark'
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -26,6 +26,9 @@ const logoSrc = computed(() => {
   }
 
   const theme = isDark.value ? 'dark' : 'light'
+  if (props.variant === 'word-mark') {
+    return `/word-mark-${theme}.svg`
+  }
   if (props.variant === 'inline') {
     return `/logo-inline-${theme}.svg`
   }
@@ -39,8 +42,9 @@ const logoClasses = computed(() => {
   const sizes = {
     sm: ['h-8', 'w-auto'], // 32px height
     md: ['h-8', 'w-auto'],
-    lg: ['h-12', 'w-auto'],
-    xl: ['h-16', 'w-auto'],
+    lg: ['h-12', 'w-auto'], // 48px height
+    xl: ['h-16', 'w-auto'], // 64px height
+    xxl: ['h-20', 'w-auto'], // 80px height
   }
 
   return [...base, ...sizes[props.size]]

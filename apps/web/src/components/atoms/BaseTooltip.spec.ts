@@ -562,4 +562,337 @@ describe('BaseTooltip', () => {
     // Tooltip should be visible but with empty content
     expect(wrapper.vm.isVisible).toBe(true)
   })
+
+  /**
+   * Test ariaId padding logic when combined length is less than 9
+   */
+  it('generates padded aria-id when random string is too short', () => {
+    // Mock Math.random to return very short strings that will require padding
+    const originalRandom = Math.random
+    let callCount = 0
+    vi.spyOn(Math, 'random').mockImplementation(() => {
+      callCount++
+      // Return numbers that will produce very short strings (1-2 characters each)
+      // toString(36) on 0.00001 should give something like '0.000036' -> slice(2) -> '000036' but very short
+      return callCount === 1 ? 0.00000001 : 0.00000002
+    })
+
+    const wrapper = mount(BaseTooltip, {
+      props: { content: 'Test' },
+      slots: { trigger: '<button>Test</button>' },
+    })
+
+    // The aria-id should be padded to exactly 9 characters after 'tooltip-'
+    const ariaId = wrapper.vm.ariaId
+    expect(ariaId).toMatch(/^tooltip-[a-z0-9]{9}$/)
+    expect(ariaId.length).toBe(17) // 'tooltip-' (8) + 9 characters
+
+    // Restore original Math.random
+    Math.random = originalRandom
+  })
+
+  /**
+   * Test ariaId padding logic edge case with zero-length random strings
+   */
+  it('handles extreme case where random strings are empty and need full padding', () => {
+    // Mock Math.random to return exactly 0 which should produce empty strings
+    const originalRandom = Math.random
+    vi.spyOn(Math, 'random').mockImplementation(() => 0)
+
+    const wrapper = mount(BaseTooltip, {
+      props: { content: 'Padding test' },
+      slots: { trigger: '<button>Test</button>' },
+    })
+
+    // Even with empty random strings, should get proper aria-id with full padding
+    const ariaId = wrapper.vm.ariaId
+    expect(ariaId).toMatch(/^tooltip-[a-z0-9]{9}$/)
+    expect(ariaId.length).toBe(17) // 'tooltip-' (8) + 9 characters
+
+    // Should contain padding characters from the default padding string
+    expect(ariaId).toContain('0123456789'[0]) // Should start padding with '0'
+
+    // Restore original Math.random
+    Math.random = originalRandom
+  })
+
+  /**
+   * Test calculatePosition early return when refs are undefined
+   */
+  it('handles calculatePosition when refs are undefined', async () => {
+    const wrapper = mount(BaseTooltip, {
+      props: {
+        content: 'Test',
+        delay: 0,
+      },
+      slots: {
+        trigger: '<button>Test</button>',
+      },
+      attachTo: document.body,
+    })
+
+    // Access the component instance and mock undefined refs
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Test component instance requires type assertion for internal method access
+    const vm = wrapper.vm as any
+
+    // Temporarily replace the triggerRef and tooltipRef with undefined
+    const originalTriggerRef = vm.triggerRef
+    const originalTooltipRef = vm.tooltipRef
+
+    vm.triggerRef = undefined
+    vm.tooltipRef = undefined
+
+    // Call calculatePosition - should return early without error
+    await vm.calculatePosition()
+
+    // Should not throw an error and position should not be calculated
+    expect(true).toBe(true)
+
+    // Restore original refs
+    vm.triggerRef = originalTriggerRef
+    vm.tooltipRef = originalTooltipRef
+  })
+
+  /**
+   * Test calculatePosition handles missing elements gracefully
+   */
+  it('handles calculatePosition when elements cannot be found', async () => {
+    const wrapper = mount(BaseTooltip, {
+      props: {
+        content: 'Test',
+        delay: 0,
+      },
+      slots: {
+        trigger: '<button>Test</button>',
+      },
+      attachTo: document.body,
+    })
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Test component instance requires type assertion for internal method access
+    const vm = wrapper.vm as any
+
+    // Mock getBoundingClientRect to simulate missing elements
+    const mockGetBoundingClientRect = vi.fn().mockReturnValue({
+      top: 0,
+      bottom: 0,
+      left: 0,
+      right: 0,
+      width: 0,
+      height: 0,
+    })
+
+    // Show tooltip first to ensure refs exist
+    await wrapper.find('.tooltip-container').trigger('mouseenter')
+    vi.advanceTimersByTime(0)
+    await nextTick()
+
+    // Mock both refs to have zero dimensions
+    if (vm.triggerRef?.value) {
+      vi.spyOn(vm.triggerRef.value, 'getBoundingClientRect').mockImplementation(
+        mockGetBoundingClientRect
+      )
+    }
+    if (vm.tooltipRef?.value) {
+      vi.spyOn(vm.tooltipRef.value, 'getBoundingClientRect').mockImplementation(
+        mockGetBoundingClientRect
+      )
+    }
+
+    // Call calculatePosition - should work with zero dimensions
+    await vm.calculatePosition()
+
+    // Should complete without error
+    expect(vm.tooltipStyle).toHaveProperty('position', 'fixed')
+  })
+
+  /**
+   * Test all placement cases in calculatePosition switch statement
+   */
+  it('covers all placement cases in calculatePosition', async () => {
+    const placements: Array<'top' | 'bottom' | 'left' | 'right'> = [
+      'top',
+      'bottom',
+      'left',
+      'right',
+    ]
+
+    // Mock getBoundingClientRect for consistent testing
+    const mockTriggerRect = {
+      top: 100,
+      bottom: 120,
+      left: 50,
+      right: 150,
+      width: 100,
+      height: 20,
+    }
+
+    const mockTooltipRect = {
+      width: 200,
+      height: 40,
+      top: 0,
+      bottom: 40,
+      left: 0,
+      right: 200,
+    }
+
+    for (const placement of placements) {
+      const wrapper = mount(BaseTooltip, {
+        props: {
+          content: `Test ${placement}`,
+          placement,
+          delay: 0,
+        },
+        slots: {
+          trigger: '<button>Test</button>',
+        },
+        attachTo: document.body,
+      })
+
+      // Show tooltip
+      await wrapper.find('.tooltip-container').trigger('mouseenter')
+      vi.advanceTimersByTime(0)
+      await nextTick()
+      await flushPromises()
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Test component instance requires type assertion for internal method access
+      const vm = wrapper.vm as any
+
+      // Mock the getBoundingClientRect methods
+      if (vm.$refs?.triggerRef) {
+        vi.spyOn(vm.$refs.triggerRef, 'getBoundingClientRect').mockReturnValue(
+          mockTriggerRect as DOMRect
+        )
+      }
+
+      if (vm.$refs?.tooltipRef) {
+        vi.spyOn(vm.$refs.tooltipRef, 'getBoundingClientRect').mockReturnValue(
+          mockTooltipRect as DOMRect
+        )
+      }
+
+      // Call calculatePosition to execute the switch statement
+      await vm.calculatePosition()
+
+      // Verify that position was calculated
+      expect(vm.tooltipStyle).toHaveProperty('position', 'fixed')
+      expect(vm.tooltipStyle).toHaveProperty('top')
+      expect(vm.tooltipStyle).toHaveProperty('left')
+      expect(vm.tooltipStyle).toHaveProperty('zIndex', '9999')
+
+      wrapper.unmount()
+    }
+  })
+
+  /**
+   * Test viewport boundary edge cases
+   */
+  it('handles extreme viewport boundary cases', async () => {
+    // Mock very small window dimensions
+    Object.defineProperty(window, 'innerWidth', {
+      value: 100,
+      configurable: true,
+    })
+    Object.defineProperty(window, 'innerHeight', {
+      value: 100,
+      configurable: true,
+    })
+
+    const wrapper = mount(BaseTooltip, {
+      props: {
+        content: 'Boundary test',
+        placement: 'top',
+        delay: 0,
+      },
+      slots: {
+        trigger: '<button>Test</button>',
+      },
+      attachTo: document.body,
+    })
+
+    // Mock element positioned at extreme edge
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Test component instance requires type assertion for internal method access
+    const vm = wrapper.vm as any
+
+    // Show tooltip
+    await wrapper.find('.tooltip-container').trigger('mouseenter')
+    vi.advanceTimersByTime(0)
+    await nextTick()
+
+    if (vm.$refs?.triggerRef) {
+      vi.spyOn(vm.$refs.triggerRef, 'getBoundingClientRect').mockReturnValue({
+        top: 10,
+        bottom: 30,
+        left: 10,
+        right: 90,
+        width: 80,
+        height: 20,
+      } as DOMRect)
+    }
+
+    if (vm.$refs?.tooltipRef) {
+      vi.spyOn(vm.$refs.tooltipRef, 'getBoundingClientRect').mockReturnValue({
+        width: 150,
+        height: 50,
+        top: 0,
+        bottom: 50,
+        left: 0,
+        right: 150,
+      } as DOMRect)
+    }
+
+    await vm.calculatePosition()
+
+    // Verify tooltip is constrained within tiny viewport
+    const leftPosition = parseFloat(vm.tooltipStyle.left)
+    const topPosition = parseFloat(vm.tooltipStyle.top)
+
+    // When viewport is smaller than tooltip, it should be clamped to minimum padding
+    expect(leftPosition).toBeGreaterThanOrEqual(8) // padding
+    expect(topPosition).toBeGreaterThanOrEqual(8) // padding
+
+    // Verify tooltip style properties are set correctly
+    expect(vm.tooltipStyle).toHaveProperty('position', 'fixed')
+    expect(vm.tooltipStyle).toHaveProperty('zIndex', '9999')
+  })
+
+  /**
+   * Test mouse leave and re-enter behavior edge cases
+   */
+  it('handles rapid mouse enter/leave cycles', async () => {
+    const wrapper = mount(BaseTooltip, {
+      props: {
+        content: 'Rapid hover test',
+        delay: 100,
+      },
+      slots: {
+        trigger: '<button>Rapid test</button>',
+      },
+      attachTo: document.body,
+    })
+
+    const container = wrapper.find('.tooltip-container')
+
+    // Rapid enter/leave/enter cycle
+    await container.trigger('mouseenter')
+    vi.advanceTimersByTime(50) // Halfway through show delay
+
+    await container.trigger('mouseleave')
+    await container.trigger('mouseenter') // Cancel and restart
+
+    vi.advanceTimersByTime(100) // Complete the show delay
+    await nextTick()
+
+    expect(wrapper.vm.isVisible).toBe(true)
+
+    // Now test rapid leave/enter during hide phase
+    await container.trigger('mouseleave')
+    vi.advanceTimersByTime(75) // Halfway through hide delay
+
+    await container.trigger('mouseenter') // Should cancel hide
+    vi.advanceTimersByTime(200) // Well past hide delay
+    await nextTick()
+
+    // Should still be visible since hide was cancelled
+    expect(wrapper.vm.isVisible).toBe(true)
+  })
 })

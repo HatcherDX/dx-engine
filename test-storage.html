@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Storage API Test</title>
+    <style>
+      body {
+        font-family: monospace;
+        padding: 20px;
+        background: #1e1e1e;
+        color: #d4d4d4;
+      }
+      pre {
+        background: #2d2d2d;
+        padding: 10px;
+        border-radius: 5px;
+        white-space: pre-wrap;
+      }
+      button {
+        margin: 5px;
+        padding: 10px;
+        background: #4a90e2;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #357abd;
+      }
+      .error {
+        color: #f48771;
+      }
+      .success {
+        color: #89d185;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Storage API Test</h1>
+
+    <div>
+      <h2>Test Storage APIs</h2>
+      <button onclick="testStorageAPI()">Test Storage API</button>
+      <button onclick="testWorkspaceAPI()">Test Workspace API</button>
+      <button onclick="testFullCycle()">Test Full Save/Load Cycle</button>
+    </div>
+
+    <div id="output">
+      <h2>Output:</h2>
+      <pre id="log"></pre>
+    </div>
+
+    <script>
+      const log = (message, type = 'info') => {
+        const logEl = document.getElementById('log')
+        const timestamp = new Date().toLocaleTimeString()
+        const className =
+          type === 'error' ? 'error' : type === 'success' ? 'success' : ''
+        logEl.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`
+      }
+
+      const testStorageAPI = async () => {
+        log('Testing Storage API...')
+
+        try {
+          // Check if storageAPI exists
+          if (!window.storageAPI) {
+            log('❌ window.storageAPI is not available', 'error')
+            return
+          }
+
+          log('✅ window.storageAPI is available', 'success')
+
+          // List available methods
+          const methods = Object.keys(window.storageAPI)
+          log('Available methods: ' + methods.join(', '))
+
+          // Test each method existence
+          const expectedMethods = [
+            'getWorkspace',
+            'setWorkspace',
+            'clearWorkspace',
+            'addTask',
+            'updateTaskState',
+            'removeTask',
+            'setCurrentTask',
+          ]
+
+          for (const method of expectedMethods) {
+            if (typeof window.storageAPI[method] === 'function') {
+              log(`✅ ${method} is available`, 'success')
+            } else {
+              log(`❌ ${method} is not available`, 'error')
+            }
+          }
+        } catch (error) {
+          log(`Error: ${error.message}`, 'error')
+        }
+      }
+
+      const testWorkspaceAPI = async () => {
+        log('\nTesting Workspace Save/Load...')
+
+        try {
+          if (!window.storageAPI) {
+            log('❌ Storage API not available', 'error')
+            return
+          }
+
+          // Test getting current workspace
+          log('Getting current workspace...')
+          const currentWorkspace = await window.storageAPI.getWorkspace()
+
+          if (currentWorkspace) {
+            log('Current workspace found:', 'success')
+            log(JSON.stringify(currentWorkspace, null, 2))
+          } else {
+            log('No workspace currently saved')
+          }
+
+          // Test saving a workspace
+          const testWorkspace = {
+            project: {
+              path: '/test/project',
+              name: 'Test Project',
+              lastOpened: new Date(),
+              metadata: {
+                framework: 'Vue',
+                packageManager: 'pnpm',
+              },
+            },
+            activeTasks: [
+              {
+                id: 'test-task-1',
+                branchName: 'feature/test',
+                taskType: 'feature',
+                status: 'active',
+                openedAt: new Date(),
+                lastActiveAt: new Date(),
+                workState: {
+                  hasUncommittedChanges: false,
+                },
+              },
+            ],
+            taskHistory: [],
+            currentTaskId: 'test-task-1',
+          }
+
+          log('Saving test workspace...')
+          await window.storageAPI.setWorkspace(testWorkspace)
+          log('✅ Workspace saved successfully', 'success')
+
+          // Retrieve it back
+          log('Retrieving saved workspace...')
+          const retrieved = await window.storageAPI.getWorkspace()
+
+          if (retrieved && retrieved.project.name === 'Test Project') {
+            log('✅ Workspace retrieved successfully', 'success')
+            log(JSON.stringify(retrieved, null, 2))
+          } else {
+            log('❌ Failed to retrieve workspace', 'error')
+          }
+        } catch (error) {
+          log(`Error: ${error.message}`, 'error')
+          log(`Stack: ${error.stack}`, 'error')
+        }
+      }
+
+      const testFullCycle = async () => {
+        log('\nTesting Full Storage Cycle...')
+
+        try {
+          if (!window.storageAPI) {
+            log('❌ Storage API not available', 'error')
+            return
+          }
+
+          // 1. Clear existing workspace
+          log('1. Clearing existing workspace...')
+          await window.storageAPI.clearWorkspace()
+          log('✅ Workspace cleared', 'success')
+
+          // 2. Save a new workspace
+          const workspace = {
+            project: {
+              path: '/Users/test/my-project',
+              name: 'My Amazing Project',
+              lastOpened: new Date(),
+              metadata: {
+                framework: 'Vue',
+                packageManager: 'pnpm',
+                gitRemote: 'https://github.com/test/my-project',
+              },
+            },
+            activeTasks: [],
+            taskHistory: [],
+            currentTaskId: null,
+          }
+
+          log('2. Saving new workspace...')
+          await window.storageAPI.setWorkspace(workspace)
+          log('✅ Workspace saved', 'success')
+
+          // 3. Add a task
+          const task = {
+            id: crypto.randomUUID(),
+            branchName: 'feature/awesome-feature',
+            taskType: 'feature',
+            status: 'active',
+            openedAt: new Date(),
+            lastActiveAt: new Date(),
+            workState: {
+              hasUncommittedChanges: false,
+              modifiedFiles: [],
+            },
+          }
+
+          log('3. Adding a task...')
+          await window.storageAPI.addTask(task)
+          log('✅ Task added', 'success')
+
+          // 4. Set it as current task
+          log('4. Setting current task...')
+          await window.storageAPI.setCurrentTask(task.id)
+          log('✅ Current task set', 'success')
+
+          // 5. Update task state
+          log('5. Updating task state...')
+          await window.storageAPI.updateTaskState(task.id, {
+            hasUncommittedChanges: true,
+            modifiedFiles: ['src/App.vue', 'src/main.ts'],
+          })
+          log('✅ Task state updated', 'success')
+
+          // 6. Retrieve everything
+          log('6. Retrieving full workspace...')
+          const fullWorkspace = await window.storageAPI.getWorkspace()
+          log('✅ Full workspace retrieved:', 'success')
+          log(JSON.stringify(fullWorkspace, null, 2))
+
+          // 7. Clean up
+          log('7. Removing task...')
+          await window.storageAPI.removeTask(task.id)
+          log('✅ Task removed', 'success')
+
+          log('\n✅ Full cycle completed successfully!', 'success')
+        } catch (error) {
+          log(`❌ Error: ${error.message}`, 'error')
+          log(`Stack: ${error.stack}`, 'error')
+        }
+      }
+
+      // Auto-run basic test on load
+      window.addEventListener('load', () => {
+        log('Page loaded. Testing if APIs are available...')
+        testStorageAPI()
+      })
+    </script>
+  </body>
+</html>

@@ -92,6 +92,12 @@ vi.mock('electron', () => ({
   BrowserWindow: mockBrowserWindow,
   dialog: mockDialog,
   ipcMain: electronIpcMain,
+  app: {
+    on: vi.fn(),
+    quit: vi.fn(),
+    getPath: vi.fn().mockReturnValue('/mock/path'),
+    getAppPath: vi.fn().mockReturnValue('/mock/app/path'),
+  },
 }))
 
 vi.mock('node:fs/promises', () => ({
@@ -686,7 +692,7 @@ describe('IPC Module', () => {
       )?.[1]
 
       await expect(gitStatusHandler(null, '')).rejects.toThrow(
-        'Failed to get Git status: No project path provided'
+        'Failed to get Git status: CRITICAL: No project path provided. Git operations require an open project.'
       )
     })
 

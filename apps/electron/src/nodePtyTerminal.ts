@@ -56,7 +56,7 @@ export class NodePtyTerminal extends EventEmitter implements TerminalInterface {
     this.id = id
     this.shell = options.shell || this.detectShell()
     this.cwd = options.cwd || process.env.HOME || process.cwd()
-    this.cols = options.cols || 80
+    this.cols = options.cols || 45 // Further reduced to 45 to eliminate prompt spacing
     this.rows = options.rows || 24
     this.env = options.env || {}
 
@@ -109,21 +109,39 @@ export class NodePtyTerminal extends EventEmitter implements TerminalInterface {
 
       console.log(`[Node-pty Terminal] Spawning shell: ${this.shell}`)
 
-      // Prepare environment with terminal capabilities
+      // Prepare environment with terminal capabilities and zsh fixes
       const env = {
         ...process.env,
         TERM: 'xterm-256color',
         COLORTERM: 'truecolor',
+        // CRITICAL FIX: Set locale to fix character width calculation
+        LC_CTYPE: 'en_US.UTF-8',
+        LC_ALL: 'en_US.UTF-8',
+        LANG: 'en_US.UTF-8',
+        // Fix zsh end-of-line marker to prevent excessive spacing
+        PROMPT_EOL_MARK: '',
+        // Remove right prompt indent that can cause spacing issues
+        ZLE_RPROMPT_INDENT: '0',
         // Allow environment overrides
         ...this.env,
       }
 
       // Spawn PTY process with optimal settings
+      // Determine shell arguments to skip startup files
+      let shellArgs: string[] = []
+      if (this.shell.includes('zsh')) {
+        // For zsh: --no-rcs skips all RC files (.zshrc, .zprofile, etc.)
+        shellArgs = ['--no-rcs']
+      } else if (this.shell.includes('bash')) {
+        // For bash: --norc skips .bashrc, --noprofile skips .bash_profile
+        shellArgs = ['--norc', '--noprofile']
+      }
+
       this.ptyProcess = (
         this.pty as {
           spawn: (shell: string, args: string[], options: unknown) => PtyProcess
         }
-      ).spawn(this.shell, [], {
+      ).spawn(this.shell, shellArgs, {
         name: 'xterm-color',
         cols: this.cols,
         rows: this.rows,
@@ -162,6 +180,17 @@ export class NodePtyTerminal extends EventEmitter implements TerminalInterface {
       console.log(
         `[Node-pty Terminal] Successfully spawned terminal ${this.id} with PID ${this.ptyProcess.pid}`
       )
+
+      // Send zsh initialization commands if detected
+      // For zsh, send a clear escape sequence to ensure clean start
+      if (this.shell.includes('zsh')) {
+        setTimeout(() => {
+          if (this.ptyProcess) {
+            // Use ANSI escape codes to clear screen without showing text
+            this.ptyProcess.write('\x1b[H\x1b[2J')
+          }
+        }, 50)
+      }
     } catch (error) {
       console.error(
         `[Node-pty Terminal] Failed to spawn terminal ${this.id}:`,

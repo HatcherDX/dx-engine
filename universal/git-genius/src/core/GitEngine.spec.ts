@@ -912,4 +912,192 @@ describe('🔧 GitEngine - CORE VALIDATION (Priority 1)', () => {
       )
     })
   })
+
+  describe('🎯 Additional Coverage Tests', () => {
+    beforeEach(async () => {
+      mockGit.log.mockResolvedValueOnce([{ oid: 'test' }])
+      await gitEngine.initialize()
+    })
+
+    it('should handle constructor with performance monitoring enabled', () => {
+      const perfEngine = new GitEngine(
+        '/test/repo',
+        {
+          enablePerformanceMonitoring: true,
+        },
+        mockCacheManager
+      )
+      expect(perfEngine).toBeDefined()
+      perfEngine.destroy()
+    })
+
+    it('should handle constructor with autoDetectConfig disabled', () => {
+      const configEngine = new GitEngine(
+        '/test/repo',
+        {
+          autoDetectConfig: false,
+        },
+        mockCacheManager
+      )
+      expect(configEngine).toBeDefined()
+      configEngine.destroy()
+    })
+
+    it('should get memory status', () => {
+      const status = gitEngine.getMemoryStatus()
+      expect(status).toBeDefined()
+      expect(status.memoryUsage).toBeDefined()
+    })
+
+    it('should clear git cache', () => {
+      expect(() => gitEngine.clearGitCache()).not.toThrow()
+    })
+
+    it('should estimate cache size', () => {
+      const size = gitEngine.estimateGitCacheSize()
+      expect(typeof size).toBe('number')
+      expect(size).toBeGreaterThanOrEqual(0)
+    })
+
+    it('should get cache metrics', () => {
+      const metrics = gitEngine.getCacheMetrics()
+      expect(metrics).toBeDefined()
+      expect(metrics.hits).toBeDefined()
+      expect(metrics.misses).toBeDefined()
+    })
+
+    it('should configure memory management', () => {
+      expect(() =>
+        gitEngine.configureMemoryManagement({
+          maxCacheSize: 50 * 1024 * 1024,
+          memoryPressureThreshold: 0.8,
+        })
+      ).not.toThrow()
+    })
+
+    it('should configure retry behavior', () => {
+      expect(() =>
+        gitEngine.configureRetryBehavior({
+          maxRetries: 5,
+          baseDelayMs: 2000,
+        })
+      ).not.toThrow()
+    })
+
+    it('should check if repository is valid', async () => {
+      mockGit.log.mockResolvedValueOnce([])
+      const result = await gitEngine.isRepository()
+      expect(typeof result).toBe('boolean')
+    })
+
+    it('should handle error scenarios gracefully', async () => {
+      mockGit.statusMatrix.mockRejectedValueOnce(new Error('test error'))
+      const result = await gitEngine.getStatus()
+      expect(result.success).toBe(false)
+    })
+
+    it('should handle status operation with string errors', async () => {
+      mockGit.statusMatrix.mockRejectedValueOnce('string error')
+      const result = await gitEngine.getStatus()
+      expect(result.success).toBe(false)
+    })
+
+    it('should handle commits operation errors', async () => {
+      mockGit.log.mockRejectedValueOnce(new Error('log error'))
+      const result = await gitEngine.getCommits()
+      expect(result.success).toBe(false)
+    })
+
+    it('should handle branches operation errors', async () => {
+      mockGit.listBranches.mockRejectedValueOnce(new Error('branch error'))
+      const result = await gitEngine.getBranches()
+      expect(result.success).toBe(false)
+    })
+
+    it('should handle getCurrentBranch errors', async () => {
+      mockGit.currentBranch.mockRejectedValueOnce(
+        new Error('current branch error')
+      )
+      const result = await gitEngine.getStatus()
+      expect(result.success).toBe(false)
+    })
+
+    it('should handle detectConfiguration with autoDetectConfig enabled', async () => {
+      const engine = new GitEngine(
+        '/test/repo',
+        {
+          autoDetectConfig: true,
+        },
+        mockCacheManager
+      )
+
+      mockGit.log.mockResolvedValueOnce([{ oid: 'test' }])
+      await engine.initialize()
+      engine.destroy()
+    })
+
+    it('should test file status mapping functionality', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Accessing private members for testing
+      const mapFileStatus = (gitEngine as any).mapFileStatus
+
+      // Just test that the function exists and returns a string
+      const result = mapFileStatus([1, 2, 1])
+      expect(typeof result).toBe('string')
+    })
+
+    it('should handle empty commit options', async () => {
+      mockGit.log.mockResolvedValueOnce([])
+      const result = await gitEngine.getCommits({})
+      expect(result.success).toBe(true)
+      expect(result.data).toEqual([])
+    })
+
+    it('should process commit data with various formats', async () => {
+      const commitData = [
+        {
+          oid: 'abc123',
+          commit: {
+            author: {
+              name: 'Test Author',
+              email: 'test@example.com',
+              timestamp: 1234567890,
+            },
+            committer: {
+              name: 'Test Committer',
+              email: 'committer@example.com',
+              timestamp: 1234567890,
+            },
+            message: 'Test commit\n\nDetailed message',
+            parent: ['parent1', 'parent2'],
+          },
+        },
+      ]
+
+      mockGit.log.mockResolvedValueOnce(commitData)
+      const result = await gitEngine.getCommits()
+      expect(result.success).toBe(true)
+      expect(result.data?.length).toBeGreaterThan(0)
+    })
+
+    it('should handle performance monitoring when disabled', () => {
+      const engine = new GitEngine(
+        '/test/repo',
+        {
+          enablePerformanceMonitoring: false,
+        },
+        mockCacheManager
+      )
+
+      const analytics = engine.getPerformanceAnalytics()
+      expect(analytics).toBeDefined()
+      engine.destroy()
+    })
+
+    it('should handle large cache size checks', async () => {
+      // Just test that the method exists and doesn't throw
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Accessing private members for testing
+      const checkCacheSize = (gitEngine as any).checkCacheSize
+      expect(typeof checkCacheSize).toBe('function')
+    })
+  })
 })

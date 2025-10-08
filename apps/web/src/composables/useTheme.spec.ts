@@ -376,18 +376,17 @@ describe('useTheme', () => {
     expect(eventName).toBe('simulate-platform')
 
     // Call the callback to test platform simulation
-    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    const { useTheme: useThemeForPlatform } = await import('./useTheme')
+    const theme = useThemeForPlatform()
     callback('linux')
-    expect(consoleSpy).toHaveBeenCalledWith(
-      'Platform simulation received:',
-      'linux'
-    )
-    consoleSpy.mockRestore()
+
+    // Platform should be updated
+    expect(theme.platform.value).toBe('linux')
   })
 
   it('should return void from all methods', async () => {
-    const { useTheme } = await import('./useTheme')
-    const theme = useTheme()
+    const { useTheme: useThemeForVoid } = await import('./useTheme')
+    const theme = useThemeForVoid()
 
     expect(theme.setTheme('dark')).toBeUndefined()
     expect(theme.toggleTheme()).toBeUndefined()

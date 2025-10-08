@@ -12,7 +12,8 @@
 
 import { vi } from 'vitest'
 
-// Mock console methods for cleaner test output
+// Mock console methods for test coverage
+// Logger tests will restore these in their beforeEach
 global.console = {
   ...console,
   log: vi.fn(),

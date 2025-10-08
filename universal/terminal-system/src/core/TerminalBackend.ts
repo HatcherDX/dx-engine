@@ -9,6 +9,8 @@ export interface BackendSpawnOptions {
   cols?: number
   rows?: number
   encoding?: BufferEncoding
+  welcomeMessage?: string
+  welcomeDelay?: number
 }
 
 export interface BackendProcess

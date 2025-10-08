@@ -10,6 +10,8 @@
         :is-loading="isDiffLoading"
         :old-version="oldVersionLabel"
         :new-version="newVersionLabel"
+        :has-changed-files="changedFilesCount > 0"
+        :total-changed-files="changedFilesCount"
         @navigate-to-commit="handleCommitNavigation"
         @file-selected="handleFileSelection"
         @request-diff="handleDiffRequest"
@@ -35,17 +37,21 @@ const {
   selectedFileContext,
   selectedCommitHash,
   selectedCommitIndex,
+  selectFile,
+  selectCommit,
 } = useTimelineEvents()
 
 // Project context for paths
 const { projectRoot, isProjectLoaded } = useProjectContext()
 
 // Git integration for real diffs
-const { getFileDiff, getCommitHistory } = useGitIntegration()
+const { getFileDiff, getCommitHistory, getGitStatus } = useGitIntegration()
 
 // Local state
 const currentDiff = ref<GitDiffData | null>(null)
 const isDiffLoading = ref(false)
+const changedFiles = ref<Array<{ path: string; status: string }>>([])
+const hasAutoSelected = ref(false)
 
 // Timeline state
 const timelineState = ref<TimelineState>({
@@ -92,6 +98,14 @@ const loadCommitHistory = async (): Promise<void> => {
 }
 
 // Computed properties
+const changedFilesCount = computed(() => {
+  console.log(
+    '[GitTimelineView] Computing changedFilesCount:',
+    changedFiles.value.length
+  )
+  return changedFiles.value.length
+})
+
 const oldVersionLabel = computed(() => {
   // Handle empty commit history
   if (commitHistory.value.length === 0) return 'Previous'
@@ -162,7 +176,11 @@ const handleDiffRequest = async (
 
     currentDiff.value = diffData
     console.log(
-      `[GitTimelineView] Loaded diff with ${diffData.hunks.length} hunks`
+      `[GitTimelineView] Loaded diff with ${diffData?.hunks?.length || 0} hunks`
+    )
+    console.log(
+      '[GitTimelineView] Diff data set, currentDiff:',
+      currentDiff.value
     )
   } catch (error) {
     console.error('[GitTimelineView] Failed to load diff data:', error)
@@ -185,41 +203,153 @@ watch(
         handleDiffRequest(newCommitHash, newFile)
       }
     }
-  }
+  },
+  { immediate: false }
 )
 
 // Watch for timeline state changes from timeline controls
 watch(
   () => timelineState.value.currentCommit,
-  (newCommitIndex) => {
-    if (newCommitIndex !== selectedCommitIndex.value) {
+  (newCommit) => {
+    if (newCommit !== selectedCommitIndex.value) {
       // Update global state when timeline controls change commit
-      const commit = commitHistory.value[newCommitIndex]
+      const commit = commitHistory.value[newCommit]
       if (commit) {
         // This will trigger the watcher above
-        const { selectCommit } = useTimelineEvents()
-        selectCommit(commit.hash, newCommitIndex)
+        selectCommit(commit.hash, newCommit)
       }
     }
   }
 )
 
 // Watch for project loading and load commit history
-watch([isProjectLoaded, projectRoot], async ([loaded, root]) => {
-  if (loaded && root) {
-    await loadCommitHistory()
-  }
-})
+watch(
+  [isProjectLoaded, projectRoot],
+  async ([loaded, root]) => {
+    if (loaded && root) {
+      await loadCommitHistory()
+
+      // Load changed files and auto-select first one
+      try {
+        const status = await getGitStatus(root)
+        console.log('[GitTimelineView] Git status loaded:', status)
+
+        // Handle both array and object response formats
+        const files = Array.isArray(status)
+          ? status.map((f) => ({ path: f.path, status: 'modified' }))
+          : (
+              status as {
+                files?: Array<{ path: string; status?: string }>
+              }
+            )?.files?.map((f) => ({
+              path: f.path,
+              status: f.status || 'modified',
+            })) || []
+
+        if (files && files.length > 0) {
+          changedFiles.value = files
+          console.log(
+            '[GitTimelineView] Changed files set:',
+            changedFiles.value.length,
+            'files'
+          )
+
+          // Always auto-select first file when project loads and there are changes
+          if (!selectedFile.value) {
+            const firstFile = files[0]
+            console.log(
+              '[GitTimelineView] Auto-selecting first changed file:',
+              firstFile.path
+            )
+            selectFile(firstFile.path, 'changes')
+            hasAutoSelected.value = true
+
+            // Load diff for the first file (working directory changes)
+            console.log(
+              '[GitTimelineView] Requesting diff for:',
+              firstFile.path
+            )
+            await handleDiffRequest(null, firstFile.path)
+          } else {
+            console.log(
+              '[GitTimelineView] File already selected:',
+              selectedFile.value
+            )
+          }
+        } else {
+          changedFiles.value = []
+          console.log('[GitTimelineView] No changed files detected')
+        }
+      } catch (error) {
+        console.error('[GitTimelineView] Failed to load git status:', error)
+        changedFiles.value = []
+      }
+    }
+  },
+  { immediate: false }
+)
 
 // Initialize timeline state
 onMounted(async () => {
+  console.log('[GitTimelineView] Component mounted')
+  console.log('[GitTimelineView] isProjectLoaded:', isProjectLoaded.value)
+  console.log('[GitTimelineView] projectRoot:', projectRoot.value)
+
   // Load commit history if project is already loaded
   if (isProjectLoaded.value && projectRoot.value) {
     await loadCommitHistory()
-  }
 
-  // Use the global timeline events to set initial selections
-  const { selectFile, selectCommit } = useTimelineEvents()
+    // Load and auto-select first changed file immediately on mount
+    try {
+      const status = await getGitStatus(projectRoot.value)
+      console.log('[GitTimelineView] onMounted - Git status:', status)
+
+      // Handle both array and object response formats
+      const files = Array.isArray(status)
+        ? status.map((f) => ({ path: f.path, status: 'modified' }))
+        : (
+            status as {
+              files?: Array<{ path: string; status?: string }>
+            }
+          )?.files?.map((f) => ({
+            path: f.path,
+            status: f.status || 'modified',
+          })) || []
+
+      if (files && files.length > 0) {
+        changedFiles.value = files
+        console.log(
+          '[GitTimelineView] onMounted - Set changed files:',
+          changedFiles.value.length
+        )
+
+        // Auto-select first file immediately if none selected
+        if (!selectedFile.value) {
+          const firstFile = files[0]
+          console.log(
+            '[GitTimelineView] onMounted: Auto-selecting first file:',
+            firstFile.path
+          )
+          selectFile(firstFile.path, 'changes')
+          hasAutoSelected.value = true
+
+          // Load diff for working directory changes
+          await handleDiffRequest(null, firstFile.path)
+        }
+      } else {
+        console.log('[GitTimelineView] onMounted: No files with changes')
+      }
+    } catch (error) {
+      console.error(
+        '[GitTimelineView] onMounted: Failed to load status:',
+        error
+      )
+    }
+  } else {
+    console.log(
+      '[GitTimelineView] onMounted: Project not loaded yet, waiting for watch'
+    )
+  }
 
   // Auto-select first commit when history is loaded
   watch(
@@ -234,9 +364,6 @@ onMounted(async () => {
     },
     { immediate: true }
   )
-
-  // Auto-select first file for demo
-  selectFile('apps/web/src/views/GitTimelineView.vue')
 })
 </script>
 
@@ -250,6 +377,7 @@ onMounted(async () => {
   background: var(--bg-primary);
   overflow: hidden;
   box-sizing: border-box;
+  flex: 1; /* Ensure it takes full available space */
 }
 
 .timeline-content-container {
@@ -261,6 +389,13 @@ onMounted(async () => {
   background: var(--bg-primary);
   overflow: hidden;
   box-sizing: border-box;
+  display: flex; /* Add flex display */
+}
+
+/* Ensure WebGLDiffViewer takes full width */
+.timeline-content-container > * {
+  width: 100%;
+  flex: 1;
 }
 
 /* Dark theme optimizations */
@@ -270,8 +405,8 @@ onMounted(async () => {
   }
 
   .timeline-sidebar-container {
-    background: #161b22;
-    border-right-color: #30363d;
+    background: var(--terminal-bg);
+    border-right-color: var(--terminal-border);
   }
 
   .timeline-content-container {
@@ -279,8 +414,8 @@ onMounted(async () => {
   }
 
   .timeline-controls-container {
-    background: #161b22;
-    border-top-color: #30363d;
+    background: var(--terminal-bg);
+    border-top-color: var(--terminal-border);
   }
 }
 

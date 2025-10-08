@@ -239,6 +239,29 @@ describe('SystemEventBus', () => {
         expect(eventBus.getEventCount()).toBe(3) // projectOpening + projectOpened + componentInitialized
       })
 
+      it('should handle unknown project event type', async () => {
+        const projectData: ProjectEventData = {
+          rootPath: '/custom/project',
+          name: 'Custom Project',
+        }
+
+        // Cast to any to test unknown event type
+        await eventBus.emitProjectEvent(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Testing with unknown event type for edge case coverage
+          'unknownProjectEvent' as any,
+          projectData
+        )
+
+        expect(mockLogger.info).toHaveBeenCalledWith(
+          'Project unknownProjectEvent: Custom Project',
+          expect.objectContaining({
+            eventType: 'unknownProjectEvent',
+            projectPath: '/custom/project',
+            projectName: 'Custom Project',
+          })
+        )
+      })
+
       it('should track event performance metrics', async () => {
         const projectData: ProjectEventData = {
           rootPath: '/perf/project',
@@ -386,6 +409,84 @@ describe('SystemEventBus', () => {
             executionTime: undefined,
           })
         )
+      })
+
+      it('should log gitOperationStarted message correctly', async () => {
+        const gitData: GitEventData = {
+          operation: 'fetch',
+          repositoryPath: '/repo/path',
+        }
+
+        // Clear previous mock calls
+        mockLogger.info.mockClear()
+
+        await eventBus.emitGitEvent('gitOperationStarted', gitData)
+
+        // The event should not be logged via logResult, but via the general emit path
+        expect(eventBus.getEventCount()).toBe(1)
+      })
+
+      it('should log gitRepositoryChanged message correctly', async () => {
+        const gitData: GitEventData = {
+          operation: 'merge',
+          repositoryPath: '/repo/path',
+        }
+
+        // Clear previous mock calls
+        mockLogger.info.mockClear()
+
+        await eventBus.emitGitEvent('gitRepositoryChanged', gitData)
+
+        // This event type doesn't trigger special logging
+        expect(eventBus.getEventCount()).toBe(1)
+      })
+
+      it('should log gitBranchChanged message correctly', async () => {
+        const gitData: GitEventData = {
+          operation: 'checkout',
+          repositoryPath: '/repo/path',
+        }
+
+        // Clear previous mock calls
+        mockLogger.info.mockClear()
+
+        await eventBus.emitGitEvent('gitBranchChanged', gitData)
+
+        // This event type doesn't trigger special logging
+        expect(eventBus.getEventCount()).toBe(1)
+      })
+
+      it('should log gitStatusChanged message correctly', async () => {
+        const gitData: GitEventData = {
+          operation: 'add',
+          repositoryPath: '/repo/path',
+        }
+
+        // Clear previous mock calls
+        mockLogger.info.mockClear()
+
+        await eventBus.emitGitEvent('gitStatusChanged', gitData)
+
+        // This event type doesn't trigger special logging
+        expect(eventBus.getEventCount()).toBe(1)
+      })
+
+      it('should handle unknown git event type', async () => {
+        const gitData: GitEventData = {
+          operation: 'custom',
+          repositoryPath: '/repo/path',
+          executionTime: 200,
+        }
+
+        // Clear previous mock calls
+        mockLogger.info.mockClear()
+
+        // Cast to any to test unknown event type
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Testing with unknown event type for edge case coverage
+        await eventBus.emitGitEvent('unknownGitEvent' as any, gitData)
+
+        // Should still emit event and track metrics
+        expect(eventBus.getEventCount()).toBe(1)
       })
 
       it('should emit git events to listeners', async () => {

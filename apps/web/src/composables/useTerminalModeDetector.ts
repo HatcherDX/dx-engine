@@ -73,7 +73,7 @@ export function useTerminalModeDetector() {
 
     // Check for Web environment (development)
     if (typeof window !== 'undefined' && !window.electronAPI) {
-      const wsPort = import.meta.env.VITE_TERMINAL_WS_PORT || 3001
+      const wsPort = Number(import.meta.env.VITE_TERMINAL_WS_PORT) || 3001
       const wsHost = import.meta.env.VITE_TERMINAL_WS_HOST || 'localhost'
       const url = `ws://${wsHost}:${wsPort}/terminal`
 

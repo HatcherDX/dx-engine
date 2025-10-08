@@ -6,14 +6,7 @@ import UnifiedFrame from './UnifiedFrame.vue'
 interface UnifiedFrameComponent {
   handleHeaderDoubleClick?: () => Promise<void>
   toggleTheme?: () => Promise<void>
-  handleResize?: (event: MouseEvent | TouchEvent) => void
-  startTerminalResize?: (event: MouseEvent | TouchEvent) => void
-  stopResize?: () => void
-  updateTerminalConstraints?: () => void
-  isResizingTerminal?: boolean
-  terminalHeight?: number
-  initialTerminalHeight?: number
-  initialMouseY?: number
+  // Terminal resize methods removed - functionality no longer exists in component
 }
 
 // Mock child components
@@ -54,7 +47,26 @@ vi.mock('../atoms/Sidebar.vue', () => ({
   default: {
     name: 'Sidebar',
     props: ['width', 'isResizing', 'resizeCursor', 'platform'],
-    template: '<div data-testid="sidebar"><slot /></div>',
+    emits: ['start-resize', 'header-double-click'],
+    template:
+      '<div data-testid="sidebar"><slot name="sidebar-header" /><slot name="sidebar-content" /><slot name="sidebar-footer" /></div>',
+  },
+}))
+
+vi.mock('../atoms/ProjectBreadcrumb.vue', () => ({
+  default: {
+    name: 'ProjectBreadcrumb',
+    props: ['projectName', 'branchName'],
+    template:
+      '<div data-testid="project-breadcrumb">{{ projectName }} / {{ branchName }}</div>',
+  },
+}))
+
+vi.mock('./OnboardingContainer.vue', () => ({
+  default: {
+    name: 'OnboardingContainer',
+    emits: ['complete'],
+    template: '<div data-testid="onboarding-container">Onboarding</div>',
   },
 }))
 
@@ -91,7 +103,7 @@ const mockSidebarResize = (() => {
 
 const mockChatSidebar = {
   width: ref(400),
-  isGenerativeMode: ref(false),
+  isGenerativeMode: ref(true), // Set to true for generative mode tests
   setMode: vi.fn(),
 }
 
@@ -109,6 +121,21 @@ vi.mock('../../composables/useSidebarResize', () => ({
 
 vi.mock('../../composables/useChatSidebar', () => ({
   useChatSidebar: () => mockChatSidebar,
+}))
+
+// Mock useOnboarding composable
+const mockOnboarding = {
+  isOnboardingActive: ref(false),
+  completeOnboarding: vi.fn(),
+  currentStep: ref('welcome'),
+  getSelectedTask: ref(null),
+  getSelectedBranch: ref(null),
+  nextStep: vi.fn(),
+  selectBranch: vi.fn(),
+}
+
+vi.mock('../../composables/useOnboarding', () => ({
+  useOnboarding: () => mockOnboarding,
 }))
 
 Object.defineProperty(global, 'window', {
@@ -171,13 +198,16 @@ describe('UnifiedFrame', () => {
       wrapper = mount(UnifiedFrame, {
         props: {
           currentMode: 'code',
+          showModeNavigation: true,
         },
       })
 
-      const headerLeft = wrapper.find('.header-left')
-      expect(headerLeft.find('[data-testid="base-logo"]').exists()).toBe(true)
+      const headerLeft = wrapper.find('.header-top-left')
+      expect(
+        headerLeft.find('[data-testid="project-breadcrumb"]').exists()
+      ).toBe(true)
 
-      const headerRight = wrapper.find('.header-right')
+      const headerRight = wrapper.find('.header-top-right')
       expect(headerRight.find('.mode-navigation').exists()).toBe(true)
     })
 
@@ -187,13 +217,14 @@ describe('UnifiedFrame', () => {
       wrapper = mount(UnifiedFrame, {
         props: {
           currentMode: 'code',
+          showModeNavigation: true,
         },
       })
 
-      const headerLeft = wrapper.find('.header-left')
+      const headerLeft = wrapper.find('.header-top-left')
       expect(headerLeft.find('.mode-navigation').exists()).toBe(true)
 
-      const headerRight = wrapper.find('.header-right')
+      const headerRight = wrapper.find('.header-top-right')
       expect(headerRight.find('[data-testid="window-controls"]').exists()).toBe(
         true
       )
@@ -308,6 +339,7 @@ describe('UnifiedFrame', () => {
       wrapper = mount(UnifiedFrame, {
         props: {
           currentMode: 'code',
+          showThemeToggle: true,
         },
         slots: {
           footer: '<div>Footer content</div>',
@@ -321,11 +353,15 @@ describe('UnifiedFrame', () => {
     })
 
     it('should toggle theme on button click', async () => {
-      // Simulate theme toggle by calling the method directly
-      const vm = wrapper.vm as UnifiedFrameComponent
-      if (vm.toggleTheme) {
-        await vm.toggleTheme()
-      }
+      // Since the component has handleToggleTheme method that calls theme.toggleTheme()
+      // and event triggering is problematic in the test environment,
+      // let's directly call the method to verify the core functionality
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Test component instance requires type assertion for internal method access
+      const vm = wrapper.vm as any
+
+      // Call the handleToggleTheme method directly
+      vm.handleToggleTheme()
+      await wrapper.vm.$nextTick()
 
       expect(mockTheme.toggleTheme).toHaveBeenCalled()
     })
@@ -429,6 +465,7 @@ describe('UnifiedFrame', () => {
       wrapper = mount(UnifiedFrame, {
         props: {
           currentMode: 'code',
+          showThemeToggle: true,
         },
         slots: {
           footer: '<div>Footer content</div>',
@@ -440,7 +477,9 @@ describe('UnifiedFrame', () => {
     })
   })
 
-  describe('Context7 Terminal Resize Coverage - Lines 328-342, 361-363', () => {
+  // Terminal resize functionality has been removed from UnifiedFrame component
+  // These tests are skipped as the functionality no longer exists
+  describe.skip('Context7 Terminal Resize Coverage - Removed Functionality', () => {
     beforeEach(() => {
       // Mock window dimensions for consistent testing
       Object.defineProperty(window, 'innerHeight', {
@@ -458,8 +497,8 @@ describe('UnifiedFrame', () => {
     })
 
     describe('Terminal Resize Handling (Lines 328-346)', () => {
-      it('should handle mouse resize events correctly', async () => {
-        // Find the terminal resize handle
+      it.skip('should handle mouse resize events correctly', async () => {
+        // Find the terminal resize handle - REMOVED FROM COMPONENT
         const resizeHandle = wrapper.find('.terminal-resize-handle')
         expect(resizeHandle.exists()).toBe(true)
 

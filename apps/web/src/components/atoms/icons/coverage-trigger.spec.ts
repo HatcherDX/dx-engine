@@ -79,7 +79,11 @@ describe('Icon Coverage Trigger', () => {
       const html = wrapper.html()
       expect(html).toContain('<svg')
       expect(html).toContain('viewBox')
-      expect(html).toContain('stroke="currentColor"')
+      // Check for stroke in either attribute or style
+      const hasStroke =
+        html.includes('stroke="currentColor"') ||
+        html.includes('stroke: currentColor')
+      expect(hasStroke).toBe(true)
 
       wrapper.unmount()
     })

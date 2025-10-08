@@ -1,21 +1,18 @@
 <template>
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    stroke-width="2"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-  >
-    <circle cx="12" cy="12" r="3" />
-    <path
-      d="M12 1v6m0 6v6m11-7h-6m-6 0H1m15.5-6.5L17 7l-1.5-1.5M8.5 8.5L7 7 5.5 8.5m0 7L7 17l1.5-1.5m7 0L17 17l1.5-1.5"
-    />
-  </svg>
+  <IconBase v-bind="$attrs" :stroke-width="1.5">
+    <circle cx="12" cy="12" r="2.5" />
+    <path d="M12 2v4m0 12v4" />
+    <path d="M20.5 12h-4m-9 0h-4" />
+    <path d="M18.5 6l-2.8 2.8M8.3 15.7l-2.8 2.8" />
+    <path d="M18.5 18l-2.8-2.8M8.3 8.3L5.5 5.5" />
+  </IconBase>
 </template>
 
 <script setup lang="ts">
+import IconBase from './IconBase.vue'
+
 defineOptions({
   name: 'SettingsIcon',
+  inheritAttrs: false,
 })
 </script>

@@ -1,5 +1,6 @@
 <template>
   <div
+    v-disable-terminal
     class="task-card"
     :class="{
       'task-selected': isSelected,
@@ -14,13 +15,13 @@
     @mouseleave="showTooltip = false"
   >
     <div class="card-header">
-      <div class="task-emoji">
-        {{ task.title.split(' ')[0] }}
+      <div class="task-icon-wrapper">
+        <component :is="getIconComponent(task.icon)" class="task-icon" />
       </div>
     </div>
 
     <div class="card-content">
-      <h3 class="task-title">{{ task.title.substring(2).trim() }}</h3>
+      <h3 class="task-title">{{ task.title }}</h3>
       <p class="task-description">{{ task.description }}</p>
     </div>
 
@@ -29,7 +30,11 @@
     </div>
 
     <!-- Tooltip -->
-    <div v-if="showTooltip" class="tooltip">
+    <div
+      v-if="showTooltip"
+      class="tooltip"
+      :class="{ 'tooltip-top': isBottomRow }"
+    >
       <div class="tooltip-content">
         <p class="tooltip-details">{{ task.tooltipDetails }}</p>
         <p class="tooltip-example">
@@ -44,10 +49,16 @@
 import { ref } from 'vue'
 import type { OnboardingTaskOption } from '../../composables/useOnboarding'
 import BaseIcon from '../atoms/BaseIcon.vue'
+import PlusIcon from '../atoms/icons/Plus.vue'
+import BugIcon from '../atoms/icons/Bug.vue'
+import BookOpenIcon from '../atoms/icons/BookOpen.vue'
+import SettingsIcon from '../atoms/icons/Settings.vue'
+import CodeIcon from '../atoms/icons/Code.vue'
 
 interface Props {
   task: OnboardingTaskOption
   isSelected?: boolean
+  isBottomRow?: boolean
 }
 
 interface Emits {
@@ -56,12 +67,28 @@ interface Emits {
 
 const props = withDefaults(defineProps<Props>(), {
   isSelected: false,
+  isBottomRow: false,
 })
 
 const emit = defineEmits<Emits>()
 const showTooltip = ref(false)
 
+const getIconComponent = (iconName: string) => {
+  const iconMap: Record<string, typeof PlusIcon> = {
+    Plus: PlusIcon,
+    Bug: BugIcon,
+    BookOpen: BookOpenIcon,
+    Settings: SettingsIcon,
+    Code: CodeIcon,
+  }
+  return iconMap[iconName] || PlusIcon
+}
+
 const handleSelect = (): void => {
+  console.log(
+    '[OnboardingTaskCard] handleSelect called for task:',
+    props.task.id
+  )
   emit('select', props.task.id)
 }
 </script>
@@ -78,7 +105,7 @@ const handleSelect = (): void => {
   padding: 12px 16px;
   transition: all var(--transition-fast);
   position: relative;
-  height: 100px;
+  height: 120px;
   width: 100%;
   outline: none;
   cursor: pointer;
@@ -113,14 +140,23 @@ const handleSelect = (): void => {
   height: 100%;
 }
 
-.task-emoji {
+.task-icon-wrapper {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 48px;
   height: 48px;
-  font-size: 28px;
   flex-shrink: 0;
+  background-color: var(--accent-primary-alpha);
+  border-radius: 50%;
+  transition: all var(--transition-fast);
+}
+
+.task-icon {
+  color: var(--accent-primary);
+  transition: all var(--transition-fast);
+  width: 24px;
+  height: 24px;
 }
 
 .card-content {
@@ -166,8 +202,13 @@ const handleSelect = (): void => {
   line-height: 1.3;
 }
 
-.task-card:hover .task-emoji {
+.task-card:hover .task-icon-wrapper {
   transform: scale(1.1);
+  background-color: var(--accent-primary);
+}
+
+.task-card:hover .task-icon {
+  color: var(--text-on-accent);
 }
 
 /* Tooltip Styles */
@@ -179,6 +220,13 @@ const handleSelect = (): void => {
   z-index: 99999;
   animation: tooltip-fade-in 0.2s ease-out;
   pointer-events: none;
+}
+
+/* Tooltip positioned above for bottom row cards */
+.tooltip-top {
+  top: auto;
+  bottom: calc(100% + 8px);
+  animation: tooltip-fade-in-top 0.2s ease-out;
 }
 
 .tooltip-content {
@@ -226,6 +274,17 @@ const handleSelect = (): void => {
   }
 }
 
+@keyframes tooltip-fade-in-top {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .task-card {
@@ -244,10 +303,9 @@ const handleSelect = (): void => {
     width: 100%;
   }
 
-  .task-icon {
+  .task-icon-wrapper {
     width: 40px;
     height: 40px;
-    margin-bottom: 0;
   }
 
   .task-title {

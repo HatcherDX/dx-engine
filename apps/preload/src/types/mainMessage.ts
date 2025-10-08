@@ -18,6 +18,8 @@ export interface MainMessage {
   newUserJoin: (userID: number) => string
   /** Platform simulation event from Development menu */
   'simulate-platform': (platform: 'macos' | 'windows' | 'linux') => void
+  /** Close task event from File menu */
+  'close-task': () => void
 
   // Terminal system events
   /** Terminal created */

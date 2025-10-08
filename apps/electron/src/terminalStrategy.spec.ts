@@ -43,7 +43,11 @@ const mockLowReliabilityCapabilities = {
   reliability: 'low' as const,
 }
 
-const { mockBackendDetector, mockEnhancedTerminalFactory } = vi.hoisted(() => ({
+const {
+  mockBackendDetector,
+  mockEnhancedTerminalFactory,
+  mockWelcomeMessageProvider,
+} = vi.hoisted(() => ({
   mockBackendDetector: {
     detectBestBackend: vi.fn(() => Promise.resolve(mockTerminalCapabilities)),
     getCapabilitiesDescription: vi.fn(
@@ -65,11 +69,19 @@ const { mockBackendDetector, mockEnhancedTerminalFactory } = vi.hoisted(() => ({
       })
     ),
   },
+  mockWelcomeMessageProvider: class {
+    getWelcomeMessage = vi.fn().mockReturnValue('Welcome to Hatcher Terminal!')
+    getPrompt = vi.fn().mockReturnValue('$ ')
+    getSimpleMessage = vi.fn().mockReturnValue('Simple message')
+    updateOptions = vi.fn()
+    getOptions = vi.fn().mockReturnValue({})
+  },
 }))
 
 vi.mock('@hatcherdx/terminal-system', () => ({
   BackendDetector: mockBackendDetector,
   EnhancedTerminalFactory: mockEnhancedTerminalFactory,
+  WelcomeMessageProvider: mockWelcomeMessageProvider,
 }))
 
 describe('TerminalStrategy', () => {
@@ -561,6 +573,8 @@ describe('TerminalStrategy', () => {
         env: { NODE_ENV: 'test' },
         cols: 120,
         rows: 40,
+        welcomeMessage: 'Welcome to Hatcher Terminal!',
+        welcomeDelay: 50,
       })
     })
 
@@ -573,8 +587,10 @@ describe('TerminalStrategy', () => {
         shell: undefined,
         cwd: process.cwd(),
         env: undefined,
-        cols: 80,
+        cols: 45,
         rows: 24,
+        welcomeMessage: 'Welcome to Hatcher Terminal!',
+        welcomeDelay: 50,
       })
     })
   })

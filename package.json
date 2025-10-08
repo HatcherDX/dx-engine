@@ -24,17 +24,14 @@
     "dev:all": "tsx scripts/watch.ts",
     "dev:watch": "tsx scripts/watch.ts --watch",
     "dev:pkg": "pnpm -F \"./packages/**\" dev",
-    "build:pkg": "pnpm --filter @hatcherdx/puppeteer-google-translate build",
     "build": "turbo run build",
-    "build:docs": "pnpm --filter @hatcherdx/dx-engine-docs build:pages",
     "dev:p": "turbo run dev --parallel",
     "compile": "pnpm build && turbo run compile",
     "pack:dev": "pnpm run build && pnpm -F electron-main run pack:dev",
     "pack:prod": "pnpm run build && pnpm -F electron-main run pack:prod",
     "icons": "tsx scripts/generate-icons.ts",
     "icons:white": "tsx scripts/generate-icons.ts brand/egg-white.png",
-    "translate:docs": "pnpm tsx scripts/translate-docs.ts",
-    "postinstall": "tsx scripts/setup-env.ts && npm run build:pkg",
+    "postinstall": "tsx scripts/setup-env.ts",
     "test": "vitest",
     "test:ci": "VITEST_MOCK_SQLITE=true vitest run",
     "test:arm64": "vitest --config vitest.arm64.config.ts",
@@ -64,7 +61,6 @@
   "devDependencies": {
     "@dotenvx/dotenvx": "^1.39.1",
     "@eslint/js": "^9.24.0",
-    "@hatcherdx/puppeteer-google-translate": "workspace:*",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/commit-analyzer": "^13.0.1",
     "@semantic-release/exec": "^7.1.0",
@@ -131,6 +127,7 @@
     ]
   },
   "dependencies": {
+    "graceful-fs": "^4.2.11",
     "node-pty": "1.0.0",
     "simple-git": "^3.28.0"
   }

@@ -30,9 +30,17 @@ const mocks = vi.hoisted(() => {
       '[HOISTED MOCK] Environment detected, preparing native dependency mocks'
     )
 
-    // Create in-memory storage for the mock
+    // Create in-memory storage for the mock - cleared in beforeEach
     const mockStorage = new Map<string, unknown>()
     let idCounter = 1
+
+    // Clear storage before each test
+    if (typeof beforeEach !== 'undefined') {
+      beforeEach(() => {
+        mockStorage.clear()
+        idCounter = 1
+      })
+    }
 
     return {
       betterSqlite3Mock: {
@@ -216,6 +224,14 @@ if (!useRealSQLite && (isCI || forceUseMock)) {
     // Fallback if hoisted mocks aren't available - create in-memory storage
     const fallbackStorage = new Map<string, unknown>()
     let fallbackIdCounter = 1
+
+    // Clear storage before each test
+    if (typeof beforeEach !== 'undefined') {
+      beforeEach(() => {
+        fallbackStorage.clear()
+        fallbackIdCounter = 1
+      })
+    }
 
     const mockDatabase = {
       exec: vi.fn().mockReturnValue({ changes: 0 }),

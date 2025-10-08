@@ -633,7 +633,9 @@ export class Vault implements IVault {
    */
   private async generateEncryptionKey(): Promise<void> {
     const namespace = this.config.namespace || 'vault'
-    const derivedKey = await this.encryption.deriveKey(this.config.passphrase!)
+    const derivedKey = await this.encryption.deriveKey(
+      this.config.passphrase || 'default-vault-key'
+    )
     await this.adapter.set(
       `${namespace}:encryption-key`,
       derivedKey.key.toString('base64')

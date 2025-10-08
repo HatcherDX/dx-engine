@@ -35,8 +35,13 @@ let mockPtyManagerInstance: {
 }
 let mockWindow: {
   isDestroyed: ReturnType<typeof vi.fn>
+  isVisible: ReturnType<typeof vi.fn>
+  isFocused?: ReturnType<typeof vi.fn>
   webContents: {
     send: ReturnType<typeof vi.fn>
+    isDestroyed: ReturnType<typeof vi.fn>
+    isLoading?: ReturnType<typeof vi.fn>
+    isCrashed?: ReturnType<typeof vi.fn>
   }
 }
 
@@ -120,9 +125,14 @@ describe('Terminal IPC System', () => {
 
     // Setup mock window for broadcasting
     mockWindow = {
+      isDestroyed: vi.fn(() => false),
+      isVisible: vi.fn(() => true),
+      isFocused: vi.fn(() => true),
       webContents: {
         send: vi.fn(),
         isDestroyed: vi.fn(() => false),
+        isLoading: vi.fn(() => false),
+        isCrashed: vi.fn(() => false),
       },
     }
     mockBrowserWindow.getAllWindows.mockReturnValue([mockWindow])
@@ -192,10 +202,10 @@ describe('Terminal IPC System', () => {
       initializeTerminalSystem()
 
       expect(console.log).toHaveBeenCalledWith(
-        '[Terminal IPC] Initializing real terminal system...'
+        '[Terminal IPC] 🚀 INITIALIZING real terminal system...'
       )
       expect(console.log).toHaveBeenCalledWith(
-        '[Terminal IPC] Real terminal system initialized successfully'
+        '[Terminal IPC] 🎉 Real terminal system initialized successfully!'
       )
 
       // Verify PTY Manager event handlers are set up
@@ -278,7 +288,7 @@ describe('Terminal IPC System', () => {
         'PTY Manager initialization failed'
       )
       expect(console.error).toHaveBeenCalledWith(
-        '[Terminal IPC] Failed to initialize terminal system:',
+        '[Terminal IPC] ❌ FAILED to initialize terminal system:',
         expect.any(Error)
       )
     })
@@ -460,7 +470,7 @@ describe('Terminal IPC System', () => {
         shell: undefined,
         cwd: undefined,
         env: undefined,
-        cols: 80,
+        cols: 45,
         rows: 24,
       })
 

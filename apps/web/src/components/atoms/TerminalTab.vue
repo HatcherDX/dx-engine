@@ -58,7 +58,7 @@ const terminalIcon = computed(() => {
   if (props.terminalType === 'system') {
     return 'Settings' // System/cog icon for System terminal
   } else if (props.terminalType === 'timeline') {
-    return 'GitBranch' // Git branch icon for Timeline terminal
+    return 'Timeline' // Timeline icon for Timegraph terminal
   }
   return 'Terminal' // Terminal icon for regular terminals
 })

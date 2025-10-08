@@ -6,6 +6,7 @@ import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
 import { spawn } from 'node:child_process'
 import { chrome } from '../electron/.electron-vendors.cache.json'
+import packageJson from './package.json'
 
 const PACKAGE_ROOT = fileURLToPath(new URL('.', import.meta.url))
 const PROJECT_ROOT = join(PACKAGE_ROOT, '../..')
@@ -85,6 +86,9 @@ export default defineConfig({
   mode: process.env.MODE,
   root: PACKAGE_ROOT,
   envDir: PROJECT_ROOT,
+  define: {
+    __APP_VERSION__: JSON.stringify(packageJson.version),
+  },
   resolve: {
     alias: {
       '/@/': `${join(PACKAGE_ROOT, 'src')}/`,

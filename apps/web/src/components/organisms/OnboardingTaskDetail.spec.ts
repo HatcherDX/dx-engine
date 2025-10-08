@@ -15,16 +15,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick, ref } from 'vue'
 import OnboardingTaskDetail from './OnboardingTaskDetail.vue'
 
-// Mock child components with full API coverage
-vi.mock('../atoms/BaseButton.vue', () => ({
-  default: {
-    name: 'BaseButton',
-    props: ['variant', 'size', 'disabled', 'class'],
-    emits: ['click'],
-    template:
-      '<button data-testid="base-button" :class="$props.class" v-bind="$attrs" @click="$emit(\'click\', $event)"><slot /></button>',
+// Mock terminalInputBridge
+vi.mock('../../composables/useTerminalInputBridge', () => ({
+  terminalInputBridge: {
+    useTaskDetails: () => ({ taskName: { value: '' } }),
+    subscribe: vi.fn(() => () => {}),
+    updateInput: vi.fn(),
   },
 }))
+
+// Mock child components with full API coverage
 
 vi.mock('../atoms/BaseIcon.vue', () => ({
   default: {
@@ -45,26 +45,28 @@ vi.mock('../atoms/CtaButton.vue', () => ({
   },
 }))
 
-// Define task interface
+// Define task interface based on actual implementation
 interface TaskDetail {
   id: string
   title: string
   description: string
   example: string
-  category: string
-  difficulty: 'beginner' | 'intermediate' | 'advanced'
-  estimatedTime: string
+}
+
+// Define branch interface based on actual implementation
+interface BranchDetail {
+  name: string
+  base: string
+  agent: string
 }
 
 // Mock useOnboarding composable with comprehensive API
 const mockOnboarding = {
   getSelectedTask: ref(null as TaskDetail | null),
+  getSelectedBranch: ref(null as BranchDetail | null),
   nextStep: vi.fn(),
-  previousStep: vi.fn(),
-  setTaskDetails: vi.fn(),
-  currentStep: ref(0),
-  totalSteps: ref(5),
-  isCompleted: ref(false),
+  selectBranch: vi.fn(),
+  currentStep: ref('task-detail'),
 }
 
 vi.mock('../../composables/useOnboarding', () => ({
@@ -92,8 +94,7 @@ beforeEach(() => {
   // Reset onboarding mock state
   mockOnboarding.getSelectedTask.value = null
   mockOnboarding.nextStep.mockClear()
-  mockOnboarding.previousStep.mockClear()
-  mockOnboarding.setTaskDetails.mockClear()
+  mockOnboarding.selectBranch.mockClear()
 })
 
 afterEach(() => {
@@ -103,6 +104,7 @@ afterEach(() => {
 describe('OnboardingTaskDetail', () => {
   let wrapper: VueWrapper<InstanceType<typeof OnboardingTaskDetail>>
 
+  // Helper function to create realistic task data
   const createMockTask = (
     id: string,
     title: string,
@@ -113,9 +115,6 @@ describe('OnboardingTaskDetail', () => {
     title,
     description,
     example,
-    category: 'general',
-    difficulty: 'beginner',
-    estimatedTime: '30 minutes',
   })
 
   describe('Component Initialization', () => {
@@ -128,7 +127,13 @@ describe('OnboardingTaskDetail', () => {
      * @public
      */
     it('should mount successfully with default state', () => {
-      wrapper = mount(OnboardingTaskDetail)
+      wrapper = mount(OnboardingTaskDetail, {
+        global: {
+          directives: {
+            'disable-terminal': { mounted() {}, unmounted() {} },
+          },
+        },
+      })
 
       expect(wrapper.exists()).toBe(true)
       expect(wrapper.find('.onboarding-task-detail').exists()).toBe(true)
@@ -137,7 +142,6 @@ describe('OnboardingTaskDetail', () => {
       expect(wrapper.find('.detail-header').exists()).toBe(true)
       expect(wrapper.find('.input-section').exists()).toBe(true)
       expect(wrapper.find('.action-section').exists()).toBe(true)
-      expect(wrapper.find('.navigation-section').exists()).toBe(true)
     })
 
     /**
@@ -157,14 +161,17 @@ describe('OnboardingTaskDetail', () => {
       )
       mockOnboarding.getSelectedTask.value = task
 
-      wrapper = mount(OnboardingTaskDetail)
+      wrapper = mount(OnboardingTaskDetail, {
+        global: {
+          directives: {
+            'disable-terminal': { mounted() {}, unmounted() {} },
+          },
+        },
+      })
 
-      expect(wrapper.find('.task-info').exists()).toBe(true)
-      expect(wrapper.find('.task-icon').exists()).toBe(true)
-      expect(wrapper.find('.task-meta').exists()).toBe(true)
+      expect(wrapper.find('.detail-header').exists()).toBe(true)
       expect(wrapper.find('.task-title').exists()).toBe(true)
       expect(wrapper.find('.task-description').exists()).toBe(true)
-      expect(wrapper.find('.example-text').exists()).toBe(true)
     })
 
     /**
@@ -176,7 +183,13 @@ describe('OnboardingTaskDetail', () => {
      * @public
      */
     it('should render form elements correctly', () => {
-      wrapper = mount(OnboardingTaskDetail)
+      wrapper = mount(OnboardingTaskDetail, {
+        global: {
+          directives: {
+            'disable-terminal': { mounted() {}, unmounted() {} },
+          },
+        },
+      })
 
       expect(wrapper.find('.section-title').text()).toBe(
         "Let's set up your task"
@@ -204,15 +217,17 @@ describe('OnboardingTaskDetail', () => {
      * @public
      */
     it('should render action buttons', () => {
-      wrapper = mount(OnboardingTaskDetail)
+      wrapper = mount(OnboardingTaskDetail, {
+        global: {
+          directives: {
+            'disable-terminal': { mounted() {}, unmounted() {} },
+          },
+        },
+      })
 
       const ctaButton = wrapper.find('[data-testid="cta-button"]')
       expect(ctaButton.exists()).toBe(true)
-      expect(ctaButton.text()).toBe('Start Building')
-
-      const backButton = wrapper.find('[data-testid="base-button"]')
-      expect(backButton.exists()).toBe(true)
-      expect(backButton.text()).toContain('Change Task Type')
+      expect(ctaButton.text()).toContain('Start Building')
     })
   })
 
@@ -234,15 +249,18 @@ describe('OnboardingTaskDetail', () => {
       )
       mockOnboarding.getSelectedTask.value = task
 
-      wrapper = mount(OnboardingTaskDetail)
+      wrapper = mount(OnboardingTaskDetail, {
+        global: {
+          directives: {
+            'disable-terminal': { mounted() {}, unmounted() {} },
+          },
+        },
+      })
 
-      expect(wrapper.find('.task-icon').text()).toBe('🚀')
-      expect(wrapper.find('.task-title').text()).toBe('Create Feature')
+      // Title now includes emoji
+      expect(wrapper.find('.task-title').text()).toBe('🚀 Create Feature')
       expect(wrapper.find('.task-description').text()).toBe(
         'Build new functionality for your application'
-      )
-      expect(wrapper.find('.example-text').text()).toBe(
-        'e.g., Add user authentication system'
       )
     })
 
@@ -263,15 +281,18 @@ describe('OnboardingTaskDetail', () => {
       )
       mockOnboarding.getSelectedTask.value = task
 
-      wrapper = mount(OnboardingTaskDetail)
+      wrapper = mount(OnboardingTaskDetail, {
+        global: {
+          directives: {
+            'disable-terminal': { mounted() {}, unmounted() {} },
+          },
+        },
+      })
 
-      expect(wrapper.find('.task-icon').text()).toBe('🐛')
-      expect(wrapper.find('.task-title').text()).toBe('Fix Bug')
+      // Title now includes emoji
+      expect(wrapper.find('.task-title').text()).toBe('🐛 Fix Bug')
       expect(wrapper.find('.task-description').text()).toBe(
         'Identify and resolve issues in your codebase'
-      )
-      expect(wrapper.find('.example-text').text()).toBe(
-        'e.g., Fix memory leak in data processing'
       )
     })
 
@@ -292,15 +313,20 @@ describe('OnboardingTaskDetail', () => {
       )
       mockOnboarding.getSelectedTask.value = task
 
-      wrapper = mount(OnboardingTaskDetail)
+      wrapper = mount(OnboardingTaskDetail, {
+        global: {
+          directives: {
+            'disable-terminal': { mounted() {}, unmounted() {} },
+          },
+        },
+      })
 
-      expect(wrapper.find('.task-icon').text()).toBe('📚')
-      expect(wrapper.find('.task-title').text()).toBe('Improve Documentation')
+      // Title now includes emoji
+      expect(wrapper.find('.task-title').text()).toBe(
+        '📚 Improve Documentation'
+      )
       expect(wrapper.find('.task-description').text()).toBe(
         'Create comprehensive documentation for your project'
-      )
-      expect(wrapper.find('.example-text').text()).toBe(
-        'e.g., Write API documentation for user service'
       )
     })
 
@@ -321,15 +347,18 @@ describe('OnboardingTaskDetail', () => {
       )
       mockOnboarding.getSelectedTask.value = task
 
-      wrapper = mount(OnboardingTaskDetail)
+      wrapper = mount(OnboardingTaskDetail, {
+        global: {
+          directives: {
+            'disable-terminal': { mounted() {}, unmounted() {} },
+          },
+        },
+      })
 
-      expect(wrapper.find('.task-icon').text()).toBe('⚙️')
-      expect(wrapper.find('.task-title').text()).toBe('Perform Maintenance')
+      // Title now includes emoji
+      expect(wrapper.find('.task-title').text()).toBe('⚙️ Perform Maintenance')
       expect(wrapper.find('.task-description').text()).toBe(
         'Maintain and update your project dependencies'
-      )
-      expect(wrapper.find('.example-text').text()).toBe(
-        'e.g., Update React to latest version'
       )
     })
 
@@ -350,15 +379,18 @@ describe('OnboardingTaskDetail', () => {
       )
       mockOnboarding.getSelectedTask.value = task
 
-      wrapper = mount(OnboardingTaskDetail)
+      wrapper = mount(OnboardingTaskDetail, {
+        global: {
+          directives: {
+            'disable-terminal': { mounted() {}, unmounted() {} },
+          },
+        },
+      })
 
-      expect(wrapper.find('.task-icon').text()).toBe('♻️')
-      expect(wrapper.find('.task-title').text()).toBe('Refactor Code')
+      // Title now includes emoji
+      expect(wrapper.find('.task-title').text()).toBe('♻️ Refactor Code')
       expect(wrapper.find('.task-description').text()).toBe(
         'Improve your code structure and maintainability'
-      )
-      expect(wrapper.find('.example-text').text()).toBe(
-        'e.g., Extract components from monolithic file'
       )
     })
 
@@ -373,12 +405,17 @@ describe('OnboardingTaskDetail', () => {
     it('should handle missing task data gracefully', () => {
       mockOnboarding.getSelectedTask.value = null
 
-      wrapper = mount(OnboardingTaskDetail)
+      wrapper = mount(OnboardingTaskDetail, {
+        global: {
+          directives: {
+            'disable-terminal': { mounted() {}, unmounted() {} },
+          },
+        },
+      })
 
-      expect(wrapper.find('.task-icon').text()).toBe('')
+      // When task is null, computed properties return empty values
       expect(wrapper.find('.task-title').text()).toBe('')
       expect(wrapper.find('.task-description').text()).toBe('')
-      expect(wrapper.find('.example-text').text()).toBe('e.g.,')
     })
 
     /**
@@ -402,18 +439,30 @@ describe('OnboardingTaskDetail', () => {
         // Testing with minimal/empty data
       }
 
-      wrapper = mount(OnboardingTaskDetail)
+      wrapper = mount(OnboardingTaskDetail, {
+        global: {
+          directives: {
+            'disable-terminal': { mounted() {}, unmounted() {} },
+          },
+        },
+      })
 
       expect(wrapper.exists()).toBe(true)
-      expect(wrapper.find('.task-title').text()).toBe('Valid Title')
+      // Component shows title as-is (including number prefix)
+      expect(wrapper.find('.task-title').text()).toBe('1. Valid Title')
       expect(wrapper.find('.task-description').text()).toBe('')
-      expect(wrapper.find('.example-text').text()).toBe('e.g.,')
     })
   })
 
   describe('Form Validation', () => {
     beforeEach(() => {
-      wrapper = mount(OnboardingTaskDetail)
+      wrapper = mount(OnboardingTaskDetail, {
+        global: {
+          directives: {
+            'disable-terminal': { mounted() {}, unmounted() {} },
+          },
+        },
+      })
     })
 
     /**
@@ -442,7 +491,8 @@ describe('OnboardingTaskDetail', () => {
       await taskNameInput.setValue('Test Feature')
 
       const ctaButton = wrapper.find('[data-testid="cta-button"]')
-      expect(ctaButton.attributes('disabled')).toBeUndefined()
+      // Should be disabled because branch name is still empty
+      expect(ctaButton.attributes('disabled')).toBeDefined()
     })
 
     /**
@@ -529,7 +579,21 @@ describe('OnboardingTaskDetail', () => {
 
   describe('Branch Name Generation', () => {
     beforeEach(() => {
-      wrapper = mount(OnboardingTaskDetail)
+      // Set up a task for branch generation to work
+      const task = createMockTask(
+        'create-feature',
+        '🚀 Create Feature',
+        'Build new functionality',
+        'Add user login'
+      )
+      mockOnboarding.getSelectedTask.value = task
+      wrapper = mount(OnboardingTaskDetail, {
+        global: {
+          directives: {
+            'disable-terminal': { mounted() {}, unmounted() {} },
+          },
+        },
+      })
     })
 
     /**
@@ -611,9 +675,9 @@ describe('OnboardingTaskDetail', () => {
         'feature/test-feature'
       )
 
-      await branchNameInput.setValue('custom/branch-name')
+      await branchNameInput.setValue('feature/custom-branch')
       expect((branchNameInput.element as HTMLInputElement).value).toBe(
-        'custom/branch-name'
+        'feature/custom-branch'
       )
     })
 
@@ -670,14 +734,14 @@ describe('OnboardingTaskDetail', () => {
 
   describe('Task-Specific Initialization', () => {
     /**
-     * Tests automatic initialization for create-feature task.
+     * Tests form initialization for create-feature task.
      *
      * @returns Promise<void>
-     * Should pre-fill form when create-feature task is selected
+     * Should start with empty form when create-feature task is selected
      *
      * @public
      */
-    it('should auto-initialize create-feature task', async () => {
+    it('should start with empty form for create-feature task', async () => {
       const task = createMockTask(
         'create-feature',
         '🚀 Create Feature',
@@ -686,17 +750,25 @@ describe('OnboardingTaskDetail', () => {
       )
       mockOnboarding.getSelectedTask.value = task
 
-      wrapper = mount(OnboardingTaskDetail)
+      wrapper = mount(OnboardingTaskDetail, {
+        global: {
+          directives: {
+            'disable-terminal': { mounted() {}, unmounted() {} },
+          },
+        },
+      })
       await nextTick()
 
       const taskNameInput = wrapper.find('#task-name')
       const branchNameInput = wrapper.find('#branch-name')
 
-      expect((taskNameInput.element as HTMLInputElement).value).toBe(
-        'Add User Login'
-      )
-      expect((branchNameInput.element as HTMLInputElement).value).toBe(
-        'feature/add-user-login'
+      // Form should be empty initially (watcher clears form)
+      expect((taskNameInput.element as HTMLInputElement).value).toBe('')
+      expect((branchNameInput.element as HTMLInputElement).value).toBe('')
+
+      // But placeholder should show correct example
+      expect(taskNameInput.attributes('placeholder')).toBe(
+        'e.g., Add User Login'
       )
     })
 
@@ -717,7 +789,13 @@ describe('OnboardingTaskDetail', () => {
       )
       mockOnboarding.getSelectedTask.value = task
 
-      wrapper = mount(OnboardingTaskDetail)
+      wrapper = mount(OnboardingTaskDetail, {
+        global: {
+          directives: {
+            'disable-terminal': { mounted() {}, unmounted() {} },
+          },
+        },
+      })
       await nextTick()
 
       const taskNameInput = wrapper.find('#task-name')
@@ -745,19 +823,21 @@ describe('OnboardingTaskDetail', () => {
       )
       mockOnboarding.getSelectedTask.value = featureTask
 
-      wrapper = mount(OnboardingTaskDetail)
+      wrapper = mount(OnboardingTaskDetail, {
+        global: {
+          directives: {
+            'disable-terminal': { mounted() {}, unmounted() {} },
+          },
+        },
+      })
       await nextTick()
 
       const taskNameInput = wrapper.find('#task-name')
       const branchNameInput = wrapper.find('#branch-name')
 
-      // Should auto-initialize due to immediate: true watcher
-      expect((taskNameInput.element as HTMLInputElement).value).toBe(
-        'Add User Login'
-      )
-      expect((branchNameInput.element as HTMLInputElement).value).toBe(
-        'feature/add-user-login'
-      )
+      // Form should be cleared due to immediate: true watcher
+      expect((taskNameInput.element as HTMLInputElement).value).toBe('')
+      expect((branchNameInput.element as HTMLInputElement).value).toBe('')
     })
 
     /**
@@ -777,19 +857,37 @@ describe('OnboardingTaskDetail', () => {
       )
       mockOnboarding.getSelectedTask.value = task
 
-      wrapper = mount(OnboardingTaskDetail)
+      wrapper = mount(OnboardingTaskDetail, {
+        global: {
+          directives: {
+            'disable-terminal': { mounted() {}, unmounted() {} },
+          },
+        },
+      })
 
-      // Should initialize immediately due to immediate: true option
+      // Form should be cleared immediately due to immediate: true option
       const taskNameInput = wrapper.find('#task-name')
-      expect((taskNameInput.element as HTMLInputElement).value).toBe(
-        'Add User Login'
-      )
+      expect((taskNameInput.element as HTMLInputElement).value).toBe('')
     })
   })
 
   describe('User Interactions', () => {
     beforeEach(() => {
-      wrapper = mount(OnboardingTaskDetail)
+      // Set up a task for auto-generation to work
+      const task = createMockTask(
+        'create-feature',
+        '🚀 Create Feature',
+        'Build new functionality',
+        'Add user login'
+      )
+      mockOnboarding.getSelectedTask.value = task
+      wrapper = mount(OnboardingTaskDetail, {
+        global: {
+          directives: {
+            'disable-terminal': { mounted() {}, unmounted() {} },
+          },
+        },
+      })
     })
 
     /**
@@ -845,30 +943,6 @@ describe('OnboardingTaskDetail', () => {
       await ctaButton.trigger('click')
 
       expect(mockOnboarding.nextStep).toHaveBeenCalledTimes(1)
-    })
-
-    /**
-     * Tests back button functionality.
-     *
-     * @returns Promise<void>
-     * Should clear form and call previousStep
-     *
-     * @public
-     */
-    it('should handle back button click', async () => {
-      const taskNameInput = wrapper.find('#task-name')
-      const branchNameInput = wrapper.find('#branch-name')
-      const backButton = wrapper.find('[data-testid="base-button"]')
-
-      // Fill form first
-      await taskNameInput.setValue('Test Feature')
-      await branchNameInput.setValue('feature/test-feature')
-
-      await backButton.trigger('click')
-
-      expect(mockOnboarding.previousStep).toHaveBeenCalledTimes(1)
-      expect((taskNameInput.element as HTMLInputElement).value).toBe('')
-      expect((branchNameInput.element as HTMLInputElement).value).toBe('')
     })
 
     /**
@@ -952,7 +1026,13 @@ describe('OnboardingTaskDetail', () => {
      * @public
      */
     it('should initialize correctly on mount', () => {
-      wrapper = mount(OnboardingTaskDetail)
+      wrapper = mount(OnboardingTaskDetail, {
+        global: {
+          directives: {
+            'disable-terminal': { mounted() {}, unmounted() {} },
+          },
+        },
+      })
 
       expect(wrapper.exists()).toBe(true)
       expect(
@@ -972,7 +1052,13 @@ describe('OnboardingTaskDetail', () => {
      * @public
      */
     it('should cleanup properly on unmount', () => {
-      wrapper = mount(OnboardingTaskDetail)
+      wrapper = mount(OnboardingTaskDetail, {
+        global: {
+          directives: {
+            'disable-terminal': { mounted() {}, unmounted() {} },
+          },
+        },
+      })
 
       expect(() => wrapper.unmount()).not.toThrow()
       expect(wrapper.exists()).toBe(false)
@@ -988,7 +1074,13 @@ describe('OnboardingTaskDetail', () => {
      */
     it('should handle multiple mount/unmount cycles', () => {
       for (let i = 0; i < 3; i++) {
-        wrapper = mount(OnboardingTaskDetail)
+        wrapper = mount(OnboardingTaskDetail, {
+          global: {
+            directives: {
+              'disable-terminal': { mounted() {}, unmounted() {} },
+            },
+          },
+        })
         expect(wrapper.exists()).toBe(true)
         wrapper.unmount()
         expect(wrapper.exists()).toBe(false)
@@ -1004,7 +1096,13 @@ describe('OnboardingTaskDetail', () => {
      * @public
      */
     it('should handle prop updates gracefully', async () => {
-      wrapper = mount(OnboardingTaskDetail)
+      wrapper = mount(OnboardingTaskDetail, {
+        global: {
+          directives: {
+            'disable-terminal': { mounted() {}, unmounted() {} },
+          },
+        },
+      })
 
       // Component doesn't accept external props, but should remain stable
       expect(wrapper.exists()).toBe(true)
@@ -1028,7 +1126,13 @@ describe('OnboardingTaskDetail', () => {
       mockOnboarding.nextStep = vi.fn()
 
       expect(() => {
-        wrapper = mount(OnboardingTaskDetail)
+        wrapper = mount(OnboardingTaskDetail, {
+          global: {
+            directives: {
+              'disable-terminal': { mounted() {}, unmounted() {} },
+            },
+          },
+        })
       }).not.toThrow()
 
       mockOnboarding.nextStep = originalNextStep
@@ -1043,7 +1147,13 @@ describe('OnboardingTaskDetail', () => {
      * @public
      */
     it('should handle invalid form data gracefully', async () => {
-      wrapper = mount(OnboardingTaskDetail)
+      wrapper = mount(OnboardingTaskDetail, {
+        global: {
+          directives: {
+            'disable-terminal': { mounted() {}, unmounted() {} },
+          },
+        },
+      })
 
       const taskNameInput = wrapper.find('#task-name')
       const branchNameInput = wrapper.find('#branch-name')
@@ -1071,7 +1181,13 @@ describe('OnboardingTaskDetail', () => {
      */
     it('should handle event handler errors gracefully', async () => {
       // Test the component's ability to handle errors, not the actual error
-      wrapper = mount(OnboardingTaskDetail)
+      wrapper = mount(OnboardingTaskDetail, {
+        global: {
+          directives: {
+            'disable-terminal': { mounted() {}, unmounted() {} },
+          },
+        },
+      })
 
       const taskNameInput = wrapper.find('#task-name')
       const branchNameInput = wrapper.find('#branch-name')
@@ -1128,7 +1244,13 @@ describe('OnboardingTaskDetail', () => {
         mockOnboarding.getSelectedTask.value = task
 
         expect(() => {
-          wrapper = mount(OnboardingTaskDetail)
+          wrapper = mount(OnboardingTaskDetail, {
+            global: {
+              directives: {
+                'disable-terminal': { mounted() {}, unmounted() {} },
+              },
+            },
+          })
         }).not.toThrow()
 
         if (wrapper) {
@@ -1140,7 +1262,13 @@ describe('OnboardingTaskDetail', () => {
 
   describe('Accessibility', () => {
     beforeEach(() => {
-      wrapper = mount(OnboardingTaskDetail)
+      wrapper = mount(OnboardingTaskDetail, {
+        global: {
+          directives: {
+            'disable-terminal': { mounted() {}, unmounted() {} },
+          },
+        },
+      })
     })
 
     /**
@@ -1173,14 +1301,12 @@ describe('OnboardingTaskDetail', () => {
      */
     it('should have accessible button attributes', () => {
       const ctaButton = wrapper.find('[data-testid="cta-button"]')
-      const backButton = wrapper.find('[data-testid="base-button"]')
 
       expect(ctaButton.exists()).toBe(true)
-      expect(backButton.exists()).toBe(true)
 
-      // Buttons should have descriptive text content
+      // Button should have descriptive text content
       expect(ctaButton.text().trim()).toBeTruthy()
-      expect(backButton.text().trim()).toBeTruthy()
+      expect(ctaButton.text()).toBe('Start Building')
     })
 
     /**
@@ -1240,7 +1366,13 @@ describe('OnboardingTaskDetail', () => {
 
   describe('Visual Design', () => {
     beforeEach(() => {
-      wrapper = mount(OnboardingTaskDetail)
+      wrapper = mount(OnboardingTaskDetail, {
+        global: {
+          directives: {
+            'disable-terminal': { mounted() {}, unmounted() {} },
+          },
+        },
+      })
     })
 
     /**
@@ -1258,7 +1390,6 @@ describe('OnboardingTaskDetail', () => {
       expect(wrapper.find('.detail-header').exists()).toBe(true)
       expect(wrapper.find('.input-section').exists()).toBe(true)
       expect(wrapper.find('.action-section').exists()).toBe(true)
-      expect(wrapper.find('.navigation-section').exists()).toBe(true)
     })
 
     /**
@@ -1270,9 +1401,8 @@ describe('OnboardingTaskDetail', () => {
      * @public
      */
     it('should have responsive design structure', () => {
-      expect(wrapper.find('.task-info').exists()).toBe(true)
-      expect(wrapper.find('.task-icon').exists()).toBe(true)
-      expect(wrapper.find('.task-meta').exists()).toBe(true)
+      expect(wrapper.find('.detail-header').exists()).toBe(true)
+      expect(wrapper.find('.task-title').exists()).toBe(true)
       expect(wrapper.find('.input-group').exists()).toBe(true)
     })
 
@@ -1302,8 +1432,10 @@ describe('OnboardingTaskDetail', () => {
      * @public
      */
     it('should integrate with button component styling', () => {
-      const backButton = wrapper.find('[data-testid="base-button"]')
-      expect(backButton.classes()).toContain('back-button')
+      const ctaButton = wrapper.find('[data-testid="cta-button"]')
+      expect(ctaButton.exists()).toBe(true)
+      // CtaButton should have proper structure
+      expect(ctaButton.text()).toBe('Start Building')
     })
   })
 
@@ -1317,12 +1449,18 @@ describe('OnboardingTaskDetail', () => {
      * @public
      */
     it('should integrate with onboarding composable', () => {
-      wrapper = mount(OnboardingTaskDetail)
+      wrapper = mount(OnboardingTaskDetail, {
+        global: {
+          directives: {
+            'disable-terminal': { mounted() {}, unmounted() {} },
+          },
+        },
+      })
 
       // Verify composable methods are available through mock
       expect(mockOnboarding.getSelectedTask).toBeDefined()
       expect(mockOnboarding.nextStep).toBeDefined()
-      expect(mockOnboarding.previousStep).toBeDefined()
+      expect(mockOnboarding.selectBranch).toBeDefined()
     })
 
     /**
@@ -1335,15 +1473,19 @@ describe('OnboardingTaskDetail', () => {
      */
     it('should navigate between steps correctly', async () => {
       mockOnboarding.nextStep.mockClear()
-      mockOnboarding.previousStep.mockClear()
-      mockOnboarding.nextStep.mockImplementation(() => {}) // Reset to no-op
+      mockOnboarding.selectBranch.mockClear()
 
-      wrapper = mount(OnboardingTaskDetail)
+      wrapper = mount(OnboardingTaskDetail, {
+        global: {
+          directives: {
+            'disable-terminal': { mounted() {}, unmounted() {} },
+          },
+        },
+      })
 
       const taskNameInput = wrapper.find('#task-name')
       const branchNameInput = wrapper.find('#branch-name')
       const ctaButton = wrapper.find('[data-testid="cta-button"]')
-      const backButton = wrapper.find('[data-testid="base-button"]')
 
       // Test forward navigation
       await taskNameInput.setValue('Test Feature')
@@ -1351,9 +1493,12 @@ describe('OnboardingTaskDetail', () => {
       await ctaButton.trigger('click')
       expect(mockOnboarding.nextStep).toHaveBeenCalledTimes(1)
 
-      // Test backward navigation
-      await backButton.trigger('click')
-      expect(mockOnboarding.previousStep).toHaveBeenCalledTimes(1)
+      // Should call selectBranch with branch config
+      expect(mockOnboarding.selectBranch).toHaveBeenCalledWith({
+        name: 'feature/test-feature',
+        base: 'main',
+        agent: 'default',
+      })
     })
 
     /**
@@ -1364,20 +1509,51 @@ describe('OnboardingTaskDetail', () => {
      *
      * @public
      */
-    it('should handle state during navigation', async () => {
-      wrapper = mount(OnboardingTaskDetail)
+    it('should handle state changes during task selection', async () => {
+      // Set initial task first
+      const initialTask = createMockTask(
+        'create-feature',
+        '✨ Create Feature',
+        'Build new features',
+        'Add user authentication'
+      )
+      mockOnboarding.getSelectedTask.value = initialTask
+
+      wrapper = mount(OnboardingTaskDetail, {
+        global: {
+          directives: {
+            'disable-terminal': { mounted() {}, unmounted() {} },
+          },
+        },
+      })
+      await nextTick()
 
       const taskNameInput = wrapper.find('#task-name')
       const branchNameInput = wrapper.find('#branch-name')
-      const backButton = wrapper.find('[data-testid="base-button"]')
 
       // Fill form
       await taskNameInput.setValue('Test Feature')
       await branchNameInput.setValue('feature/test-feature')
 
-      // Go back (should clear form)
-      await backButton.trigger('click')
+      // Verify form has values
+      expect((taskNameInput.element as HTMLInputElement).value).toBe(
+        'Test Feature'
+      )
+      expect((branchNameInput.element as HTMLInputElement).value).toBe(
+        'feature/test-feature'
+      )
 
+      // When task changes, form should clear (due to watcher)
+      const newTask = createMockTask(
+        'fix-bug',
+        '🐛 Fix Bug',
+        'Fix issues',
+        'Fix login bug'
+      )
+      mockOnboarding.getSelectedTask.value = newTask
+      await nextTick()
+
+      // Form should be cleared by the watcher
       expect((taskNameInput.element as HTMLInputElement).value).toBe('')
       expect((branchNameInput.element as HTMLInputElement).value).toBe('')
     })

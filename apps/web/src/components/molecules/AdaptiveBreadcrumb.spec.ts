@@ -98,23 +98,27 @@ describe('AdaptiveBreadcrumb', () => {
       expect(wrapper.find('.breadcrumb-segment.project-file').exists()).toBe(
         true
       )
-      expect(wrapper.find('.project-badge').text()).toBe('awesome-project')
       expect(wrapper.find('.file-path').exists()).toBe(true)
 
       const segments = wrapper.findAll('.segment-text')
+      expect(segments.length).toBe(3)
       expect(segments[0].text()).toBe('src')
       expect(segments[1].text()).toBe('components')
       expect(segments[2].text()).toBe('Header.vue')
     })
 
-    it('should use default project name when not provided in code mode', () => {
+    it('should render empty when no file path provided in code mode', () => {
       wrapper = mount(AdaptiveBreadcrumb, {
         props: {
           currentMode: 'code' as ModeType,
         },
       })
 
-      expect(wrapper.find('.project-badge').text()).toBe('mi-proyecto')
+      // Should render the breadcrumb segment but with no file path
+      expect(wrapper.find('.breadcrumb-segment.project-file').exists()).toBe(
+        true
+      )
+      expect(wrapper.find('.file-path').exists()).toBe(false)
     })
 
     it('should display path separators between segments', () => {
@@ -143,8 +147,6 @@ describe('AdaptiveBreadcrumb', () => {
 
       // When filePath is empty, the file-path div is not rendered
       expect(wrapper.find('.file-path').exists()).toBe(false)
-      // But the project badge should still be visible
-      expect(wrapper.find('.project-badge').text()).toBe('test-project')
       // No segments should be rendered
       const segments = wrapper.findAll('.segment-text')
       expect(segments).toHaveLength(0)
@@ -179,10 +181,9 @@ describe('AdaptiveBreadcrumb', () => {
       expect(wrapper.find('.breadcrumb-segment.project-git').exists()).toBe(
         true
       )
-      expect(wrapper.find('.project-badge').text()).toBe('my-repo')
       expect(wrapper.find('.git-branch').exists()).toBe(true)
       expect(wrapper.find('.branch-text').text()).toBe('feature/new-feature')
-      expect(wrapper.find('[data-name="GitBranch"]').exists()).toBe(true)
+      expect(wrapper.findComponent({ name: 'BaseIcon' }).exists()).toBe(true)
     })
 
     it('should use default git branch when not provided', () => {
@@ -195,14 +196,14 @@ describe('AdaptiveBreadcrumb', () => {
       expect(wrapper.find('.branch-text').text()).toBe('main')
     })
 
-    it('should use default project name when not provided in timeline mode', () => {
+    it('should use default git branch when not provided in timeline mode', () => {
       wrapper = mount(AdaptiveBreadcrumb, {
         props: {
           currentMode: 'timeline' as ModeType,
         },
       })
 
-      expect(wrapper.find('.project-badge').text()).toBe('mi-proyecto')
+      expect(wrapper.find('.branch-text').text()).toBe('main')
     })
   })
 
@@ -342,7 +343,6 @@ describe('AdaptiveBreadcrumb', () => {
       expect(wrapper.find('.breadcrumb-segment.project-git').exists()).toBe(
         true
       )
-      expect(wrapper.find('.project-badge').text()).toBe('fallback-project')
       expect(wrapper.find('.branch-text').text()).toBe('fallback-branch')
     })
 
@@ -360,8 +360,11 @@ describe('AdaptiveBreadcrumb', () => {
         })
       }).not.toThrow()
 
-      // Should use default values
-      expect(wrapper.find('.project-badge').text()).toBe('mi-proyecto')
+      // Should render the code mode segment without file path
+      expect(wrapper.find('.breadcrumb-segment.project-file').exists()).toBe(
+        true
+      )
+      expect(wrapper.find('.file-path').exists()).toBe(false)
     })
   })
 
@@ -448,7 +451,6 @@ describe('AdaptiveBreadcrumb', () => {
       expect(wrapper.find('.breadcrumb-segment.project-file').exists()).toBe(
         true
       )
-      expect(wrapper.find('.project-badge').text()).toBe('new-project')
 
       const segments = wrapper.findAll('.segment-text')
       expect(segments[0].text()).toBe('new')

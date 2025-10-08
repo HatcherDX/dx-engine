@@ -31,6 +31,7 @@ import { Logger } from '../utils/logger'
 import { BackendDetector, type TerminalCapabilities } from './BackendDetector'
 import { NodePtyBackend } from './NodePtyBackend'
 import { SubprocessBackend } from './SubprocessBackend'
+import { SimpleSubprocessBackend } from './SimpleSubprocessBackend'
 import {
   TerminalBackend,
   type BackendProcess,
@@ -90,7 +91,8 @@ export class EnhancedTerminalFactory {
    *   cols: 120,
    *   rows: 30,
    *   cwd: '/path/to/project',
-   *   env: { CUSTOM_VAR: 'value' }
+   *   env: { CUSTOM_VAR: 'value' },
+   *   welcomeMessage: 'Welcome to my terminal!'
    * })
    *
    * // Check capabilities
@@ -112,8 +114,14 @@ export class EnhancedTerminalFactory {
 
       this.logger.info(`Creating terminal with ${capabilities.backend} backend`)
       this.logger.debug('Backend capabilities:', capabilities)
+      if (options.welcomeMessage) {
+        this.logger.debug(
+          'Welcome message requested:',
+          options.welcomeMessage.substring(0, 50) + '...'
+        )
+      }
 
-      // Spawn the process
+      // Spawn the process with all options including welcome message
       const process = await backend.spawn(options)
 
       return { process, capabilities }
@@ -144,17 +152,47 @@ export class EnhancedTerminalFactory {
 
       case 'subprocess':
       default:
-        backend = new SubprocessBackend()
+        // Use SimpleSubprocessBackend which is more reliable for command execution
+        backend = new SimpleSubprocessBackend()
         break
     }
 
-    // Verify the backend is actually available
+    // Verify the backend is actually available with comprehensive fallback
     const isAvailable = await backend.isAvailable()
     if (!isAvailable) {
       this.logger.warn(
-        `Selected backend ${capabilities.backend} is not available, falling back to subprocess`
+        `Selected backend ${capabilities.backend} is not available, attempting fallback...`
       )
-      backend = new SubprocessBackend()
+
+      // FIXED: Try node-pty as primary fallback
+      if (capabilities.backend !== 'node-pty') {
+        this.logger.info('Trying node-pty as fallback backend')
+        const nodePtyBackend = new NodePtyBackend()
+        const nodePtyAvailable = await nodePtyBackend.isAvailable()
+
+        if (nodePtyAvailable) {
+          this.logger.info('Successfully fell back to node-pty backend')
+          backend = nodePtyBackend
+        } else {
+          this.logger.warn(
+            'node-pty fallback failed, using simple subprocess as final fallback'
+          )
+          backend = new SimpleSubprocessBackend()
+        }
+      } else {
+        // If node-pty was selected but failed, fall back to simple subprocess
+        this.logger.info('Falling back to simple subprocess backend')
+        backend = new SimpleSubprocessBackend()
+      }
+
+      // FIXED: Verify final fallback backend is available
+      const fallbackAvailable = await backend.isAvailable()
+      if (!fallbackAvailable) {
+        const errorMsg =
+          'All terminal backends failed - no working terminal backend available'
+        this.logger.error(errorMsg)
+        throw new Error(errorMsg)
+      }
     }
 
     // Cache the result

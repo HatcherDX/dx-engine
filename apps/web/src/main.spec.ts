@@ -2,18 +2,29 @@ import { describe, it, expect, vi } from 'vitest'
 import type { App } from 'vue'
 
 // Mock Vue and CSS imports
-vi.mock('vue', () => ({
-  createApp: vi.fn(() => ({
-    mount: vi.fn(),
-    use: vi.fn(),
-  })),
-}))
+vi.mock('vue', async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    createApp: vi.fn(() => ({
+      mount: vi.fn(),
+      use: vi.fn(),
+      directive: vi.fn(),
+    })),
+  }
+})
 
 vi.mock('./style.css', () => ({}))
 vi.mock('./App.vue', () => ({
   default: {
     name: 'App',
     template: '<div>Mock App</div>',
+  },
+}))
+vi.mock('./directives/disableTerminal', () => ({
+  default: {
+    mounted: vi.fn(),
+    unmounted: vi.fn(),
   },
 }))
 
@@ -23,6 +34,7 @@ describe('main.ts', () => {
     const mockApp = {
       mount: vi.fn(),
       use: vi.fn(),
+      directive: vi.fn(),
     }
     vi.mocked(createApp).mockReturnValue(mockApp as unknown as App<Element>)
 

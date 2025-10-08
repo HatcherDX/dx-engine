@@ -42,6 +42,16 @@ vi.mock('uuid', () => ({
   v4: () => 'mocked-uuid-' + Math.random().toString(36).substr(2, 9),
 }))
 
+// Mock Logger to avoid console conflicts
+vi.mock('../utils/logger', () => ({
+  Logger: class MockLogger {
+    debug = vi.fn()
+    info = vi.fn()
+    warn = vi.fn()
+    error = vi.fn()
+  },
+}))
+
 describe('TaskRunner Extended Coverage', () => {
   let taskRunner: TaskRunner
   let mockStream: ReturnType<typeof vi.fn>

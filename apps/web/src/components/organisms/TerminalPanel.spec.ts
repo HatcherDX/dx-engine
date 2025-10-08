@@ -120,10 +120,12 @@ const mockSystemTerminals = {
     isReady: true,
   },
   activeTerminal: ref(null as string | null),
+  setActiveTerminal: vi.fn(),
+  isInitialized: ref(false),
+  initializeTerminals: vi.fn(),
   logInfo: vi.fn(),
   clearSystemTerminal: vi.fn(),
   clearTimelineTerminal: vi.fn(),
-  setActiveTerminal: vi.fn(),
 }
 
 vi.mock('../../composables/useTerminalManager', () => ({
@@ -176,6 +178,7 @@ describe('TerminalPanel.vue', () => {
     mockTerminalManager.activeTerminalId.value = 'terminal-1'
     mockTheme.themeMode = 'dark'
     mockSystemTerminals.activeTerminal.value = null
+    mockSystemTerminals.isInitialized.value = false
     mockSystemTerminals.systemTerminal.isReady = true
     mockSystemTerminals.timelineTerminal.isReady = true
   })
@@ -195,11 +198,12 @@ describe('TerminalPanel.vue', () => {
       expect(wrapper.find('.terminal-panel').exists()).toBe(true)
     })
 
-    it('should render terminal tab bar', () => {
+    it('should not render terminal tab bar (moved to GlobalTerminalFooter)', () => {
       wrapper = mount(TerminalPanel)
 
+      // Tab bar has been removed from TerminalPanel - now handled by GlobalTerminalFooter
       expect(wrapper.find('[data-testid="terminal-tab-bar"]').exists()).toBe(
-        true
+        false
       )
     })
 
@@ -261,7 +265,8 @@ describe('TerminalPanel.vue', () => {
       wrapper = mount(TerminalPanel)
     })
 
-    it('should create new terminal through TerminalTabBar events', async () => {
+    it.skip('should create new terminal through TerminalTabBar events (tab bar moved)', async () => {
+      // Tab bar has been moved to GlobalTerminalFooter, skipping this test
       const terminalTabBar = wrapper.findComponent({ name: 'TerminalTabBar' })
 
       await terminalTabBar.vm.$emit('new-terminal')
@@ -269,7 +274,8 @@ describe('TerminalPanel.vue', () => {
       expect(mockTerminalManager.createTerminal).toHaveBeenCalled()
     })
 
-    it('should handle terminal creation with custom options through events', async () => {
+    it.skip('should handle terminal creation with custom options through events (tab bar moved)', async () => {
+      // Tab bar has been moved to GlobalTerminalFooter, skipping this test
       const terminalTabBar = wrapper.findComponent({ name: 'TerminalTabBar' })
       const customOptions = { name: 'Custom Terminal', cwd: '/custom/path' }
 
@@ -286,7 +292,8 @@ describe('TerminalPanel.vue', () => {
       wrapper = mount(TerminalPanel)
     })
 
-    it('should switch active terminal on tab click', async () => {
+    it.skip('should switch active terminal on tab click (tab bar moved)', async () => {
+      // Tab bar has been moved to GlobalTerminalFooter, skipping this test
       const terminalTabBar = wrapper.findComponent({ name: 'TerminalTabBar' })
 
       await terminalTabBar.vm.$emit('tab-click', 'terminal-2')
@@ -296,7 +303,8 @@ describe('TerminalPanel.vue', () => {
       )
     })
 
-    it('should close terminal through tab close events', async () => {
+    it.skip('should close terminal through tab close events (tab bar moved)', async () => {
+      // Tab bar has been moved to GlobalTerminalFooter, skipping this test
       const terminalTabBar = wrapper.findComponent({ name: 'TerminalTabBar' })
 
       await terminalTabBar.vm.$emit('tab-close', 'terminal-1')
@@ -306,7 +314,8 @@ describe('TerminalPanel.vue', () => {
       )
     })
 
-    it('should handle tab context menu events', async () => {
+    it.skip('should handle tab context menu events (tab bar moved)', async () => {
+      // Tab bar has been moved to GlobalTerminalFooter, skipping this test
       const terminalTabBar = wrapper.findComponent({ name: 'TerminalTabBar' })
 
       // Should not throw when context menu is triggered
@@ -324,7 +333,8 @@ describe('TerminalPanel.vue', () => {
     it('should handle terminal data events from TerminalView', async () => {
       const terminalView = wrapper.findComponent({ name: 'TerminalView' })
 
-      await terminalView.vm.$emit('data', 'test input data')
+      // TerminalView now emits: emit('data', terminalId, data)
+      await terminalView.vm.$emit('data', 'terminal-1', 'test input data')
 
       // The event should be handled by the sendTerminalInput method
       expect(mockElectronAPI.sendTerminalInput).toHaveBeenCalledWith({
@@ -336,7 +346,8 @@ describe('TerminalPanel.vue', () => {
     it('should handle terminal resize events from TerminalView', async () => {
       const terminalView = wrapper.findComponent({ name: 'TerminalView' })
 
-      await terminalView.vm.$emit('resize', { cols: 80, rows: 24 })
+      // TerminalView now emits: emit('resize', terminalId, cols, rows)
+      await terminalView.vm.$emit('resize', 'terminal-1', 80, 24)
 
       // The event should be handled by the resizeTerminal method
       expect(mockElectronAPI.sendTerminalResize).toHaveBeenCalledWith({
@@ -349,9 +360,10 @@ describe('TerminalPanel.vue', () => {
     it('should handle terminal ready events from TerminalView', async () => {
       const terminalView = wrapper.findComponent({ name: 'TerminalView' })
 
+      // TerminalView now emits: emit('ready', terminalId)
       // Should not throw when terminal ready event is emitted
       expect(async () => {
-        await terminalView.vm.$emit('ready')
+        await terminalView.vm.$emit('ready', 'terminal-1')
       }).not.toThrow()
     })
 
@@ -762,13 +774,9 @@ describe('TerminalPanel.vue', () => {
       }).not.toThrow()
     })
 
-    it('should handle terminal context menu', () => {
-      const vm = wrapper.vm as TerminalPanelInstance
-
-      // Should not throw (placeholder implementation)
-      expect(() => {
-        vm.showTerminalContextMenu()
-      }).not.toThrow()
+    it.skip('should handle terminal context menu', () => {
+      // showTerminalContextMenu method no longer exists in component
+      // Skipping this test as the functionality has been removed/changed
     })
   })
 
@@ -895,7 +903,7 @@ describe('TerminalPanel.vue', () => {
       )
       expect(timelineTerminal).toMatchObject({
         id: 'timeline',
-        name: 'Timeline',
+        name: 'Timegraph',
         isRunning: true,
         isActive: false,
         terminalType: 'timeline',
@@ -967,9 +975,12 @@ describe('TerminalPanel.vue', () => {
   describe('🔄 Lifecycle Hooks', () => {
     it('should create initial terminal on mount when no terminals exist', async () => {
       mockTerminalManager.terminals.value = []
+      mockSystemTerminals.isInitialized.value = false
 
       wrapper = mount(TerminalPanel)
       await nextTick()
+      // Wait for async initialization - component has 100ms delay plus processing time
+      await new Promise((resolve) => setTimeout(resolve, 150))
 
       expect(mockTerminalManager.createTerminal).toHaveBeenCalled()
     })
@@ -993,6 +1004,7 @@ describe('TerminalPanel.vue', () => {
 
     it('should handle terminal creation promise on mount', async () => {
       mockTerminalManager.terminals.value = []
+      mockSystemTerminals.isInitialized.value = false
       mockSystemTerminals.activeTerminal.value = 'system'
 
       const mockTerminal = {
@@ -1007,11 +1019,11 @@ describe('TerminalPanel.vue', () => {
       wrapper = mount(TerminalPanel)
       await nextTick()
 
-      // Wait for the promise to resolve
-      await new Promise((resolve) => setTimeout(resolve, 0))
+      // Wait for the async initialization and promise to resolve
+      await new Promise((resolve) => setTimeout(resolve, 150))
 
       expect(mockTerminalManager.createTerminal).toHaveBeenCalled()
-      expect(mockTerminalManager.setActiveTerminal).toHaveBeenCalledWith(null)
+      expect(mockSystemTerminals.setActiveTerminal).toHaveBeenCalledWith(null)
     })
 
     it('should clear terminal refs on unmount', () => {
