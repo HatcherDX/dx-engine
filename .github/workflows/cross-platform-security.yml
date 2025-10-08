@@ -1,21 +1,17 @@
 name: Cross-Platform Security & Storage Tests
 
+# TEMPORARILY DISABLED
+# This workflow requires significant work to properly configure:
+# - Alpine: Package naming issues (atk vs atk-dev)
+# - All Linux: Electron cannot run as root in containers (needs --no-sandbox)
+# - openSUSE: Only has Node.js 18, not 22
+# - All platforms: Complex per-distro configuration needed
+#
+# Security tests are still running in the main CI workflow.
+# Re-enable this after addressing the issues above.
+
 on:
-  push:
-    branches: [main, nightly]
-    paths:
-      - 'apps/electron/**'
-      - 'apps/preload/**'
-      - 'scripts/validate-security.ts'
-      - '.github/workflows/cross-platform-security.yml'
-  pull_request:
-    branches: [main, nightly]
-    paths:
-      - 'apps/electron/**'
-      - 'apps/preload/**'
-      - 'scripts/validate-security.ts'
-      - '.github/workflows/cross-platform-security.yml'
-  # Allow manual trigger
+  # Disabled - only manual trigger for testing
   workflow_dispatch:
 
 env:
