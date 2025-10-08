@@ -13,5 +13,5 @@
     "**/*.d.ts",
     "./apps/electron/node_modules/electron/**/*.d.ts"
   ],
-  "exclude": ["**/*.spec.ts", "**/*.test.ts"]
+  "exclude": ["**/*.spec.ts", "**/*.test.ts", "**/test-setup*.ts"]
 }

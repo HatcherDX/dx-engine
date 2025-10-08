@@ -11,6 +11,7 @@
  *
  * With globals: true enabled in vitest.config.ts, all vitest utilities
  * (vi, describe, it, expect, afterEach, etc.) are available globally.
+ * Just use them directly without importing or declaring.
  *
  * @see https://vitest.dev/config/#globals
  * @see https://vitest.dev/config/#setupfiles
@@ -20,9 +21,8 @@
  * @internal
  */
 
-// Access vi from global context (available via globals: true)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const vi = (globalThis as any).vi
+// vi is available globally via globals: true
+// No need to import or declare - just use it directly
 
 // Mock console methods for test coverage
 // Logger tests will restore these in their beforeEach

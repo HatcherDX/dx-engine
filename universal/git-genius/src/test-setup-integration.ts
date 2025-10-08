@@ -12,6 +12,7 @@
  *
  * With globals: true enabled in vitest configs, all vitest utilities
  * (vi, describe, it, expect, afterEach, etc.) are available globally.
+ * Just use them directly without importing or declaring.
  *
  * @remarks
  * This setup is used when running integration tests with real Git operations.
@@ -38,9 +39,8 @@
 import { existsSync, mkdirSync, rmSync } from 'fs'
 import { join } from 'path'
 
-// Access vi from global context (available via globals: true)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const vi = (globalThis as any).vi
+// vi is available globally via globals: true
+// No need to import or declare - just use it directly
 
 // Mark that we're using real Git for tests
 process.env.VITEST_USE_REAL_GIT = 'true'

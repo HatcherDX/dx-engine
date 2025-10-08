@@ -10,6 +10,7 @@ import { config, RouterLinkStub } from '@vue/test-utils'
  *
  * With globals: true enabled in vitest.config.ts, all vitest utilities
  * (vi, describe, it, expect, afterEach, etc.) are available globally.
+ * Just use them directly without importing or declaring.
  *
  * @see https://vitest.dev/config/#globals
  * @see https://vitest.dev/config/#setupfiles
@@ -18,11 +19,8 @@ import { config, RouterLinkStub } from '@vue/test-utils'
  * @since 1.0.0
  */
 
-// Access vi and afterEach from global context (available via globals: true)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const vi = (globalThis as any).vi
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const afterEach = (globalThis as any).afterEach
+// vi and afterEach are available globally via globals: true
+// No need to import or declare - just use them directly
 
 // Mock CSS imports - must be at top level
 vi.mock('xterm/css/xterm.css', () => ({

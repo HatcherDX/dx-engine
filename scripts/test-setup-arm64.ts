@@ -11,6 +11,7 @@
  *
  * With globals: true enabled in vitest configs, all vitest utilities
  * (vi, describe, it, expect, afterEach, afterAll, etc.) are available globally.
+ * Just use them directly without importing or declaring.
  *
  * @remarks
  * This setup file ensures that tests run correctly on ARM64 architectures
@@ -29,11 +30,8 @@ import { arch, platform, cpus } from 'os'
 import { existsSync } from 'fs'
 import { join } from 'path'
 
-// Access vitest globals from global context (available via globals: true)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const vi = (globalThis as any).vi
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const afterAll = (globalThis as any).afterAll
+// vi and afterAll are available globally via globals: true
+// No need to import or declare - just use them directly
 
 // Architecture detection
 const currentArch = arch()

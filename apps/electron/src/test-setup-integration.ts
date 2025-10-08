@@ -12,6 +12,7 @@
  *
  * With globals: true enabled in vitest configs, all vitest utilities
  * (vi, describe, it, expect, afterEach, etc.) are available globally.
+ * Just use them directly without importing or declaring.
  *
  * @remarks
  * This setup is used when running integration tests with real Electron features.
@@ -32,11 +33,8 @@
  * @internal
  */
 
-// Access vi and it from global context (available via globals: true)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const vi = (globalThis as any).vi
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const it = (globalThis as any).it
+// vi and it are available globally via globals: true
+// No need to import or declare - just use them directly
 
 // Mark that we're using integration tests
 process.env.VITEST_ELECTRON_INTEGRATION = 'true'

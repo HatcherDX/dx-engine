@@ -12,6 +12,7 @@
  *
  * With globals: true enabled in vitest configs, all vitest utilities
  * (vi, describe, it, expect, afterEach, etc.) are available globally.
+ * Just use them directly without importing or declaring.
  *
  * @remarks
  * This setup ensures proper temp directory creation and path handling
@@ -35,9 +36,8 @@ import { existsSync, mkdirSync, rmSync } from 'fs'
 import { join, sep, resolve } from 'path'
 import { tmpdir, homedir } from 'os'
 
-// Access vi from global context (available via globals: true)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const vi = (globalThis as any).vi
+// vi is available globally via globals: true
+// No need to import or declare - just use it directly
 
 // Mark that we're using cross-platform tests
 process.env.VITEST_CROSSPLATFORM = 'true'
