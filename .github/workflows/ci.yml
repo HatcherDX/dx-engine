@@ -424,7 +424,7 @@ jobs:
   # ARM64 Architecture Tests - Native ARM64 support validation
   arm64-native-tests:
     runs-on: ${{ matrix.os }}
-    if: github.ref == 'refs/heads/main' || contains(github.event.pull_request.labels.*.name, 'test-arm64')
+    if: github.ref == 'refs/heads/main' || github.base_ref == 'nightly' || contains(github.event.pull_request.labels.*.name, 'test-arm64')
     strategy:
       matrix:
         include:
