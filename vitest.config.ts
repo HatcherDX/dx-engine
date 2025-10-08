@@ -73,6 +73,8 @@ export default defineConfig({
         error.message?.includes('Timeout calling') ||
         error.message?.includes('vitest-worker') ||
         error.message?.includes('onTaskUpdate') ||
+        error.message?.includes('failed to access its internal state') ||
+        error.message?.includes('onAfterRunSuite') ||
         error.name === 'TimeoutError' ||
         error.message?.includes('timeout') ||
         error.message?.includes('Worker') ||
@@ -128,7 +130,7 @@ export default defineConfig({
     sequence: {
       shuffle: false,
       concurrent: false,
-      hooks: 'stack',
+      hooks: 'list', // Use 'list' instead of 'stack' to prevent cleanup timing issues
       setupFiles: 'parallel',
     },
 

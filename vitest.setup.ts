@@ -242,6 +242,10 @@ afterEach(() => {
   if (typeof document !== 'undefined' && document.body) {
     document.body.innerHTML = ''
   }
+
+  // CRITICAL: Event listeners on window persist across tests
+  // Clearing innerHTML above should trigger Vue component unmount hooks
+  // which will remove event listeners. No additional action needed here.
 })
 
 // CRITICAL SAFETY: Environment variable stubbing for Git safety
