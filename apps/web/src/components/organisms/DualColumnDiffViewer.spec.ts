@@ -563,7 +563,7 @@ describe('DualColumnDiffViewer', () => {
 
       // Should have attempted to create highlighter - verify it was called with file info
       expect(mockConsole.log).toHaveBeenCalledWith(
-        '[WebGL Diff Viewer] Initializing syntax highlighter for:',
+        '[Diff Viewer] Initializing syntax highlighter for:',
         'src/test.ts'
       )
     })
@@ -1682,7 +1682,7 @@ describe('DualColumnDiffViewer', () => {
 
       // Should have initialized highlighter on mount
       expect(mockConsole.log).toHaveBeenCalledWith(
-        '[WebGL Diff Viewer] Initializing syntax highlighter for:',
+        '[Diff Viewer] Initializing syntax highlighter for:',
         'src/test.ts'
       )
     })
@@ -3335,7 +3335,7 @@ describe('DualColumnDiffViewer', () => {
       await vm.initializeSyntaxHighlighter()
       // Should log skip message
       expect(mockConsole.log).toHaveBeenCalledWith(
-        '[WebGL Diff Viewer] No current file, skipping highlighter initialization'
+        '[Diff Viewer] No current file, skipping highlighter initialization'
       )
     }
 
@@ -3353,7 +3353,7 @@ describe('DualColumnDiffViewer', () => {
       await vm.initializeSyntaxHighlighter()
       // Should handle error gracefully
       expect(mockConsole.warn).toHaveBeenCalledWith(
-        '[WebGL Diff Viewer] Failed to initialize syntax highlighter:',
+        '[Diff Viewer] Failed to initialize syntax highlighter:',
         expect.any(Error)
       )
     }
@@ -4037,7 +4037,7 @@ describe('DualColumnDiffViewer', () => {
 
         // Should log the early return message
         expect(consoleSpy).toHaveBeenCalledWith(
-          '[WebGL Diff Viewer] No current file, skipping highlighter initialization'
+          '[Diff Viewer] No current file, skipping highlighter initialization'
         )
 
         consoleSpy.mockRestore()
@@ -4087,7 +4087,7 @@ describe('DualColumnDiffViewer', () => {
 
         // Should log the error (line 453)
         expect(consoleSpy).toHaveBeenCalledWith(
-          '[WebGL Diff Viewer] Failed to highlight content:',
+          '[Diff Viewer] Failed to highlight content:',
           expect.any(Error)
         )
       }
