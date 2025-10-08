@@ -15,9 +15,8 @@ on:
       - 'apps/preload/**'
       - 'scripts/validate-security.ts'
       - '.github/workflows/cross-platform-security.yml'
-
-# Allow manual trigger
-workflow_dispatch:
+  # Allow manual trigger
+  workflow_dispatch:
 
 env:
   NODE_VERSION: '18'
