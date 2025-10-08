@@ -31,6 +31,9 @@ const createMockTerminalInstance = () => ({
   resize: {
     fit: vi.fn(),
   },
+  addons: {
+    getLoadedAddons: vi.fn(() => []),
+  },
   focus: vi.fn(),
   dispose: vi.fn(),
 })
@@ -517,11 +520,17 @@ describe('TerminalView', () => {
 
   describe('Resize Handling', () => {
     it('should set up resize observer', async () => {
+      // Clear mocks to ensure clean state
+      vi.clearAllMocks()
+
       wrapper = mount(TerminalView)
 
+      // Wait for async initialization to complete
       await flushPromises()
       await nextTick()
+      await flushPromises()
 
+      // Verify ResizeObserver was instantiated
       expect(global.ResizeObserver).toHaveBeenCalled()
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Test requires flexible typing for validation testing
       const resizeObserverInstance = (global.ResizeObserver as any).mock
@@ -530,14 +539,25 @@ describe('TerminalView', () => {
     })
 
     it('should handle container resize', async () => {
+      // Clear mocks to ensure clean state
+      vi.clearAllMocks()
+
       wrapper = mount(TerminalView)
 
+      // Wait for async initialization to complete
       await flushPromises()
       await nextTick()
+      await flushPromises()
+
+      // Verify ResizeObserver was called before trying to access it
+      expect(global.ResizeObserver).toHaveBeenCalled()
 
       // Get the resize observer callback
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Test requires flexible typing for validation testing
-      const resizeCallback = (global.ResizeObserver as any).mock.calls[0][0]
+      const resizeObserverMock = global.ResizeObserver as any
+      expect(resizeObserverMock.mock.calls.length).toBeGreaterThan(0)
+
+      const resizeCallback = resizeObserverMock.mock.calls[0][0]
 
       // Trigger resize
       resizeCallback()
@@ -552,6 +572,9 @@ describe('TerminalView', () => {
 
   describe('Backend Connection', () => {
     it('should connect to backend when electronAPI is available', async () => {
+      // Clear mocks to ensure clean state
+      vi.clearAllMocks()
+
       wrapper = mount(TerminalView, {
         props: {
           terminalId: 'test-terminal',
@@ -560,8 +583,10 @@ describe('TerminalView', () => {
         },
       })
 
+      // Wait for async initialization and backend connection to complete
       await flushPromises()
       await nextTick()
+      await flushPromises()
 
       expect(mockElectronAPI.invoke).toHaveBeenCalledWith('terminal-create', {
         name: 'test-terminal',
