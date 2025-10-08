@@ -1,0 +1,20 @@
+﻿2025-10-08T00:20:30.0337167Z ##[group]Run pnpm/action-setup@v4
+2025-10-08T00:20:30.0338206Z with:
+2025-10-08T00:20:30.0338883Z   version: 10.6.1
+2025-10-08T00:20:30.0339651Z   dest: ~/setup-pnpm
+2025-10-08T00:20:30.0340444Z   run_install: null
+2025-10-08T00:20:30.0341272Z   package_json_file: package.json
+2025-10-08T00:20:30.0342240Z   standalone: false
+2025-10-08T00:20:30.0343012Z ##[endgroup]
+2025-10-08T00:20:30.0903915Z ##[group]Running self-installer...
+2025-10-08T00:20:30.7347018Z Progress: resolved 1, reused 0, downloaded 0, added 0
+2025-10-08T00:20:30.7472442Z Packages: +1
+2025-10-08T00:20:30.7476369Z +
+2025-10-08T00:20:31.3836582Z Progress: resolved 1, reused 0, downloaded 1, added 1, done
+2025-10-08T00:20:31.4098375Z 
+2025-10-08T00:20:31.4098892Z dependencies:
+2025-10-08T00:20:31.4099273Z + pnpm 10.6.1 (10.18.1 is available)
+2025-10-08T00:20:31.4099594Z 
+2025-10-08T00:20:31.4128879Z Done in 1.1s
+2025-10-08T00:20:31.4303674Z ##[endgroup]
+2025-10-08T00:20:31.4307311Z Installation Completed!

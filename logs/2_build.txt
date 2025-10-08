@@ -1,0 +1,445 @@
+﻿2025-10-08T00:20:27.7469532Z Current runner version: '2.328.0'
+2025-10-08T00:20:27.7492857Z ##[group]Runner Image Provisioner
+2025-10-08T00:20:27.7493707Z Hosted Compute Agent
+2025-10-08T00:20:27.7494217Z Version: 20250912.392
+2025-10-08T00:20:27.7494798Z Commit: d921fda672a98b64f4f82364647e2f10b2267d0b
+2025-10-08T00:20:27.7495551Z Build Date: 2025-09-12T15:23:14Z
+2025-10-08T00:20:27.7496113Z ##[endgroup]
+2025-10-08T00:20:27.7496661Z ##[group]Operating System
+2025-10-08T00:20:27.7497162Z Ubuntu
+2025-10-08T00:20:27.7497690Z 24.04.3
+2025-10-08T00:20:27.7498102Z LTS
+2025-10-08T00:20:27.7498529Z ##[endgroup]
+2025-10-08T00:20:27.7499041Z ##[group]Runner Image
+2025-10-08T00:20:27.7499600Z Image: ubuntu-24.04
+2025-10-08T00:20:27.7500069Z Version: 20250929.60.1
+2025-10-08T00:20:27.7501084Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20250929.60/images/ubuntu/Ubuntu2404-Readme.md
+2025-10-08T00:20:27.7502822Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20250929.60
+2025-10-08T00:20:27.7503871Z ##[endgroup]
+2025-10-08T00:20:27.7504916Z ##[group]GITHUB_TOKEN Permissions
+2025-10-08T00:20:27.7506749Z Contents: read
+2025-10-08T00:20:27.7507245Z Metadata: read
+2025-10-08T00:20:27.7507724Z Packages: read
+2025-10-08T00:20:27.7508210Z ##[endgroup]
+2025-10-08T00:20:27.7510205Z Secret source: Actions
+2025-10-08T00:20:27.7510838Z Prepare workflow directory
+2025-10-08T00:20:27.7826525Z Prepare all required actions
+2025-10-08T00:20:27.7863545Z Getting action download info
+2025-10-08T00:20:28.2590473Z Download action repository 'actions/checkout@v4' (SHA:08eba0b27e820071cde6df949e0beb9ba4906955)
+2025-10-08T00:20:28.4463996Z Download action repository 'pnpm/action-setup@v4' (SHA:a7487c7e89a18df4991f7f222e4898a00d66ddda)
+2025-10-08T00:20:29.0315646Z Download action repository 'actions/setup-node@v4' (SHA:49933ea5288caeca8642d1e84afbd3f7d6820020)
+2025-10-08T00:20:29.2074859Z Complete job name: build
+2025-10-08T00:20:29.2778241Z ##[group]Run actions/checkout@v4
+2025-10-08T00:20:29.2779140Z with:
+2025-10-08T00:20:29.2779610Z   repository: HatcherDX/dx-engine
+2025-10-08T00:20:29.2780311Z   token: ***
+2025-10-08T00:20:29.2780719Z   ssh-strict: true
+2025-10-08T00:20:29.2781135Z   ssh-user: git
+2025-10-08T00:20:29.2781552Z   persist-credentials: true
+2025-10-08T00:20:29.2782246Z   clean: true
+2025-10-08T00:20:29.2782666Z   sparse-checkout-cone-mode: true
+2025-10-08T00:20:29.2783180Z   fetch-depth: 1
+2025-10-08T00:20:29.2783592Z   fetch-tags: false
+2025-10-08T00:20:29.2784036Z   show-progress: true
+2025-10-08T00:20:29.2784481Z   lfs: false
+2025-10-08T00:20:29.2784873Z   submodules: false
+2025-10-08T00:20:29.2785295Z   set-safe-directory: true
+2025-10-08T00:20:29.2786091Z ##[endgroup]
+2025-10-08T00:20:29.3843197Z Syncing repository: HatcherDX/dx-engine
+2025-10-08T00:20:29.3845253Z ##[group]Getting Git version info
+2025-10-08T00:20:29.3846030Z Working directory is '/home/runner/work/dx-engine/dx-engine'
+2025-10-08T00:20:29.3847207Z [command]/usr/bin/git version
+2025-10-08T00:20:29.3916299Z git version 2.51.0
+2025-10-08T00:20:29.3942591Z ##[endgroup]
+2025-10-08T00:20:29.3956536Z Temporarily overriding HOME='/home/runner/work/_temp/5f6047e2-9e10-4e9a-acb4-fb579cf6e285' before making global git config changes
+2025-10-08T00:20:29.3958881Z Adding repository directory to the temporary git global config as a safe directory
+2025-10-08T00:20:29.3961226Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/dx-engine/dx-engine
+2025-10-08T00:20:29.3997835Z Deleting the contents of '/home/runner/work/dx-engine/dx-engine'
+2025-10-08T00:20:29.4001382Z ##[group]Initializing the repository
+2025-10-08T00:20:29.4005462Z [command]/usr/bin/git init /home/runner/work/dx-engine/dx-engine
+2025-10-08T00:20:29.4135304Z hint: Using 'master' as the name for the initial branch. This default branch name
+2025-10-08T00:20:29.4137317Z hint: is subject to change. To configure the initial branch name to use in all
+2025-10-08T00:20:29.4138809Z hint: of your new repositories, which will suppress this warning, call:
+2025-10-08T00:20:29.4140456Z hint:
+2025-10-08T00:20:29.4141315Z hint: 	git config --global init.defaultBranch <name>
+2025-10-08T00:20:29.4142580Z hint:
+2025-10-08T00:20:29.4143280Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2025-10-08T00:20:29.4144356Z hint: 'development'. The just-created branch can be renamed via this command:
+2025-10-08T00:20:29.4145540Z hint:
+2025-10-08T00:20:29.4146008Z hint: 	git branch -m <name>
+2025-10-08T00:20:29.4146537Z hint:
+2025-10-08T00:20:29.4147234Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2025-10-08T00:20:29.4148436Z Initialized empty Git repository in /home/runner/work/dx-engine/dx-engine/.git/
+2025-10-08T00:20:29.4150893Z [command]/usr/bin/git remote add origin https://github.com/HatcherDX/dx-engine
+2025-10-08T00:20:29.4189488Z ##[endgroup]
+2025-10-08T00:20:29.4190834Z ##[group]Disabling automatic garbage collection
+2025-10-08T00:20:29.4194619Z [command]/usr/bin/git config --local gc.auto 0
+2025-10-08T00:20:29.4223810Z ##[endgroup]
+2025-10-08T00:20:29.4225243Z ##[group]Setting up auth
+2025-10-08T00:20:29.4231513Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-10-08T00:20:29.4262244Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-10-08T00:20:29.4603862Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-10-08T00:20:29.4634204Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-10-08T00:20:29.4862779Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2025-10-08T00:20:29.4898502Z ##[endgroup]
+2025-10-08T00:20:29.4900036Z ##[group]Fetching the repository
+2025-10-08T00:20:29.4908389Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +4bd3782570a93470cf6867616059c6cdc2060f24:refs/remotes/pull/4/merge
+2025-10-08T00:20:30.1900387Z From https://github.com/HatcherDX/dx-engine
+2025-10-08T00:20:30.1901941Z  * [new ref]         4bd3782570a93470cf6867616059c6cdc2060f24 -> pull/4/merge
+2025-10-08T00:20:30.1931574Z ##[endgroup]
+2025-10-08T00:20:30.1933596Z ##[group]Determining the checkout info
+2025-10-08T00:20:30.1935573Z ##[endgroup]
+2025-10-08T00:20:30.1940033Z [command]/usr/bin/git sparse-checkout disable
+2025-10-08T00:20:30.1979612Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2025-10-08T00:20:30.2006953Z ##[group]Checking out the ref
+2025-10-08T00:20:30.2010467Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/4/merge
+2025-10-08T00:20:30.2793607Z Note: switching to 'refs/remotes/pull/4/merge'.
+2025-10-08T00:20:30.2794515Z 
+2025-10-08T00:20:30.2795169Z You are in 'detached HEAD' state. You can look around, make experimental
+2025-10-08T00:20:30.2796803Z changes and commit them, and you can discard any commits you make in this
+2025-10-08T00:20:30.2798365Z state without impacting any branches by switching back to a branch.
+2025-10-08T00:20:30.2799271Z 
+2025-10-08T00:20:30.2799856Z If you want to create a new branch to retain commits you create, you may
+2025-10-08T00:20:30.2801285Z do so (now or later) by using -c with the switch command. Example:
+2025-10-08T00:20:30.2802700Z 
+2025-10-08T00:20:30.2803059Z   git switch -c <new-branch-name>
+2025-10-08T00:20:30.2803678Z 
+2025-10-08T00:20:30.2804008Z Or undo this operation with:
+2025-10-08T00:20:30.2804554Z 
+2025-10-08T00:20:30.2804839Z   git switch -
+2025-10-08T00:20:30.2805270Z 
+2025-10-08T00:20:30.2805973Z Turn off this advice by setting config variable advice.detachedHead to false
+2025-10-08T00:20:30.2807197Z 
+2025-10-08T00:20:30.2808438Z HEAD is now at 4bd3782 Merge 22d85070319d315d659e311a094e003d8143d6e9 into 062cba50c758ba3a1767c821e1e1361cab6154e2
+2025-10-08T00:20:30.2812903Z ##[endgroup]
+2025-10-08T00:20:30.2843886Z [command]/usr/bin/git log -1 --format=%H
+2025-10-08T00:20:30.2865699Z 4bd3782570a93470cf6867616059c6cdc2060f24
+2025-10-08T00:20:30.3129834Z ##[group]Run pnpm/action-setup@v4
+2025-10-08T00:20:30.3130946Z with:
+2025-10-08T00:20:30.3131868Z   version: 10.6.1
+2025-10-08T00:20:30.3132755Z   dest: ~/setup-pnpm
+2025-10-08T00:20:30.3133649Z   run_install: null
+2025-10-08T00:20:30.3134574Z   package_json_file: package.json
+2025-10-08T00:20:30.3135670Z   standalone: false
+2025-10-08T00:20:30.3136545Z ##[endgroup]
+2025-10-08T00:20:30.3681104Z ##[group]Running self-installer...
+2025-10-08T00:20:30.9903520Z Progress: resolved 1, reused 0, downloaded 0, added 0
+2025-10-08T00:20:31.0022968Z Packages: +1
+2025-10-08T00:20:31.0023949Z +
+2025-10-08T00:20:31.4991127Z Progress: resolved 1, reused 0, downloaded 1, added 1, done
+2025-10-08T00:20:31.5248481Z 
+2025-10-08T00:20:31.5249345Z dependencies:
+2025-10-08T00:20:31.5251615Z + pnpm 10.6.1 (10.18.1 is available)
+2025-10-08T00:20:31.5253824Z 
+2025-10-08T00:20:31.5281390Z Done in 994ms
+2025-10-08T00:20:31.5454991Z ##[endgroup]
+2025-10-08T00:20:31.5458162Z Installation Completed!
+2025-10-08T00:20:31.5680584Z ##[group]Run actions/setup-node@v4
+2025-10-08T00:20:31.5681614Z with:
+2025-10-08T00:20:31.5682678Z   node-version: 22.14.0
+2025-10-08T00:20:31.5683573Z   cache: pnpm
+2025-10-08T00:20:31.5684335Z   always-auth: false
+2025-10-08T00:20:31.5685171Z   check-latest: false
+2025-10-08T00:20:31.5686290Z   token: ***
+2025-10-08T00:20:31.5687039Z env:
+2025-10-08T00:20:31.5687934Z   PNPM_HOME: /home/runner/setup-pnpm/node_modules/.bin
+2025-10-08T00:20:31.5689133Z ##[endgroup]
+2025-10-08T00:20:31.7413397Z Attempting to download 22.14.0...
+2025-10-08T00:20:32.3545532Z Acquiring 22.14.0 - x64 from https://github.com/actions/node-versions/releases/download/22.14.0-13265982013/node-22.14.0-linux-x64.tar.gz
+2025-10-08T00:20:32.8716697Z Extracting ...
+2025-10-08T00:20:32.8823330Z [command]/usr/bin/tar xz --strip 1 --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/fcf5da2b-3b79-4978-bc23-7a58e2eafbb3 -f /home/runner/work/_temp/92d30e4a-5088-4e1a-92b4-6776e04a911e
+2025-10-08T00:20:34.0182648Z Adding to the cache ...
+2025-10-08T00:20:35.9525369Z ##[group]Environment details
+2025-10-08T00:20:36.1750569Z node: v22.14.0
+2025-10-08T00:20:36.1751052Z npm: 10.9.2
+2025-10-08T00:20:36.1751444Z yarn: 1.22.22
+2025-10-08T00:20:36.1752533Z ##[endgroup]
+2025-10-08T00:20:36.1774109Z [command]/home/runner/setup-pnpm/node_modules/.bin/pnpm store path --silent
+2025-10-08T00:20:36.5639512Z /home/runner/setup-pnpm/node_modules/.bin/store/v10
+2025-10-08T00:20:36.8352906Z Cache hit for: node-cache-Linux-x64-pnpm-c1d8e8364000185177b6a63cc1d5dc0f8e46cd004e0245b91880954aeb4c3690
+2025-10-08T00:20:38.1666101Z Received 4194304 of 308838865 (1.4%), 4.0 MBs/sec
+2025-10-08T00:20:39.1679500Z Received 100663296 of 308838865 (32.6%), 48.0 MBs/sec
+2025-10-08T00:20:40.1681596Z Received 226492416 of 308838865 (73.3%), 72.0 MBs/sec
+2025-10-08T00:20:40.9462546Z Received 308838865 of 308838865 (100.0%), 77.9 MBs/sec
+2025-10-08T00:20:40.9463885Z Cache Size: ~295 MB (308838865 B)
+2025-10-08T00:20:40.9497467Z [command]/usr/bin/tar -xf /home/runner/work/_temp/ebe209e2-a286-4167-af78-bd63d8861133/cache.tzst -P -C /home/runner/work/dx-engine/dx-engine --use-compress-program unzstd
+2025-10-08T00:20:43.4379523Z Cache restored successfully
+2025-10-08T00:20:43.4968399Z Cache restored from key: node-cache-Linux-x64-pnpm-c1d8e8364000185177b6a63cc1d5dc0f8e46cd004e0245b91880954aeb4c3690
+2025-10-08T00:20:43.5157760Z ##[group]Run pnpm install
+2025-10-08T00:20:43.5158066Z [36;1mpnpm install[0m
+2025-10-08T00:20:43.5195095Z shell: /usr/bin/bash -e {0}
+2025-10-08T00:20:43.5195337Z env:
+2025-10-08T00:20:43.5195570Z   PNPM_HOME: /home/runner/setup-pnpm/node_modules/.bin
+2025-10-08T00:20:43.5195852Z ##[endgroup]
+2025-10-08T00:20:43.8449820Z Scope: all 10 workspace projects
+2025-10-08T00:20:43.9165898Z Lockfile is up to date, resolution step is skipped
+2025-10-08T00:20:43.9821109Z Progress: resolved 1, reused 0, downloaded 0, added 0
+2025-10-08T00:20:44.1579934Z Packages: +1183
+2025-10-08T00:20:44.1580621Z ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+2025-10-08T00:20:44.9844784Z Progress: resolved 1183, reused 1183, downloaded 0, added 286
+2025-10-08T00:20:45.6268344Z Progress: resolved 1183, reused 1183, downloaded 0, added 1183, done
+2025-10-08T00:20:46.5506918Z 
+2025-10-08T00:20:46.5507575Z dependencies:
+2025-10-08T00:20:46.5508110Z + graceful-fs 4.2.11
+2025-10-08T00:20:46.5508584Z + node-pty 1.0.0
+2025-10-08T00:20:46.5508960Z + simple-git 3.28.0
+2025-10-08T00:20:46.5509195Z 
+2025-10-08T00:20:46.5509340Z devDependencies:
+2025-10-08T00:20:46.5509721Z + @dotenvx/dotenvx 1.49.0
+2025-10-08T00:20:46.5510057Z + @eslint/js 9.35.0
+2025-10-08T00:20:46.5510358Z + @semantic-release/changelog 6.0.3
+2025-10-08T00:20:46.5510746Z + @semantic-release/commit-analyzer 13.0.1
+2025-10-08T00:20:46.5511098Z + @semantic-release/exec 7.1.0
+2025-10-08T00:20:46.5511419Z + @semantic-release/git 10.0.1
+2025-10-08T00:20:46.5512035Z + @semantic-release/github 11.0.5
+2025-10-08T00:20:46.5512453Z + @semantic-release/release-notes-generator 14.1.0
+2025-10-08T00:20:46.5512837Z + @types/node 22.18.1
+2025-10-08T00:20:46.5513336Z + @typescript-eslint/eslint-plugin 8.42.0
+2025-10-08T00:20:46.5513925Z + @typescript-eslint/parser 8.42.0
+2025-10-08T00:20:46.5514431Z + @vitejs/plugin-vue 5.2.4
+2025-10-08T00:20:46.5514915Z + @vitest/coverage-istanbul 3.2.4
+2025-10-08T00:20:46.5515240Z + @vue/test-utils 2.4.6
+2025-10-08T00:20:46.5515541Z + cross-env 7.0.3
+2025-10-08T00:20:46.5515765Z + electron 35.1.4
+2025-10-08T00:20:46.5515996Z + electron-rebuild 3.2.9
+2025-10-08T00:20:46.5516272Z + eslint 9.24.0
+2025-10-08T00:20:46.5516714Z + eslint-config-prettier 10.1.8
+2025-10-08T00:20:46.5517177Z + eslint-plugin-format 1.0.1
+2025-10-08T00:20:46.5517539Z + eslint-plugin-vue 10.4.0
+2025-10-08T00:20:46.5517898Z + glob 11.0.3
+2025-10-08T00:20:46.5518181Z + happy-dom 15.11.7
+2025-10-08T00:20:46.5518420Z + lint-staged 15.5.2
+2025-10-08T00:20:46.5518638Z + prettier 3.6.2
+2025-10-08T00:20:46.5518848Z + rimraf 6.0.1
+2025-10-08T00:20:46.5519125Z + semantic-release 24.2.7
+2025-10-08T00:20:46.5519552Z + simple-git-hooks 2.13.1
+2025-10-08T00:20:46.5519938Z + tsx 4.20.5
+2025-10-08T00:20:46.5520245Z + turbo 2.5.6
+2025-10-08T00:20:46.5520623Z + typescript-eslint 8.42.0
+2025-10-08T00:20:46.5521005Z + vite 6.2.6
+2025-10-08T00:20:46.5521324Z + vitest 3.2.4
+2025-10-08T00:20:46.5521634Z + vue 3.5.21
+2025-10-08T00:20:46.5522165Z + vue-eslint-parser 10.2.0
+2025-10-08T00:20:46.5522421Z 
+2025-10-08T00:20:46.5703421Z apps/preload postinstall$ pnpm run build
+2025-10-08T00:20:46.5715097Z universal/storage postinstall$ node -e "try { require('better-sqlite3') } catch { console.log('better-sqlite3 bindings not available - tests will use mocks') }"
+2025-10-08T00:20:46.5960411Z . postinstall$ tsx scripts/setup-env.ts
+2025-10-08T00:20:46.6210549Z universal/storage postinstall: Done
+2025-10-08T00:20:46.8935378Z . postinstall: 🔧 Setting up environment files...
+2025-10-08T00:20:46.8945518Z . postinstall: ✅ Created .env from .env.example
+2025-10-08T00:20:46.8948504Z . postinstall: ✅ Created apps/electron/.env.development from apps/electron/.env.development.example
+2025-10-08T00:20:46.8950103Z . postinstall: ✅ Created apps/electron/.env.production from apps/electron/.env.production.example
+2025-10-08T00:20:46.8951480Z . postinstall: 🎉 Environment setup complete! Created 3 files.
+2025-10-08T00:20:46.9048502Z . postinstall: Done
+2025-10-08T00:20:46.9329928Z apps/preload postinstall: > @hatcherdx/dx-engine-preload@0.4.0 build /home/runner/work/dx-engine/dx-engine/apps/preload
+2025-10-08T00:20:46.9331074Z apps/preload postinstall: > vite build
+2025-10-08T00:20:48.0853070Z apps/preload postinstall: [36mvite v6.2.6 [32mbuilding SSR bundle for production...[36m[39m
+2025-10-08T00:20:49.7576327Z apps/preload postinstall: transforming...
+2025-10-08T00:20:49.8417638Z apps/preload postinstall: [32m✓[39m 8 modules transformed.
+2025-10-08T00:20:49.8697604Z apps/preload postinstall: rendering chunks...
+2025-10-08T00:20:49.8862739Z apps/preload postinstall: [32m
+2025-10-08T00:20:49.8864273Z apps/preload postinstall: [36m[vite:dts][32m Start generate declaration files...[39m
+2025-10-08T00:20:49.9321081Z apps/preload postinstall: [2mdist/[22m[36mipcMain.cjs  [39m[1m[2m 5.28 kB[22m[1m[22m[2m │ map:  3.26 kB[22m
+2025-10-08T00:20:49.9323574Z apps/preload postinstall: [2mdist/[22m[36mindex.cjs    [39m[1m[2m85.55 kB[22m[1m[22m[2m │ map: 53.66 kB[22m
+2025-10-08T00:20:49.9423469Z apps/preload postinstall: [32m[36m[vite:dts][32m Declaration files built in 1696ms.
+2025-10-08T00:20:49.9427948Z apps/preload postinstall: [39m
+2025-10-08T00:20:49.9432918Z apps/preload postinstall: [32m✓ built in 1.83s[39m
+2025-10-08T00:20:50.0457036Z apps/preload postinstall: Done
+2025-10-08T00:20:50.0782692Z apps/electron postinstall$ pnpm install:electron && pnpm gen:vendors
+2025-10-08T00:20:50.3688083Z apps/electron postinstall: > @hatcherdx/dx-engine-electron@0.4.0 install:electron /home/runner/work/dx-engine/dx-engine/apps/electron
+2025-10-08T00:20:50.3689373Z apps/electron postinstall: > cross-env ELECTRON_GET_USE_PROXY=true node node_modules/electron/install.js
+2025-10-08T00:20:50.7950071Z apps/electron postinstall: > @hatcherdx/dx-engine-electron@0.4.0 gen:vendors /home/runner/work/dx-engine/dx-engine/apps/electron
+2025-10-08T00:20:50.7951622Z apps/electron postinstall: > cross-env ELECTRON_RUN_AS_NODE=1 electron ./scripts/update-electron-vendors.cjs
+2025-10-08T00:20:51.5129220Z apps/electron postinstall: Done
+2025-10-08T00:20:51.5283593Z Done in 7.9s using pnpm v10.6.1
+2025-10-08T00:20:51.5510943Z ##[group]Run pnpm run lint
+2025-10-08T00:20:51.5511242Z [36;1mpnpm run lint[0m
+2025-10-08T00:20:51.5544491Z shell: /usr/bin/bash -e {0}
+2025-10-08T00:20:51.5544723Z env:
+2025-10-08T00:20:51.5544948Z   PNPM_HOME: /home/runner/setup-pnpm/node_modules/.bin
+2025-10-08T00:20:51.5545238Z ##[endgroup]
+2025-10-08T00:20:51.8453923Z 
+2025-10-08T00:20:51.8454509Z > @hatcherdx/dx-engine@0.4.0 lint /home/runner/work/dx-engine/dx-engine
+2025-10-08T00:20:51.8454988Z > eslint . --ext .ts,.js,.vue
+2025-10-08T00:20:51.8455155Z 
+2025-10-08T00:21:07.0070920Z ##[group]Run pnpm run build
+2025-10-08T00:21:07.0071205Z [36;1mpnpm run build[0m
+2025-10-08T00:21:07.0105059Z shell: /usr/bin/bash -e {0}
+2025-10-08T00:21:07.0105291Z env:
+2025-10-08T00:21:07.0105528Z   PNPM_HOME: /home/runner/setup-pnpm/node_modules/.bin
+2025-10-08T00:21:07.0105820Z ##[endgroup]
+2025-10-08T00:21:07.3106950Z 
+2025-10-08T00:21:07.3107818Z > @hatcherdx/dx-engine@0.4.0 build /home/runner/work/dx-engine/dx-engine
+2025-10-08T00:21:07.3109238Z > turbo run build
+2025-10-08T00:21:07.3109459Z 
+2025-10-08T00:21:07.3634319Z 
+2025-10-08T00:21:07.3634912Z Attention:
+2025-10-08T00:21:07.3635742Z Turborepo now collects completely anonymous telemetry regarding usage.
+2025-10-08T00:21:07.3636897Z This information is used to shape the Turborepo roadmap and prioritize features.
+2025-10-08T00:21:07.3638520Z You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+2025-10-08T00:21:07.3639806Z https://turborepo.com/docs/telemetry
+2025-10-08T00:21:07.3640146Z 
+2025-10-08T00:21:07.4404403Z • Packages in scope: @hatcherdx/dx-engine-electron, @hatcherdx/dx-engine-preload, @hatcherdx/dx-engine-vite-plugin, @hatcherdx/dx-engine-web, @hatcherdx/git-genius, @hatcherdx/shared-rendering, @hatcherdx/shared-utils, @hatcherdx/storage, @hatcherdx/terminal-system
+2025-10-08T00:21:07.4406389Z • Running build in 9 packages
+2025-10-08T00:21:07.4406886Z • Remote caching disabled
+2025-10-08T00:21:10.4399732Z ##[group]@hatcherdx/shared-utils:build
+2025-10-08T00:21:10.4401984Z cache miss, executing 4cad158b7b74be14
+2025-10-08T00:21:10.4405803Z 
+2025-10-08T00:21:10.4410222Z > @hatcherdx/shared-utils@0.4.0 build /home/runner/work/dx-engine/dx-engine/universal/shared-utils
+2025-10-08T00:21:10.4415084Z > tsc
+2025-10-08T00:21:10.4419177Z 
+2025-10-08T00:21:10.4423447Z ##[endgroup]
+2025-10-08T00:21:11.8543459Z ##[group]@hatcherdx/shared-rendering:build
+2025-10-08T00:21:11.8572881Z cache miss, executing 5ed6dff330188433
+2025-10-08T00:21:11.8598631Z 
+2025-10-08T00:21:11.8599567Z > @hatcherdx/shared-rendering@0.4.0 build /home/runner/work/dx-engine/dx-engine/universal/shared-rendering
+2025-10-08T00:21:11.8600367Z > tsc
+2025-10-08T00:21:11.8600554Z 
+2025-10-08T00:21:11.8600942Z ##[endgroup]
+2025-10-08T00:21:13.5133962Z ##[group]@hatcherdx/dx-engine-preload:build
+2025-10-08T00:21:13.5164145Z cache miss, executing a5d87fba5b11b8aa
+2025-10-08T00:21:13.5168691Z 
+2025-10-08T00:21:13.5173380Z > @hatcherdx/dx-engine-preload@0.4.0 build /home/runner/work/dx-engine/dx-engine/apps/preload
+2025-10-08T00:21:13.5177673Z > vite build
+2025-10-08T00:21:13.5179131Z 
+2025-10-08T00:21:13.5182615Z [36mvite v6.2.6 [32mbuilding SSR bundle for production...[36m[39m
+2025-10-08T00:21:13.5188019Z transforming...
+2025-10-08T00:21:13.5190070Z [32m✓[39m 8 modules transformed.
+2025-10-08T00:21:13.5191966Z rendering chunks...
+2025-10-08T00:21:13.5192643Z 
+2025-10-08T00:21:13.5220053Z [vite:dts] Start generate declaration files...
+2025-10-08T00:21:13.5222633Z [2mdist/[22m[36mipcMain.cjs  [39m[1m[2m 5.28 kB[22m[1m[22m[2m │ map:  3.26 kB[22m
+2025-10-08T00:21:13.5223795Z [2mdist/[22m[36mindex.cjs    [39m[1m[2m85.55 kB[22m[1m[22m[2m │ map: 53.66 kB[22m
+2025-10-08T00:21:13.5224533Z [vite:dts] Declaration files built in 3533ms.
+2025-10-08T00:21:13.5224851Z 
+2025-10-08T00:21:13.5225099Z [32m✓ built in 3.83s[39m
+2025-10-08T00:21:13.5225918Z ##[endgroup]
+2025-10-08T00:21:13.5238703Z ##[group]@hatcherdx/storage:build
+2025-10-08T00:21:13.5240285Z cache miss, executing 1d31ce57ebf3c4cb
+2025-10-08T00:21:13.5240632Z 
+2025-10-08T00:21:13.5241192Z > @hatcherdx/storage@0.4.0 build /home/runner/work/dx-engine/dx-engine/universal/storage
+2025-10-08T00:21:13.5242031Z > tsc
+2025-10-08T00:21:13.5242189Z 
+2025-10-08T00:21:13.5242564Z ##[endgroup]
+2025-10-08T00:21:15.9688721Z ##[group]@hatcherdx/terminal-system:build
+2025-10-08T00:21:15.9689638Z cache miss, executing 4c1ad47d538cd972
+2025-10-08T00:21:15.9690007Z 
+2025-10-08T00:21:15.9692530Z > @hatcherdx/terminal-system@0.4.0 build /home/runner/work/dx-engine/dx-engine/universal/terminal-system
+2025-10-08T00:21:15.9694218Z > tsc
+2025-10-08T00:21:15.9694469Z 
+2025-10-08T00:21:15.9694986Z ##[endgroup]
+2025-10-08T00:21:19.6214236Z ##[group]@hatcherdx/git-genius:build
+2025-10-08T00:21:19.6214912Z cache miss, executing b9ee266712bc208d
+2025-10-08T00:21:19.6215250Z 
+2025-10-08T00:21:19.6215902Z > @hatcherdx/git-genius@0.4.0 build /home/runner/work/dx-engine/dx-engine/universal/git-genius
+2025-10-08T00:21:19.6216635Z > tsc
+2025-10-08T00:21:19.6216813Z 
+2025-10-08T00:21:19.6217184Z ##[endgroup]
+2025-10-08T00:21:32.0020064Z ##[group]@hatcherdx/dx-engine-web:build
+2025-10-08T00:21:32.0020782Z cache miss, executing 5ef63d4751ba65b5
+2025-10-08T00:21:32.0021092Z 
+2025-10-08T00:21:32.0021517Z > @hatcherdx/dx-engine-web@0.4.0 build /home/runner/work/dx-engine/dx-engine/apps/web
+2025-10-08T00:21:32.0022338Z > vue-tsc -b && vite build
+2025-10-08T00:21:32.0022506Z 
+2025-10-08T00:21:32.0022977Z [36mvite v6.2.6 [32mbuilding for production...[36m[39m
+2025-10-08T00:21:32.0023300Z transforming...
+2025-10-08T00:21:32.0025577Z [33m[plugin vite:resolve] Module "os" has been externalized for browser compatibility, imported by "/home/runner/work/dx-engine/dx-engine/universal/terminal-system/dist/core/WelcomeMessageProvider.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.[39m
+2025-10-08T00:21:32.0029551Z [33m../../universal/terminal-system/dist/core/WelcomeMessageProvider.js (102:37): "userInfo" is not exported by "__vite-browser-external", imported by "../../universal/terminal-system/dist/core/WelcomeMessageProvider.js".[39m
+2025-10-08T00:21:32.0033191Z [33m../../universal/terminal-system/dist/core/WelcomeMessageProvider.js (103:37): "hostname" is not exported by "__vite-browser-external", imported by "../../universal/terminal-system/dist/core/WelcomeMessageProvider.js".[39m
+2025-10-08T00:21:32.0036832Z [33m../../universal/terminal-system/dist/core/WelcomeMessageProvider.js (104:41): "platform" is not exported by "__vite-browser-external", imported by "../../universal/terminal-system/dist/core/WelcomeMessageProvider.js".[39m
+2025-10-08T00:21:32.0039999Z [33m../../universal/terminal-system/dist/core/WelcomeMessageProvider.js (104:58): "arch" is not exported by "__vite-browser-external", imported by "../../universal/terminal-system/dist/core/WelcomeMessageProvider.js".[39m
+2025-10-08T00:21:32.0043602Z [33m../../universal/terminal-system/dist/core/WelcomeMessageProvider.js (125:24): "userInfo" is not exported by "__vite-browser-external", imported by "../../universal/terminal-system/dist/core/WelcomeMessageProvider.js".[39m
+2025-10-08T00:21:32.0046883Z [33m../../universal/terminal-system/dist/core/WelcomeMessageProvider.js (126:28): "hostname" is not exported by "__vite-browser-external", imported by "../../universal/terminal-system/dist/core/WelcomeMessageProvider.js".[39m
+2025-10-08T00:21:32.0050113Z [33m../../universal/terminal-system/dist/core/WelcomeMessageProvider.js (127:27): "homedir" is not exported by "__vite-browser-external", imported by "../../universal/terminal-system/dist/core/WelcomeMessageProvider.js".[39m
+2025-10-08T00:21:32.0053613Z [33m../../universal/terminal-system/dist/core/WelcomeMessageProvider.js (178:21): "userInfo" is not exported by "__vite-browser-external", imported by "../../universal/terminal-system/dist/core/WelcomeMessageProvider.js".[39m
+2025-10-08T00:21:32.0056887Z [33m../../universal/terminal-system/dist/core/WelcomeMessageProvider.js (179:25): "hostname" is not exported by "__vite-browser-external", imported by "../../universal/terminal-system/dist/core/WelcomeMessageProvider.js".[39m
+2025-10-08T00:21:32.0060074Z [33m../../universal/terminal-system/dist/core/WelcomeMessageProvider.js (180:25): "platform" is not exported by "__vite-browser-external", imported by "../../universal/terminal-system/dist/core/WelcomeMessageProvider.js".[39m
+2025-10-08T00:21:32.0063747Z [33m../../universal/terminal-system/dist/core/WelcomeMessageProvider.js (181:21): "arch" is not exported by "__vite-browser-external", imported by "../../universal/terminal-system/dist/core/WelcomeMessageProvider.js".[39m
+2025-10-08T00:21:32.0066972Z [33m../../universal/terminal-system/dist/core/WelcomeMessageProvider.js (184:21): "homedir" is not exported by "__vite-browser-external", imported by "../../universal/terminal-system/dist/core/WelcomeMessageProvider.js".[39m
+2025-10-08T00:21:32.0068609Z [32m✓[39m 419 modules transformed.
+2025-10-08T00:21:32.0069055Z rendering chunks...
+2025-10-08T00:21:32.0069509Z [33m[plugin vite:reporter] 
+2025-10-08T00:21:32.0079690Z (!) /home/runner/work/dx-engine/dx-engine/apps/web/src/components/atoms/icons/IconBase.vue is dynamically imported by /home/runner/work/dx-engine/dx-engine/apps/web/src/components/atoms/BaseIcon.vue?vue&type=script&setup=true&lang.ts but also statically imported by /home/runner/work/dx-engine/dx-engine/apps/web/src/components/atoms/icons/Bell.vue?vue&type=script&setup=true&lang.ts, /home/runner/work/dx-engine/dx-engine/apps/web/src/components/atoms/icons/Chevrons.vue?vue&type=script&setup=true&lang.ts, /home/runner/work/dx-engine/dx-engine/apps/web/src/components/atoms/icons/GitBranch.vue?vue&type=script&setup=true&lang.ts, /home/runner/work/dx-engine/dx-engine/apps/web/src/components/atoms/icons/Menu.vue?vue&type=script&setup=true&lang.ts, /home/runner/work/dx-engine/dx-engine/apps/web/src/components/atoms/icons/Settings.vue?vue&type=script&setup=true&lang.ts, /home/runner/work/dx-engine/dx-engine/apps/web/src/components/atoms/icons/Terminal.vue?vue&type=script&setup=true&lang.ts, /home/runner/work/dx-engine/dx-engine/apps/web/src/components/atoms/icons/Timeline.vue?vue&type=script&setup=true&lang.ts, /home/runner/work/dx-engine/dx-engine/apps/web/src/components/atoms/icons/X.vue?vue&type=script&setup=true&lang.ts, dynamic import will not move module into another chunk.
+2025-10-08T00:21:32.0088118Z [39m
+2025-10-08T00:21:32.0088868Z [2mdist/[22m[32mindex.html                      [39m[1m[2m  0.95 kB[22m[1m[22m
+2025-10-08T00:21:32.0089946Z [2mdist/[22m[35mLoader-BT7p2Yxl.css             [39m[1m[2m  0.15 kB[22m[1m[22m
+2025-10-08T00:21:32.0091098Z [2mdist/[22m[35mshift-away-subtle-BQLIljrq.css  [39m[1m[2m  0.53 kB[22m[1m[22m
+2025-10-08T00:21:32.0092390Z [2mdist/[22m[35mtippy-BHH8rdGj.css              [39m[1m[2m  1.41 kB[22m[1m[22m
+2025-10-08T00:21:32.0093492Z [2mdist/[22m[35mindex-DKm7EI2l.css              [39m[1m[2m206.33 kB[22m[1m[22m
+2025-10-08T00:21:32.0094731Z [2mdist/[22m[36mBug-DkWG-kTu.js                 [39m[1m[2m  0.10 kB[22m[1m[22m[2m │ map:     0.10 kB[22m
+2025-10-08T00:21:32.0096014Z [2mdist/[22m[36mCode-DJAzb7ln.js                [39m[1m[2m  0.10 kB[22m[1m[22m[2m │ map:     0.10 kB[22m
+2025-10-08T00:21:32.0097294Z [2mdist/[22m[36mPlus-BDzvGu7G.js                [39m[1m[2m  0.10 kB[22m[1m[22m[2m │ map:     0.10 kB[22m
+2025-10-08T00:21:32.0098606Z [2mdist/[22m[36mBookOpen-Gg8Qfurh.js            [39m[1m[2m  0.11 kB[22m[1m[22m[2m │ map:     0.10 kB[22m
+2025-10-08T00:21:32.0099917Z [2mdist/[22m[36mSettings-BkAbvv-O.js            [39m[1m[2m  0.11 kB[22m[1m[22m[2m │ map:     0.10 kB[22m
+2025-10-08T00:21:32.0101155Z [2mdist/[22m[36mX-DQ6tuqdt.js                   [39m[1m[2m  0.38 kB[22m[1m[22m[2m │ map:     0.75 kB[22m
+2025-10-08T00:21:32.0102580Z [2mdist/[22m[36mMinus-DEf7Q7Ei.js               [39m[1m[2m  0.39 kB[22m[1m[22m[2m │ map:     0.91 kB[22m
+2025-10-08T00:21:32.0103823Z [2mdist/[22m[36mEgg-Bcwkz1-s.js                 [39m[1m[2m  0.42 kB[22m[1m[22m[2m │ map:     0.99 kB[22m
+2025-10-08T00:21:32.0105088Z [2mdist/[22m[36mTerminal-Dv47UVCQ.js            [39m[1m[2m  0.42 kB[22m[1m[22m[2m │ map:     0.82 kB[22m
+2025-10-08T00:21:32.0106379Z [2mdist/[22m[36mCircle-BQEZsslD.js              [39m[1m[2m  0.44 kB[22m[1m[22m[2m │ map:     1.05 kB[22m
+2025-10-08T00:21:32.0107957Z [2mdist/[22m[36mArrowLeft-C1waamxW.js           [39m[1m[2m  0.44 kB[22m[1m[22m[2m │ map:     0.77 kB[22m
+2025-10-08T00:21:32.0109378Z [2mdist/[22m[36mArrowRight-aiQNsxsb.js          [39m[1m[2m  0.45 kB[22m[1m[22m[2m │ map:     0.77 kB[22m
+2025-10-08T00:21:32.0110752Z [2mdist/[22m[36mArrowDown-BXoPXTSF.js           [39m[1m[2m  0.45 kB[22m[1m[22m[2m │ map:     1.03 kB[22m
+2025-10-08T00:21:32.0112259Z [2mdist/[22m[36mMenu-Bad0n0Bk.js                [39m[1m[2m  0.46 kB[22m[1m[22m[2m │ map:     0.94 kB[22m
+2025-10-08T00:21:32.0113567Z [2mdist/[22m[36mCheck-CKZ9beWd.js               [39m[1m[2m  0.47 kB[22m[1m[22m[2m │ map:     0.82 kB[22m
+2025-10-08T00:21:32.0114838Z [2mdist/[22m[36mEye-CVaAd-oh.js                 [39m[1m[2m  0.47 kB[22m[1m[22m[2m │ map:     0.79 kB[22m
+2025-10-08T00:21:32.0116110Z [2mdist/[22m[36mClock-C-bhAvEv.js               [39m[1m[2m  0.47 kB[22m[1m[22m[2m │ map:     0.77 kB[22m
+2025-10-08T00:21:32.0117483Z [2mdist/[22m[36mRotateCcw-7TdOAEWn.js           [39m[1m[2m  0.48 kB[22m[1m[22m[2m │ map:     0.80 kB[22m
+2025-10-08T00:21:32.0118814Z [2mdist/[22m[36mSearch-D1ryvM36.js              [39m[1m[2m  0.49 kB[22m[1m[22m[2m │ map:     1.11 kB[22m
+2025-10-08T00:21:32.0120184Z [2mdist/[22m[36mBell-D741Wvqi.js                [39m[1m[2m  0.50 kB[22m[1m[22m[2m │ map:     0.88 kB[22m
+2025-10-08T00:21:32.0121564Z [2mdist/[22m[36mCheckSquare-aAOrkMOQ.js         [39m[1m[2m  0.50 kB[22m[1m[22m[2m │ map:     0.80 kB[22m
+2025-10-08T00:21:32.0123225Z [2mdist/[22m[36mGitBranch-Btmf5see.js           [39m[1m[2m  0.51 kB[22m[1m[22m[2m │ map:     1.01 kB[22m
+2025-10-08T00:21:32.0124596Z [2mdist/[22m[36mFolder-CRiYnztG.js              [39m[1m[2m  0.52 kB[22m[1m[22m[2m │ map:     0.89 kB[22m
+2025-10-08T00:21:32.0125969Z [2mdist/[22m[36mMoon-Du6Tb7_X.js                [39m[1m[2m  0.53 kB[22m[1m[22m[2m │ map:     0.82 kB[22m
+2025-10-08T00:21:32.0127409Z [2mdist/[22m[36mPlayCircle-BQb6Xp9v.js          [39m[1m[2m  0.53 kB[22m[1m[22m[2m │ map:     0.88 kB[22m
+2025-10-08T00:21:32.0128225Z [2mdist/[22m[36mChevrons-DJbLR0Gu.js            [39m[1m[2m  0.54 kB[22m[1m[22m[2m │ map:     1.11 kB[22m
+2025-10-08T00:21:32.0128993Z [2mdist/[22m[36mPlay-Cg8KSdlv.js                [39m[1m[2m  0.54 kB[22m[1m[22m[2m │ map:     0.85 kB[22m
+2025-10-08T00:21:32.0129730Z [2mdist/[22m[36mSun-CDzVeDoi.js                 [39m[1m[2m  0.55 kB[22m[1m[22m[2m │ map:     0.89 kB[22m
+2025-10-08T00:21:32.0130464Z [2mdist/[22m[36mSquare-1Lpd39O3.js              [39m[1m[2m  0.55 kB[22m[1m[22m[2m │ map:     0.85 kB[22m
+2025-10-08T00:21:32.0131212Z [2mdist/[22m[36mFolderOpen-BY5RMjt9.js          [39m[1m[2m  0.57 kB[22m[1m[22m[2m │ map:     0.92 kB[22m
+2025-10-08T00:21:32.0132421Z [2mdist/[22m[36mHammer-CQPZY6P2.js              [39m[1m[2m  0.57 kB[22m[1m[22m[2m │ map:     0.87 kB[22m
+2025-10-08T00:21:32.0133282Z [2mdist/[22m[36mShield-CxwMSb45.js              [39m[1m[2m  0.59 kB[22m[1m[22m[2m │ map:     0.89 kB[22m
+2025-10-08T00:21:32.0134045Z [2mdist/[22m[36mTarget-B8ELvmkc.js              [39m[1m[2m  0.64 kB[22m[1m[22m[2m │ map:     1.19 kB[22m
+2025-10-08T00:21:32.0134814Z [2mdist/[22m[36mTestTube-B-TP0XUL.js            [39m[1m[2m  0.72 kB[22m[1m[22m[2m │ map:     1.02 kB[22m
+2025-10-08T00:21:32.0135562Z [2mdist/[22m[36mRocket-B2RhWfrI.js              [39m[1m[2m  0.72 kB[22m[1m[22m[2m │ map:     1.48 kB[22m
+2025-10-08T00:21:32.0136289Z [2mdist/[22m[36mHome-DckoOt70.js                [39m[1m[2m  0.74 kB[22m[1m[22m[2m │ map:     1.18 kB[22m
+2025-10-08T00:21:32.0137020Z [2mdist/[22m[36mTimeline-CIG8p8Og.js            [39m[1m[2m  0.77 kB[22m[1m[22m[2m │ map:     1.86 kB[22m
+2025-10-08T00:21:32.0137765Z [2mdist/[22m[36mActivity-Xxi3ruLt.js            [39m[1m[2m  0.88 kB[22m[1m[22m[2m │ map:     1.41 kB[22m
+2025-10-08T00:21:32.0138510Z [2mdist/[22m[36mLoader-Blr2ZsCC.js              [39m[1m[2m  1.02 kB[22m[1m[22m[2m │ map:     1.40 kB[22m
+2025-10-08T00:21:32.0139402Z [2mdist/[22m[36mFileText-Bpf_OHsD.js            [39m[1m[2m  1.05 kB[22m[1m[22m[2m │ map:     1.55 kB[22m
+2025-10-08T00:21:32.0140172Z [2mdist/[22m[36maddon-fit-BlxrFPDK.js           [39m[1m[2m  1.80 kB[22m[1m[22m[2m │ map:     3.10 kB[22m
+2025-10-08T00:21:32.0140955Z [2mdist/[22m[36maddon-web-links-BjXFD2Pv.js     [39m[1m[2m  3.39 kB[22m[1m[22m[2m │ map:     7.31 kB[22m
+2025-10-08T00:21:32.0141965Z [2mdist/[22m[36maddon-clipboard-Ho024Llt.js     [39m[1m[2m  6.63 kB[22m[1m[22m[2m │ map:    14.70 kB[22m
+2025-10-08T00:21:32.0142798Z [2mdist/[22m[36maddon-search-DT-CCCOW.js        [39m[1m[2m 12.37 kB[22m[1m[22m[2m │ map:    25.11 kB[22m
+2025-10-08T00:21:32.0143587Z [2mdist/[22m[36maddon-unicode11-BYBzSu_x.js     [39m[1m[2m 12.56 kB[22m[1m[22m[2m │ map:    30.33 kB[22m
+2025-10-08T00:21:32.0144382Z [2mdist/[22m[36maddon-webgl-C4JKMhD_.js         [39m[1m[2m101.25 kB[22m[1m[22m[2m │ map:   209.72 kB[22m
+2025-10-08T00:21:32.0145145Z [2mdist/[22m[36mindex-wBs7FtVi.js               [39m[1m[33m831.54 kB[39m[22m[2m │ map: 3,423.68 kB[22m
+2025-10-08T00:21:32.0145548Z [33m
+2025-10-08T00:21:32.0145906Z (!) Some chunks are larger than 500 kB after minification. Consider:
+2025-10-08T00:21:32.0146379Z - Using dynamic import() to code-split the application
+2025-10-08T00:21:32.0147158Z - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+2025-10-08T00:21:32.0148021Z - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.[39m
+2025-10-08T00:21:32.0148467Z [32m✓ built in 6.24s[39m
+2025-10-08T00:21:32.0148924Z ##[endgroup]
+2025-10-08T00:21:32.0149489Z  WARNING  no output files found for task @hatcherdx/shared-utils#build. Please check your `outputs` key in `turbo.json`
+2025-10-08T00:21:32.0150068Z 
+2025-10-08T00:21:32.0150193Z  Tasks:    7 successful, 7 total
+2025-10-08T00:21:32.0150469Z Cached:    0 cached, 7 total
+2025-10-08T00:21:32.0150721Z   Time:    24.619s 
+2025-10-08T00:21:32.0150847Z 
+2025-10-08T00:21:32.0531164Z Post job cleanup.
+2025-10-08T00:21:32.2065921Z Cache hit occurred on the primary key node-cache-Linux-x64-pnpm-c1d8e8364000185177b6a63cc1d5dc0f8e46cd004e0245b91880954aeb4c3690, not saving cache.
+2025-10-08T00:21:32.2160568Z Post job cleanup.
+2025-10-08T00:21:32.2695321Z Pruning is unnecessary.
+2025-10-08T00:21:32.2800526Z Post job cleanup.
+2025-10-08T00:21:32.3737926Z [command]/usr/bin/git version
+2025-10-08T00:21:32.3775036Z git version 2.51.0
+2025-10-08T00:21:32.3819351Z Temporarily overriding HOME='/home/runner/work/_temp/20dbfa42-4f45-4044-82e1-52b5706c5176' before making global git config changes
+2025-10-08T00:21:32.3820852Z Adding repository directory to the temporary git global config as a safe directory
+2025-10-08T00:21:32.3832942Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/dx-engine/dx-engine
+2025-10-08T00:21:32.3867181Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-10-08T00:21:32.3898686Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-10-08T00:21:32.4126532Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-10-08T00:21:32.4149086Z http.https://github.com/.extraheader
+2025-10-08T00:21:32.4167601Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2025-10-08T00:21:32.4203001Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-10-08T00:21:32.4580313Z Cleaning up orphan processes

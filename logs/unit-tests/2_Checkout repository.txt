@@ -1,0 +1,85 @@
+﻿2025-10-08T00:20:28.5458721Z ##[group]Run actions/checkout@v4
+2025-10-08T00:20:28.5459392Z with:
+2025-10-08T00:20:28.5459662Z   repository: HatcherDX/dx-engine
+2025-10-08T00:20:28.5460155Z   token: ***
+2025-10-08T00:20:28.5460409Z   ssh-strict: true
+2025-10-08T00:20:28.5460667Z   ssh-user: git
+2025-10-08T00:20:28.5460943Z   persist-credentials: true
+2025-10-08T00:20:28.5461228Z   clean: true
+2025-10-08T00:20:28.5461492Z   sparse-checkout-cone-mode: true
+2025-10-08T00:20:28.5461796Z   fetch-depth: 1
+2025-10-08T00:20:28.5462050Z   fetch-tags: false
+2025-10-08T00:20:28.5462463Z   show-progress: true
+2025-10-08T00:20:28.5462726Z   lfs: false
+2025-10-08T00:20:28.5462963Z   submodules: false
+2025-10-08T00:20:28.5463275Z   set-safe-directory: true
+2025-10-08T00:20:28.5463971Z ##[endgroup]
+2025-10-08T00:20:28.6540473Z Syncing repository: HatcherDX/dx-engine
+2025-10-08T00:20:28.6541965Z ##[group]Getting Git version info
+2025-10-08T00:20:28.6542785Z Working directory is '/home/runner/work/dx-engine/dx-engine'
+2025-10-08T00:20:28.6543600Z [command]/usr/bin/git version
+2025-10-08T00:20:28.6600378Z git version 2.51.0
+2025-10-08T00:20:28.6625908Z ##[endgroup]
+2025-10-08T00:20:28.6639167Z Temporarily overriding HOME='/home/runner/work/_temp/40f2c03d-78e7-41b6-b36d-3d8648638c45' before making global git config changes
+2025-10-08T00:20:28.6640994Z Adding repository directory to the temporary git global config as a safe directory
+2025-10-08T00:20:28.6644157Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/dx-engine/dx-engine
+2025-10-08T00:20:28.6679098Z Deleting the contents of '/home/runner/work/dx-engine/dx-engine'
+2025-10-08T00:20:28.6682606Z ##[group]Initializing the repository
+2025-10-08T00:20:28.6686633Z [command]/usr/bin/git init /home/runner/work/dx-engine/dx-engine
+2025-10-08T00:20:28.6786445Z hint: Using 'master' as the name for the initial branch. This default branch name
+2025-10-08T00:20:28.6787475Z hint: is subject to change. To configure the initial branch name to use in all
+2025-10-08T00:20:28.6788636Z hint: of your new repositories, which will suppress this warning, call:
+2025-10-08T00:20:28.6789324Z hint:
+2025-10-08T00:20:28.6789839Z hint: 	git config --global init.defaultBranch <name>
+2025-10-08T00:20:28.6790420Z hint:
+2025-10-08T00:20:28.6791051Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2025-10-08T00:20:28.6792630Z hint: 'development'. The just-created branch can be renamed via this command:
+2025-10-08T00:20:28.6793363Z hint:
+2025-10-08T00:20:28.6793773Z hint: 	git branch -m <name>
+2025-10-08T00:20:28.6794223Z hint:
+2025-10-08T00:20:28.6794833Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2025-10-08T00:20:28.6795841Z Initialized empty Git repository in /home/runner/work/dx-engine/dx-engine/.git/
+2025-10-08T00:20:28.6803981Z [command]/usr/bin/git remote add origin https://github.com/HatcherDX/dx-engine
+2025-10-08T00:20:28.6840761Z ##[endgroup]
+2025-10-08T00:20:28.6841726Z ##[group]Disabling automatic garbage collection
+2025-10-08T00:20:28.6845935Z [command]/usr/bin/git config --local gc.auto 0
+2025-10-08T00:20:28.6874421Z ##[endgroup]
+2025-10-08T00:20:28.6875306Z ##[group]Setting up auth
+2025-10-08T00:20:28.6882114Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-10-08T00:20:28.6912732Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-10-08T00:20:28.7235152Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-10-08T00:20:28.7263531Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-10-08T00:20:28.7483967Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2025-10-08T00:20:28.7519411Z ##[endgroup]
+2025-10-08T00:20:28.7520644Z ##[group]Fetching the repository
+2025-10-08T00:20:28.7528049Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +4bd3782570a93470cf6867616059c6cdc2060f24:refs/remotes/pull/4/merge
+2025-10-08T00:20:29.1723497Z From https://github.com/HatcherDX/dx-engine
+2025-10-08T00:20:29.1724818Z  * [new ref]         4bd3782570a93470cf6867616059c6cdc2060f24 -> pull/4/merge
+2025-10-08T00:20:29.1757340Z ##[endgroup]
+2025-10-08T00:20:29.1758353Z ##[group]Determining the checkout info
+2025-10-08T00:20:29.1760015Z ##[endgroup]
+2025-10-08T00:20:29.1765776Z [command]/usr/bin/git sparse-checkout disable
+2025-10-08T00:20:29.1805819Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2025-10-08T00:20:29.1833354Z ##[group]Checking out the ref
+2025-10-08T00:20:29.1837033Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/4/merge
+2025-10-08T00:20:29.2605990Z Note: switching to 'refs/remotes/pull/4/merge'.
+2025-10-08T00:20:29.2606683Z 
+2025-10-08T00:20:29.2607109Z You are in 'detached HEAD' state. You can look around, make experimental
+2025-10-08T00:20:29.2608077Z changes and commit them, and you can discard any commits you make in this
+2025-10-08T00:20:29.2609129Z state without impacting any branches by switching back to a branch.
+2025-10-08T00:20:29.2609695Z 
+2025-10-08T00:20:29.2610165Z If you want to create a new branch to retain commits you create, you may
+2025-10-08T00:20:29.2611192Z do so (now or later) by using -c with the switch command. Example:
+2025-10-08T00:20:29.2611654Z 
+2025-10-08T00:20:29.2611857Z   git switch -c <new-branch-name>
+2025-10-08T00:20:29.2612096Z 
+2025-10-08T00:20:29.2612432Z Or undo this operation with:
+2025-10-08T00:20:29.2612686Z 
+2025-10-08T00:20:29.2612859Z   git switch -
+2025-10-08T00:20:29.2613070Z 
+2025-10-08T00:20:29.2613364Z Turn off this advice by setting config variable advice.detachedHead to false
+2025-10-08T00:20:29.2614032Z 
+2025-10-08T00:20:29.2614484Z HEAD is now at 4bd3782 Merge 22d85070319d315d659e311a094e003d8143d6e9 into 062cba50c758ba3a1767c821e1e1361cab6154e2
+2025-10-08T00:20:29.2616813Z ##[endgroup]
+2025-10-08T00:20:29.2658702Z [command]/usr/bin/git log -1 --format=%H
+2025-10-08T00:20:29.2685960Z 4bd3782570a93470cf6867616059c6cdc2060f24

@@ -233,18 +233,13 @@ if (typeof window !== 'undefined') {
   })
 }
 
-// Manual auto-unmount using flushPromises pattern
+// Manual DOM cleanup without enableAutoUnmount
 // Context7 pattern: enableAutoUnmount causes "Vitest failed to access its internal state"
 // errors in CI because it tries to access vitest context during cleanup phase.
-// Use manual afterEach instead for better control and CI compatibility.
-import { flushPromises } from '@vue/test-utils'
-
-afterEach(async () => {
-  // Flush all pending promises to ensure Vue components are fully unmounted
-  await flushPromises()
-
-  // Clear any remaining DOM content
-  if (typeof document !== 'undefined') {
+// Use simple synchronous cleanup to avoid worker timeouts.
+afterEach(() => {
+  // Clear DOM content synchronously - no async to avoid worker communication timeouts
+  if (typeof document !== 'undefined' && document.body) {
     document.body.innerHTML = ''
   }
 })

@@ -1,0 +1,12 @@
+﻿2025-10-08T00:20:49.6297127Z ##[group]Run pnpm run format:check
+2025-10-08T00:20:49.6297481Z [36;1mpnpm run format:check[0m
+2025-10-08T00:20:49.6330271Z shell: /usr/bin/bash -e {0}
+2025-10-08T00:20:49.6330507Z env:
+2025-10-08T00:20:49.6330731Z   PNPM_HOME: /home/runner/setup-pnpm/node_modules/.bin
+2025-10-08T00:20:49.6331020Z ##[endgroup]
+2025-10-08T00:20:49.9282369Z 
+2025-10-08T00:20:49.9283295Z > @hatcherdx/dx-engine@0.4.0 format:check /home/runner/work/dx-engine/dx-engine
+2025-10-08T00:20:49.9283827Z > prettier --check .
+2025-10-08T00:20:49.9283978Z 
+2025-10-08T00:20:50.0112057Z Checking formatting...
+2025-10-08T00:21:08.8538614Z All matched files use Prettier code style!
