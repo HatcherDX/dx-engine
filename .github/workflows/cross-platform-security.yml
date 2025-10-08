@@ -246,7 +246,7 @@ jobs:
           export DISPLAY=:99
 
           # Run our cross-platform security validation
-          tsx scripts/validate-security.ts
+          pnpm exec tsx scripts/validate-security.ts
         continue-on-error: false
 
       - name: Run Electron storage tests
@@ -337,7 +337,7 @@ jobs:
 
       - name: Run security validation
         run: |
-          tsx scripts/validate-security.ts
+          pnpm exec tsx scripts/validate-security.ts
 
       - name: Run macOS-specific tests
         run: |
@@ -416,7 +416,7 @@ jobs:
 
       - name: Run security validation
         run: |
-          tsx scripts/validate-security.ts
+          pnpm exec tsx scripts/validate-security.ts
 
       - name: Run Windows-specific tests
         run: |
