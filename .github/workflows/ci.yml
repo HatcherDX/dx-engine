@@ -112,8 +112,6 @@ jobs:
           # Install without scripts to avoid node-pty compilation error on Windows
           # See apps/electron/KNOWN_ISSUES.md for details about node-pty Windows issue
           pnpm install --ignore-scripts
-          # Build the puppeteer-google-translate package that was skipped during install
-          pnpm --filter @hatcherdx/puppeteer-google-translate build
           # Rebuild only compatible native modules (skip node-pty and lzma-native)
           # lzma-native doesn't support Windows builds properly
           pnpm rebuild better-sqlite3 argon2 lz4 || true
@@ -192,8 +190,6 @@ jobs:
           # Install without scripts to avoid node-pty compilation error on Windows
           # See apps/electron/KNOWN_ISSUES.md for details about node-pty Windows issue
           pnpm install --ignore-scripts
-          # Build the puppeteer-google-translate package that was skipped during install
-          pnpm --filter @hatcherdx/puppeteer-google-translate build
           # Rebuild only compatible native modules (skip node-pty and lzma-native)
           # lzma-native doesn't support Windows builds properly
           pnpm rebuild better-sqlite3 argon2 lz4 || true
@@ -261,8 +257,6 @@ jobs:
           # Install without scripts to avoid node-pty compilation error on Windows
           # See apps/electron/KNOWN_ISSUES.md for details about node-pty Windows issue
           pnpm install --ignore-scripts
-          # Build the puppeteer-google-translate package that was skipped during install
-          pnpm --filter @hatcherdx/puppeteer-google-translate build
           # Rebuild only compatible native modules (skip node-pty and lzma-native)
           # lzma-native doesn't support Windows builds properly
           pnpm rebuild better-sqlite3 argon2 lz4 || true
@@ -305,72 +299,6 @@ jobs:
           name: electron-test-results-${{ matrix.os }}
           path: apps/electron/coverage/integration/
 
-  # Translation system cross-platform tests (runs on main branch)
-  translation-crossplatform-tests:
-    runs-on: ${{ matrix.os }}
-    if: github.ref == 'refs/heads/main' || github.base_ref == 'nightly' || contains(github.event.pull_request.labels.*.name, 'test-translation')
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-      fail-fast: false
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: '10.6.1'
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22.14.0'
-          cache: 'pnpm'
-
-      # Skip corepack to avoid HTTP 429 errors from npm registry
-      # pnpm is already installed via pnpm/action-setup
-
-      - name: Setup Windows build environment
-        if: matrix.os == 'windows-latest'
-        run: |
-          echo "Setting up Windows build environment"
-
-      - name: Install dependencies (Windows)
-        if: matrix.os == 'windows-latest'
-        run: |
-          # Install without scripts to avoid node-pty compilation error on Windows
-          # See apps/electron/KNOWN_ISSUES.md for details about node-pty Windows issue
-          pnpm install --ignore-scripts
-          # Build the puppeteer-google-translate package that was skipped during install
-          pnpm --filter @hatcherdx/puppeteer-google-translate build
-          # Rebuild only compatible native modules (skip node-pty and lzma-native)
-          # lzma-native doesn't support Windows builds properly
-          pnpm rebuild better-sqlite3 argon2 lz4 || true
-        env:
-          MSVS_VERSION: 2022
-          npm_config_msvs_version: 2022
-
-      - name: Install dependencies (Non-Windows)
-        if: matrix.os != 'windows-latest'
-        run: pnpm install
-
-      - name: Build translation-system
-        run: pnpm --filter @hatcherdx/translation-system build
-
-      - name: Run cross-platform tests
-        run: pnpm --filter @hatcherdx/translation-system test:crossplatform
-        env:
-          VITEST_CROSSPLATFORM: 'true'
-
-      - name: Upload translation test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: translation-test-results-${{ matrix.os }}
-          path: tooling/translation-system/coverage/crossplatform/
-
   # Build scripts integration tests (runs on main branch)
   scripts-integration-tests:
     runs-on: ${{ matrix.os }}
@@ -409,8 +337,6 @@ jobs:
           # Install without scripts to avoid node-pty compilation error on Windows
           # See apps/electron/KNOWN_ISSUES.md for details about node-pty Windows issue
           pnpm install --ignore-scripts
-          # Build the puppeteer-google-translate package that was skipped during install
-          pnpm --filter @hatcherdx/puppeteer-google-translate build
           # Rebuild only compatible native modules (skip node-pty and lzma-native)
           # lzma-native doesn't support Windows builds properly
           pnpm rebuild better-sqlite3 argon2 lz4 || true
@@ -472,8 +398,6 @@ jobs:
           # Install without scripts to avoid node-pty compilation error on Windows
           # See apps/electron/KNOWN_ISSUES.md for details about node-pty Windows issue
           pnpm install --ignore-scripts
-          # Build the puppeteer-google-translate package that was skipped during install
-          pnpm --filter @hatcherdx/puppeteer-google-translate build
           # Rebuild only compatible native modules (skip node-pty and lzma-native)
           # lzma-native doesn't support Windows builds properly
           pnpm rebuild better-sqlite3 argon2 lz4 || true
@@ -560,9 +484,6 @@ jobs:
 
           # Manually run essential setup scripts only
           pnpm tsx scripts/setup-env.ts
-
-          # Build only the puppeteer-google-translate package (needed by other packages)
-          pnpm --filter @hatcherdx/puppeteer-google-translate build
 
           # Rebuild only workspace packages (no --ignore-scripts for rebuild command)
           # Skip electron package to avoid postinstall issues
