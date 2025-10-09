@@ -47,7 +47,7 @@ describe('🎯 DiffEngine - Timeline Diff Generation System', () => {
   describe('🔄 Diff View Generation', () => {
     it('should throw error for generateDiffView - placeholder implementation', async () => {
       await expect(diffEngine.generateDiffView()).rejects.toThrow(
-        'DiffEngine: Full implementation pending future phases'
+        'DiffEngine is a FUTURE placeholder for semantic analysis (2026+)'
       )
     })
 
@@ -57,8 +57,8 @@ describe('🎯 DiffEngine - Timeline Diff Generation System', () => {
         expect.fail('Should have thrown an error')
       } catch (error) {
         expect(error).toBeInstanceOf(Error)
-        expect((error as Error).message).toBe(
-          'DiffEngine: Full implementation pending future phases'
+        expect((error as Error).message).toContain(
+          'DiffEngine is a FUTURE placeholder for semantic analysis (2026+)'
         )
       }
     })
@@ -74,7 +74,7 @@ describe('🎯 DiffEngine - Timeline Diff Generation System', () => {
   describe('📄 File Diff Generation', () => {
     it('should throw error for generateFileDiff - placeholder implementation', async () => {
       await expect(diffEngine.generateFileDiff()).rejects.toThrow(
-        'DiffEngine: Full implementation pending future phases'
+        'DiffEngine is a FUTURE placeholder for semantic analysis (2026+)'
       )
     })
 
@@ -84,8 +84,8 @@ describe('🎯 DiffEngine - Timeline Diff Generation System', () => {
         expect.fail('Should have thrown an error')
       } catch (error) {
         expect(error).toBeInstanceOf(Error)
-        expect((error as Error).message).toBe(
-          'DiffEngine: Full implementation pending future phases'
+        expect((error as Error).message).toContain(
+          'DiffEngine is a FUTURE placeholder for semantic analysis (2026+)'
         )
       }
     })
@@ -106,8 +106,8 @@ describe('🎯 DiffEngine - Timeline Diff Generation System', () => {
         results.forEach((result) => {
           expect(result.status).toBe('rejected')
           if (result.status === 'rejected') {
-            expect(result.reason.message).toBe(
-              'DiffEngine: Full implementation pending future phases'
+            expect(result.reason.message).toContain(
+              'DiffEngine is a FUTURE placeholder for semantic analysis (2026+)'
             )
           }
         })
@@ -261,7 +261,7 @@ console.log('Result:', result);`
     it('should maintain error consistency for async methods', async () => {
       // Both async methods should throw the same error message
       const expectedError =
-        'DiffEngine: Full implementation pending future phases'
+        'DiffEngine is a FUTURE placeholder for semantic analysis (2026+)'
 
       await expect(diffEngine.generateDiffView()).rejects.toThrow(expectedError)
       await expect(diffEngine.generateFileDiff()).rejects.toThrow(expectedError)
@@ -357,7 +357,7 @@ console.log('Result:', result);`
 
       for (const method of methods) {
         await expect(method()).rejects.toThrow(
-          'Full implementation pending future phases'
+          'DiffEngine is a FUTURE placeholder for semantic analysis (2026+)'
         )
       }
     })

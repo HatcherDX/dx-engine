@@ -78,11 +78,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useOnboarding } from '../../composables/useOnboarding'
+import { useNotifications } from '../../composables/useNotifications'
 import BaseLogo from '../atoms/BaseLogo.vue'
 import BaseIcon from '../atoms/BaseIcon.vue'
 
 const { getSelectedTask, getSelectedBranch, completeOnboarding } =
   useOnboarding()
+const { success } = useNotifications()
 
 const currentMessageIndex = ref(0)
 let progressInterval: ReturnType<typeof setInterval> | null = null
@@ -153,6 +155,11 @@ const handleComplete = (): void => {
     clearInterval(progressInterval)
   }
   completeOnboarding()
+
+  // Show success notification
+  success('Welcome to Hatcher! Your workspace is ready.', {
+    duration: 5000,
+  })
 }
 
 onMounted(() => {

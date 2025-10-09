@@ -1,10 +1,10 @@
 /**
- * @fileoverview Comprehensive tests for WebGLDiffViewer.vue component.
+ * @fileoverview Comprehensive tests for DualColumnDiffViewer.vue component.
  *
  * @description
- * Tests for the advanced Git diff viewer component including syntax highlighting,
- * expandable sections, bidirectional expansion, line correspondence mapping,
- * hover effects, and file content loading.
+ * Tests for the dual-column Git diff viewer component (DOM-based) including
+ * syntax highlighting, expandable sections, bidirectional expansion,
+ * line correspondence mapping, hover effects, and file content loading.
  *
  * @author Hatcher DX Team
  * @since 1.0.0
@@ -25,7 +25,7 @@ import {
   onMounted,
   type ComponentPublicInstance,
 } from 'vue'
-import WebGLDiffViewer from './WebGLDiffViewer.vue'
+import DualColumnDiffViewer from './DualColumnDiffViewer.vue'
 
 // Type alias for Vue component instances
 type VueComponent = ComponentPublicInstance
@@ -149,8 +149,8 @@ interface ExpandedContextLine {
   type: 'context'
 }
 
-// Interface for WebGLDiffViewer instance with specific properties
-interface WebGLDiffViewerInstance {
+// Interface for DualColumnDiffViewer instance with specific properties
+interface DualColumnDiffViewerInstance {
   partiallyExpanded?: Map<string, PartialExpansionState>
   expandedContext?: Map<string, ExpandedContextLine[]>
   alignedDiffRows?: unknown[]
@@ -326,8 +326,8 @@ afterEach(() => {
   global.console = console
 })
 
-describe('WebGLDiffViewer', () => {
-  let wrapper: VueWrapper<InstanceType<typeof WebGLDiffViewer>>
+describe('DualColumnDiffViewer', () => {
+  let wrapper: VueWrapper<InstanceType<typeof DualColumnDiffViewer>>
 
   const createMockCommits = (): GitCommitData[] => [
     {
@@ -374,10 +374,10 @@ describe('WebGLDiffViewer', () => {
      * @public
      */
     it('should mount successfully with default props', () => {
-      wrapper = mount(WebGLDiffViewer)
+      wrapper = mount(DualColumnDiffViewer)
 
       expect(wrapper.exists()).toBe(true)
-      expect(wrapper.find('.webgl-diff-viewer').exists()).toBe(true)
+      expect(wrapper.find('.dual-column-diff-viewer').exists()).toBe(true)
       // Header and viewport are only shown when there's content
       expect(wrapper.find('.empty-state-container').exists()).toBe(true)
     })
@@ -394,7 +394,7 @@ describe('WebGLDiffViewer', () => {
       const diffData = createMockDiffData()
       const commits = createMockCommits()
 
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           currentFile: 'src/test.ts',
           commits,
@@ -417,7 +417,7 @@ describe('WebGLDiffViewer', () => {
      * @public
      */
     it('should show loading state correctly', () => {
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           isLoading: true,
         },
@@ -437,7 +437,7 @@ describe('WebGLDiffViewer', () => {
      * @public
      */
     it('should show no diff message when no data provided', () => {
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           currentFile: null,
           diffData: null,
@@ -464,7 +464,7 @@ describe('WebGLDiffViewer', () => {
     it('should render diff content structure', () => {
       const diffData = createMockDiffData()
 
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           currentFile: 'test.js',
           diffData: diffData,
@@ -489,7 +489,7 @@ describe('WebGLDiffViewer', () => {
     it('should render diff lines with correct classes and content', () => {
       const diffData = createMockDiffData()
 
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           currentFile: 'test.js',
           diffData: diffData,
@@ -520,7 +520,7 @@ describe('WebGLDiffViewer', () => {
     it('should display line numbers correctly', () => {
       const diffData = createMockDiffData()
 
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           currentFile: 'test.js',
           diffData: diffData,
@@ -552,7 +552,7 @@ describe('WebGLDiffViewer', () => {
         hunks: [],
       }
 
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           diffData: emptyDiffData,
         },
@@ -563,7 +563,7 @@ describe('WebGLDiffViewer', () => {
 
       // Should have attempted to create highlighter - verify it was called with file info
       expect(mockConsole.log).toHaveBeenCalledWith(
-        '[WebGL Diff Viewer] Initializing syntax highlighter for:',
+        '[Diff Viewer] Initializing syntax highlighter for:',
         'src/test.ts'
       )
     })
@@ -579,7 +579,7 @@ describe('WebGLDiffViewer', () => {
     it('should apply syntax highlighting to diff content', async () => {
       const diffData = createMockDiffData()
 
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           currentFile: 'test.js',
           diffData: diffData,
@@ -608,7 +608,7 @@ describe('WebGLDiffViewer', () => {
     it('should cache highlighted content for performance', async () => {
       const diffData = createMockDiffData()
 
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           currentFile: 'test.js',
           diffData: diffData,
@@ -625,7 +625,7 @@ describe('WebGLDiffViewer', () => {
       await nextTick()
 
       // Should use cache for repeated content
-      const vm = wrapper.vm as WebGLDiffViewerInstance
+      const vm = wrapper.vm as DualColumnDiffViewerInstance
       if (vm.getHighlightedContent) {
         const result1 = vm.getHighlightedContent?.(
           0,
@@ -683,7 +683,7 @@ describe('WebGLDiffViewer', () => {
         ],
       }
 
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           currentFile: 'test-gaps.js',
           diffData: diffDataWithGaps,
@@ -726,7 +726,7 @@ describe('WebGLDiffViewer', () => {
         ],
       }
 
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           currentFile: 'expand-buttons.js',
           diffData: diffDataWithGaps,
@@ -771,7 +771,7 @@ describe('WebGLDiffViewer', () => {
         ],
       }
 
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           currentFile: 'test-file.ts',
           diffData: diffDataWithGaps,
@@ -781,7 +781,7 @@ describe('WebGLDiffViewer', () => {
       const downButton = wrapper.find('.expand-down')
       if (downButton.exists()) {
         // Test expansion function directly instead of DOM event
-        const vm = wrapper.vm as WebGLDiffViewerInstance
+        const vm = wrapper.vm as DualColumnDiffViewerInstance
         if (vm.expandSection) {
           await vm.expandSection(0, 1, 14, 'down')
         }
@@ -823,7 +823,7 @@ describe('WebGLDiffViewer', () => {
         ],
       }
 
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           currentFile: 'bidirectional-test.ts',
           diffData: diffDataWithGaps,
@@ -833,7 +833,7 @@ describe('WebGLDiffViewer', () => {
       // Test down expansion (from top)
       const downButton = wrapper.find('.expand-down')
       const upButton = wrapper.find('.expand-up')
-      const vm = wrapper.vm as WebGLDiffViewerInstance
+      const vm = wrapper.vm as DualColumnDiffViewerInstance
 
       if (downButton.exists() && vm.expandSection) {
         await vm.expandSection(0, 1, 49, 'down')
@@ -892,7 +892,7 @@ describe('WebGLDiffViewer', () => {
         ],
       }
 
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           currentFile: 'test-file.js',
           diffData: diffDataWithGaps,
@@ -924,7 +924,7 @@ describe('WebGLDiffViewer', () => {
     it('should handle line hover events for synchronization', async () => {
       const diffData = createMockDiffData()
 
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           currentFile: 'test.js',
           diffData: diffData,
@@ -934,7 +934,7 @@ describe('WebGLDiffViewer', () => {
       const diffLine = wrapper.find('.diff-line')
       if (diffLine.exists()) {
         // Test hover handling directly
-        const vm = wrapper.vm as WebGLDiffViewerInstance
+        const vm = wrapper.vm as DualColumnDiffViewerInstance
         if (vm.handleLineHover) {
           vm.handleLineHover('old', 0, 5, true)
           await nextTick()
@@ -962,14 +962,14 @@ describe('WebGLDiffViewer', () => {
     it('should create line correspondence mapping correctly', () => {
       const diffData = createMockDiffData()
 
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           currentFile: 'test.js',
           diffData: diffData,
         },
       })
 
-      const vm = wrapper.vm as WebGLDiffViewerInstance
+      const vm = wrapper.vm as DualColumnDiffViewerInstance
       if (vm.lineCorrespondenceMap) {
         const correspondenceMap = vm.lineCorrespondenceMap
         expect(correspondenceMap.size).toBeGreaterThan(0)
@@ -987,14 +987,14 @@ describe('WebGLDiffViewer', () => {
     it('should highlight corresponding lines correctly', async () => {
       const diffData = createMockDiffData()
 
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           currentFile: 'test.js',
           diffData: diffData,
         },
       })
 
-      const vm = wrapper.vm as WebGLDiffViewerInstance
+      const vm = wrapper.vm as DualColumnDiffViewerInstance
 
       // Simulate hover on a line
       if (vm.handleLineHover) {
@@ -1022,7 +1022,7 @@ describe('WebGLDiffViewer', () => {
     it('should handle wheel events for natural scrolling', async () => {
       const diffData = createMockDiffData()
 
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           currentFile: 'test.js',
           diffData: diffData,
@@ -1093,13 +1093,13 @@ describe('WebGLDiffViewer', () => {
         ],
       }
 
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           diffData: diffDataWithGaps,
         },
       })
 
-      const vm = wrapper.vm as WebGLDiffViewerInstance
+      const vm = wrapper.vm as DualColumnDiffViewerInstance
 
       // Test expandSection method directly
       if (vm.expandSection) {
@@ -1159,7 +1159,7 @@ describe('WebGLDiffViewer', () => {
         ],
       }
 
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           diffData: diffDataWithGaps,
         },
@@ -1168,7 +1168,7 @@ describe('WebGLDiffViewer', () => {
       const downButton = wrapper.find('.expand-down')
       if (downButton.exists()) {
         // Test expansion with error handling directly
-        const vm = wrapper.vm as WebGLDiffViewerInstance
+        const vm = wrapper.vm as DualColumnDiffViewerInstance
         if (vm.expandSection) {
           await vm.expandSection(0, 1, 19, 'down')
         }
@@ -1188,7 +1188,7 @@ describe('WebGLDiffViewer', () => {
      * @public
      */
     it('should isolate state between different files', async () => {
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           diffData: createMockDiffData(),
         },
@@ -1199,7 +1199,7 @@ describe('WebGLDiffViewer', () => {
       await nextTick()
 
       // State should be isolated per file
-      const vm = wrapper.vm as WebGLDiffViewerInstance
+      const vm = wrapper.vm as DualColumnDiffViewerInstance
       if (vm.expandedSections) {
         // Should not have cross-contamination between files
         expect(vm.expandedSections.size).toBe(0)
@@ -1217,7 +1217,7 @@ describe('WebGLDiffViewer', () => {
     it('should update computed properties reactively', async () => {
       const initialDiffData = createMockDiffData()
 
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           diffData: initialDiffData,
         },
@@ -1286,7 +1286,7 @@ describe('WebGLDiffViewer', () => {
         ],
       }
 
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           currentFile: 'persistent-test.ts',
           diffData: diffDataWithGaps,
@@ -1297,7 +1297,7 @@ describe('WebGLDiffViewer', () => {
       const downButton = wrapper.find('.expand-down')
       if (downButton.exists()) {
         // Test expansion state persistence
-        const vm = wrapper.vm as WebGLDiffViewerInstance
+        const vm = wrapper.vm as DualColumnDiffViewerInstance
         if (vm.expandSection) {
           await vm.expandSection(0, 1, 39, 'down')
         }
@@ -1309,7 +1309,7 @@ describe('WebGLDiffViewer', () => {
       await nextTick()
 
       // Expansion state should persist
-      const vm = wrapper.vm as WebGLDiffViewerInstance
+      const vm = wrapper.vm as DualColumnDiffViewerInstance
       if (vm.partiallyExpanded) {
         expect(vm.partiallyExpanded.size).toBeGreaterThan(0)
       }
@@ -1332,7 +1332,7 @@ describe('WebGLDiffViewer', () => {
         hunks: [],
       }
 
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           diffData: emptyDiffData,
         },
@@ -1373,7 +1373,7 @@ describe('WebGLDiffViewer', () => {
         ],
       }
 
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           diffData: largeDiff,
         },
@@ -1423,7 +1423,7 @@ describe('WebGLDiffViewer', () => {
 
       // Should not throw error with malformed data
       expect(() => {
-        wrapper = mount(WebGLDiffViewer, {
+        wrapper = mount(DualColumnDiffViewer, {
           props: {
             diffData: malformedDiff,
           },
@@ -1466,7 +1466,7 @@ describe('WebGLDiffViewer', () => {
         ],
       }
 
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           diffData: diffDataWithGaps,
         },
@@ -1475,7 +1475,7 @@ describe('WebGLDiffViewer', () => {
       const downButton = wrapper.find('.expand-down')
       if (downButton.exists()) {
         // Test expansion without project root directly
-        const vm = wrapper.vm as WebGLDiffViewerInstance
+        const vm = wrapper.vm as DualColumnDiffViewerInstance
         if (vm.expandSection) {
           await vm.expandSection(0, 1, 9, 'down')
         }
@@ -1497,7 +1497,7 @@ describe('WebGLDiffViewer', () => {
      * @public
      */
     it('should expose debug functions to window in browser environment', () => {
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           diffData: createMockDiffData(),
         },
@@ -1519,7 +1519,7 @@ describe('WebGLDiffViewer', () => {
      * @public
      */
     it('should provide syntax highlighting test utilities', () => {
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           diffData: createMockDiffData(),
         },
@@ -1563,7 +1563,7 @@ describe('WebGLDiffViewer', () => {
         ],
       }
 
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           currentFile: 'large-file.js',
           diffData: largeDiff,
@@ -1590,14 +1590,14 @@ describe('WebGLDiffViewer', () => {
      * @public
      */
     it('should clean up resources on unmount', async () => {
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           diffData: createMockDiffData(),
         },
       })
 
       // Add some state
-      const vm = wrapper.vm as WebGLDiffViewerInstance
+      const vm = wrapper.vm as DualColumnDiffViewerInstance
       if (vm.expandedSections) {
         vm.expandedSections.add('test-section')
       }
@@ -1617,14 +1617,14 @@ describe('WebGLDiffViewer', () => {
      */
     it('should handle escapeHtml utility function edge cases', () => {
       const diffData = createMockDiffData()
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           currentFile: 'test.js',
           diffData: diffData,
         },
       })
 
-      const vm = wrapper.vm as WebGLDiffViewerInstance
+      const vm = wrapper.vm as DualColumnDiffViewerInstance
       if (vm.escapeHtml) {
         // Test HTML escaping - check actual implementation behavior
         expect(vm.escapeHtml('<script>alert("xss")</script>')).toContain(
@@ -1643,14 +1643,14 @@ describe('WebGLDiffViewer', () => {
 
     it('should handle highlightContent error scenarios', async () => {
       const diffData = createMockDiffData()
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           currentFile: 'test.js',
           diffData: diffData,
         },
       })
 
-      const vm = wrapper.vm as WebGLDiffViewerInstance
+      const vm = wrapper.vm as DualColumnDiffViewerInstance
 
       // Test with empty content
       if (vm.highlightContent) {
@@ -1671,7 +1671,7 @@ describe('WebGLDiffViewer', () => {
 
     it('should handle onMounted lifecycle hook properly', async () => {
       // Test component mounting with currentFile already set
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           diffData: createMockDiffData(),
           currentFile: 'src/test.ts',
@@ -1682,21 +1682,21 @@ describe('WebGLDiffViewer', () => {
 
       // Should have initialized highlighter on mount
       expect(mockConsole.log).toHaveBeenCalledWith(
-        '[WebGL Diff Viewer] Initializing syntax highlighter for:',
+        '[Diff Viewer] Initializing syntax highlighter for:',
         'src/test.ts'
       )
     })
 
     it('should handle diffStats computed property edge cases', () => {
       // Test with null diffData
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           diffData: null,
           currentFile: 'test.js',
         },
       })
 
-      const vm = wrapper.vm as WebGLDiffViewerInstance
+      const vm = wrapper.vm as DualColumnDiffViewerInstance
       if (vm.diffStats) {
         expect(vm.diffStats).toBeNull()
       }
@@ -1708,7 +1708,7 @@ describe('WebGLDiffViewer', () => {
         hunks: [],
       }
 
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           diffData: emptyDiffData,
           currentFile: 'empty.js',
@@ -1744,14 +1744,14 @@ describe('WebGLDiffViewer', () => {
         ],
       }
 
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           diffData: diffDataWithGaps,
           currentFile: 'test-file.js',
         },
       })
 
-      const vm = wrapper.vm as WebGLDiffViewerInstance
+      const vm = wrapper.vm as DualColumnDiffViewerInstance
 
       // Test with no file
       if (vm.getExpandHintText) {
@@ -1790,14 +1790,14 @@ describe('WebGLDiffViewer', () => {
         ],
       }
 
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           diffData: diffDataWithGaps,
           currentFile: 'test-file.js',
         },
       })
 
-      const vm = wrapper.vm as WebGLDiffViewerInstance
+      const vm = wrapper.vm as DualColumnDiffViewerInstance
 
       if (vm.canExpandUp && vm.canExpandDown) {
         // Test with undefined hunk index
@@ -1821,14 +1821,14 @@ describe('WebGLDiffViewer', () => {
     })
 
     it('should handle hasLinesUp and hasLinesDown functions', async () => {
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           diffData: createMockDiffData(),
           currentFile: 'test.js',
         },
       })
 
-      const vm = wrapper.vm as WebGLDiffViewerInstance
+      const vm = wrapper.vm as DualColumnDiffViewerInstance
 
       if (vm.hasLinesUp && vm.hasLinesDown) {
         // Test with undefined hunk index
@@ -1866,14 +1866,14 @@ describe('WebGLDiffViewer', () => {
       ],
     }
 
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         diffData: diffDataWithGaps,
         currentFile: 'src/file1.ts',
       },
     })
 
-    const vm = wrapper.vm as WebGLDiffViewerInstance
+    const vm = wrapper.vm as DualColumnDiffViewerInstance
 
     // Simulate adding expansion state
     if (vm.expandedSections && vm.partiallyExpanded) {
@@ -1905,13 +1905,13 @@ describe('WebGLDiffViewer', () => {
 
   it('should handle alignedDiffRows computed property edge cases', async () => {
     // Test with null diffData
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         diffData: null,
       },
     })
 
-    const vm = wrapper.vm as WebGLDiffViewerInstance
+    const vm = wrapper.vm as DualColumnDiffViewerInstance
     if (vm.alignedDiffRows) {
       expect(vm.alignedDiffRows).toEqual([])
     }
@@ -1972,13 +1972,13 @@ describe('WebGLDiffViewer', () => {
   })
 
   it('should handle lineCorrespondenceMap computed property edge cases', async () => {
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         diffData: null,
       },
     })
 
-    const vm = wrapper.vm as WebGLDiffViewerInstance
+    const vm = wrapper.vm as DualColumnDiffViewerInstance
     if (vm.lineCorrespondenceMap) {
       expect(vm.lineCorrespondenceMap.size).toBe(0)
     }
@@ -2002,14 +2002,14 @@ describe('WebGLDiffViewer', () => {
 
   it('should handle processedOldSide and processedNewSide computed properties', async () => {
     const diffData = createMockDiffData()
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         currentFile: 'test.js',
         diffData: diffData,
       },
     })
 
-    const vm = wrapper.vm as WebGLDiffViewerInstance
+    const vm = wrapper.vm as DualColumnDiffViewerInstance
 
     if (vm.processedOldSide && vm.processedNewSide) {
       expect(Array.isArray(vm.processedOldSide)).toBe(true)
@@ -2055,14 +2055,14 @@ describe('WebGLDiffViewer', () => {
       ],
     }
 
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         diffData: diffDataWithGaps,
         currentFile: 'test-file.js',
       },
     })
 
-    const vm = wrapper.vm as WebGLDiffViewerInstance
+    const vm = wrapper.vm as DualColumnDiffViewerInstance
 
     if (vm.expandSection) {
       await vm.expandSection(0, 1, 9, 'down')
@@ -2096,14 +2096,14 @@ describe('WebGLDiffViewer', () => {
       ],
     }
 
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         diffData: diffDataWithSmallGap,
         currentFile: 'src/test.ts',
       },
     })
 
-    const vm = wrapper.vm as WebGLDiffViewerInstance
+    const vm = wrapper.vm as DualColumnDiffViewerInstance
 
     if (vm.expandSection) {
       // Simulate partial expansion state with only 3 remaining lines
@@ -2130,7 +2130,7 @@ describe('WebGLDiffViewer', () => {
 
   it('should handle wheel event for smooth scrolling', async () => {
     const diffData = createMockDiffData()
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         currentFile: 'test.js',
         diffData: diffData,
@@ -2140,7 +2140,7 @@ describe('WebGLDiffViewer', () => {
     const diffContent = wrapper.find('.diff-content')
     if (diffContent.exists()) {
       // Test wheel event handling directly
-      const vm = wrapper.vm as WebGLDiffViewerInstance
+      const vm = wrapper.vm as DualColumnDiffViewerInstance
       if (vm.handleWheel) {
         vm.handleWheel({
           deltaY: 100,
@@ -2152,7 +2152,7 @@ describe('WebGLDiffViewer', () => {
   })
 
   it('should handle prop changes correctly', async () => {
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         diffData: null,
         currentFile: 'test.js',
@@ -2173,7 +2173,7 @@ describe('WebGLDiffViewer', () => {
   })
 
   it('should handle missing or invalid diffData', () => {
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         diffData: null,
         currentFile: null,
@@ -2191,7 +2191,7 @@ describe('WebGLDiffViewer', () => {
       hunks: [],
     }
 
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         diffData: emptyDiffData,
         currentFile: 'empty.js',
@@ -2203,7 +2203,7 @@ describe('WebGLDiffViewer', () => {
 
   it('should handle different commit versions', async () => {
     const commits = createMockCommits()
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         diffData: createMockDiffData(),
         currentFile: 'test.js',
@@ -2274,7 +2274,7 @@ describe('WebGLDiffViewer', () => {
       ],
     }
 
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         diffData: complexDiffData,
         currentFile: 'complex.js',
@@ -2287,7 +2287,7 @@ describe('WebGLDiffViewer', () => {
 
   it('should handle mouse events correctly', async () => {
     const diffData = createMockDiffData()
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         currentFile: 'test.js',
         diffData: diffData,
@@ -2297,7 +2297,7 @@ describe('WebGLDiffViewer', () => {
     const diffLine = wrapper.find('.diff-line')
     if (diffLine.exists()) {
       // Test mouse event handling directly
-      const vm = wrapper.vm as WebGLDiffViewerInstance
+      const vm = wrapper.vm as DualColumnDiffViewerInstance
       if (vm.handleLineHover) {
         vm.handleLineHover('old', 0, 5, true)
         vm.handleLineHover('old', 0, 5, false)
@@ -2308,14 +2308,14 @@ describe('WebGLDiffViewer', () => {
 
   it('should handle line highlighting logic', async () => {
     const diffData = createMockDiffData()
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         currentFile: 'test.js',
         diffData: diffData,
       },
     })
 
-    const vm = wrapper.vm as WebGLDiffViewerInstance
+    const vm = wrapper.vm as DualColumnDiffViewerInstance
     if (vm.isLineHighlighted) {
       expect(typeof vm.isLineHighlighted).toBe('function')
       expect(vm.isLineHighlighted(0, 5, 'old')).toBeDefined()
@@ -2324,7 +2324,7 @@ describe('WebGLDiffViewer', () => {
 
   it('should handle syntax highlighting with Prism', async () => {
     const diffData = createMockDiffData()
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         currentFile: 'test.js',
         diffData: diffData,
@@ -2377,14 +2377,14 @@ describe('WebGLDiffViewer', () => {
       ],
     }
 
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         currentFile: 'test-gaps.js',
         diffData: diffDataWithGaps,
       },
     })
 
-    const vm = wrapper.vm as WebGLDiffViewerInstance
+    const vm = wrapper.vm as DualColumnDiffViewerInstance
     if (vm.canExpandUp && vm.canExpandDown) {
       expect(typeof vm.canExpandUp).toBe('function')
       expect(typeof vm.canExpandDown).toBe('function')
@@ -2398,7 +2398,7 @@ describe('WebGLDiffViewer', () => {
     )
 
     const diffData = createMockDiffData()
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         currentFile: 'test.js',
         diffData: diffData,
@@ -2406,7 +2406,7 @@ describe('WebGLDiffViewer', () => {
     })
 
     // Try to trigger expansion which would call getFileContent
-    const vm = wrapper.vm as WebGLDiffViewerInstance
+    const vm = wrapper.vm as DualColumnDiffViewerInstance
     if (vm.expandSection) {
       try {
         await vm.expandSection(0, 1, 10, 'down')
@@ -2421,7 +2421,7 @@ describe('WebGLDiffViewer', () => {
 
   it('should handle empty file names', () => {
     const diffData = createMockDiffData()
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         currentFile: '',
         diffData: diffData,
@@ -2437,7 +2437,7 @@ describe('WebGLDiffViewer', () => {
       'src/very/long/nested/directory/structure/with/many/levels/test.ts'
     const diffData = createMockDiffData()
 
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         currentFile: longPath,
         diffData: diffData,
@@ -2472,7 +2472,7 @@ describe('WebGLDiffViewer', () => {
       ],
     }
 
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         currentFile: 'large-file.js',
         diffData: largeDiffData,
@@ -2483,7 +2483,7 @@ describe('WebGLDiffViewer', () => {
   })
 
   it('should maintain component reactivity', async () => {
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         currentFile: 'reactive-test.js',
         diffData: createMockDiffData(),
@@ -2510,7 +2510,7 @@ describe('WebGLDiffViewer', () => {
       null as unknown as typeof mockPrismHighlighter
     )
 
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         currentFile: 'highlighter-fail-test.js',
         diffData: createMockDiffData(),
@@ -2558,7 +2558,7 @@ describe('WebGLDiffViewer', () => {
       ],
     }
 
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         diffData: htmlDiffData,
       },
@@ -2597,7 +2597,7 @@ describe('WebGLDiffViewer', () => {
       ],
     }
 
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         currentFile: 'large-file.js',
         diffData: largeDiffData,
@@ -2679,13 +2679,13 @@ describe('WebGLDiffViewer', () => {
       ],
     }
 
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         diffData: complexDiffData,
       },
     })
 
-    const vm = wrapper.vm as VueComponent & WebGLDiffViewerInstance
+    const vm = wrapper.vm as VueComponent & DualColumnDiffViewerInstance
 
     // Test expansion with various scenarios
     if (vm.expandSection) {
@@ -2751,13 +2751,13 @@ describe('WebGLDiffViewer', () => {
       ],
     }
 
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         diffData: correspondenceDiffData,
       },
     })
 
-    const vm = wrapper.vm as VueComponent & WebGLDiffViewerInstance
+    const vm = wrapper.vm as VueComponent & DualColumnDiffViewerInstance
 
     // Test line correspondence mapping
     if (vm.createLineCorrespondenceMap) {
@@ -2802,7 +2802,7 @@ describe('WebGLDiffViewer', () => {
       ],
     }
 
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         currentFile: 'debug.ts',
         diffData: debugDiffData,
@@ -2888,13 +2888,13 @@ describe('WebGLDiffViewer', () => {
       ],
     }
 
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         diffData: nearbyChangesDiffData,
       },
     })
 
-    const vm = wrapper.vm as VueComponent & WebGLDiffViewerInstance
+    const vm = wrapper.vm as VueComponent & DualColumnDiffViewerInstance
 
     // Test groupNearbyChanges functionality
     if (vm.groupNearbyChanges) {
@@ -2911,7 +2911,7 @@ describe('WebGLDiffViewer', () => {
       return `<span style="color:#d4d4d4">${content}</span>`
     })
 
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         currentFile: 'async-highlighting-test.js',
         diffData: createMockDiffData(),
@@ -2928,14 +2928,14 @@ describe('WebGLDiffViewer', () => {
   it('should handle component state cleanup on file change', async () => {
     const initialDiffData = createMockDiffData()
 
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         currentFile: 'state-cleanup-test.js',
         diffData: initialDiffData,
       },
     })
 
-    const vm = wrapper.vm as WebGLDiffViewerInstance
+    const vm = wrapper.vm as DualColumnDiffViewerInstance
 
     // Set some state if available
     if (vm.expandedSections) {
@@ -2966,7 +2966,7 @@ describe('WebGLDiffViewer', () => {
   it('should handle viewport and scroll management', async () => {
     const diffData = createMockDiffData()
 
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         currentFile: 'test.js',
         diffData: diffData,
@@ -2976,14 +2976,14 @@ describe('WebGLDiffViewer', () => {
     const viewport = wrapper.find('.diff-viewport')
     if (viewport.exists()) {
       // Test scroll behavior without triggering DOM event
-      const vm = wrapper.vm as WebGLDiffViewerInstance
+      const vm = wrapper.vm as DualColumnDiffViewerInstance
       if (vm.handleScroll) {
         vm.handleScroll({ target: { scrollTop: 100 } } as unknown as Event)
       }
       expect(wrapper.exists()).toBe(true)
     }
 
-    const vm = wrapper.vm as WebGLDiffViewerInstance
+    const vm = wrapper.vm as DualColumnDiffViewerInstance
     if (vm.syncScroll) {
       // Test synchronized scrolling
       vm.syncScroll(100)
@@ -3004,7 +3004,7 @@ describe('WebGLDiffViewer', () => {
     ]
 
     // Create wrapper first to ensure component is mounted
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         currentFile: 'test.js',
         diffData: createMockDiffData(),
@@ -3029,14 +3029,14 @@ describe('WebGLDiffViewer', () => {
   it('should handle memory optimization and caching', async () => {
     const diffData = createMockDiffData()
 
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         currentFile: 'test.js',
         diffData: diffData,
       },
     })
 
-    const vm = wrapper.vm as WebGLDiffViewerInstance
+    const vm = wrapper.vm as DualColumnDiffViewerInstance
 
     // Test highlighting cache
     if (vm.highlightingCache) {
@@ -3059,14 +3059,14 @@ describe('WebGLDiffViewer', () => {
 
   it('should handle groupNearbyChanges with isolated added lines', () => {
     const diffData = createMockDiffData()
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         currentFile: 'test.js',
         diffData: diffData,
       },
     })
 
-    const vm = wrapper.vm as WebGLDiffViewerInstance
+    const vm = wrapper.vm as DualColumnDiffViewerInstance
 
     if (vm.groupNearbyChanges) {
       // Test with isolated added line (not following removal)
@@ -3120,7 +3120,7 @@ describe('WebGLDiffViewer', () => {
       ],
     }
 
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         diffData: diffDataWithEmptyLines,
       },
@@ -3157,13 +3157,13 @@ describe('WebGLDiffViewer', () => {
       ],
     }
 
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         diffData: diffDataWithGaps,
       },
     })
 
-    const vm = wrapper.vm as WebGLDiffViewerInstance
+    const vm = wrapper.vm as DualColumnDiffViewerInstance
 
     // Set partial expansion with boundary conditions
     if (vm.partiallyExpanded) {
@@ -3222,14 +3222,14 @@ describe('WebGLDiffViewer', () => {
       ],
     }
 
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         currentFile: 'test.js',
         diffData: diffDataWithGaps,
       },
     })
 
-    const vm = wrapper.vm as WebGLDiffViewerInstance
+    const vm = wrapper.vm as DualColumnDiffViewerInstance
 
     if (vm.partiallyExpanded && vm.expandedSections) {
       const fileKey = 'src_test_ts'
@@ -3262,14 +3262,14 @@ describe('WebGLDiffViewer', () => {
 
   it('should handle isLineHighlighted edge cases', async () => {
     const diffData = createMockDiffData()
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         currentFile: 'test.js',
         diffData: diffData,
       },
     })
 
-    const vm = wrapper.vm as WebGLDiffViewerInstance
+    const vm = wrapper.vm as DualColumnDiffViewerInstance
 
     if (vm.isLineHighlighted) {
       // Test with null hoveredLineId
@@ -3292,14 +3292,14 @@ describe('WebGLDiffViewer', () => {
 
   it('should handle handleLineHover edge cases', async () => {
     const diffData = createMockDiffData()
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         currentFile: 'test.js',
         diffData: diffData,
       },
     })
 
-    const vm = wrapper.vm as WebGLDiffViewerInstance
+    const vm = wrapper.vm as DualColumnDiffViewerInstance
 
     if (vm.handleLineHover) {
       // Test with undefined hunkIndex
@@ -3322,20 +3322,20 @@ describe('WebGLDiffViewer', () => {
 
   it('should handle initializeSyntaxHighlighter edge cases', async () => {
     // Test with no currentFile
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         currentFile: '',
         diffData: createMockDiffData(),
       },
     })
 
-    const vm = wrapper.vm as WebGLDiffViewerInstance
+    const vm = wrapper.vm as DualColumnDiffViewerInstance
 
     if (vm.initializeSyntaxHighlighter) {
       await vm.initializeSyntaxHighlighter()
       // Should log skip message
       expect(mockConsole.log).toHaveBeenCalledWith(
-        '[WebGL Diff Viewer] No current file, skipping highlighter initialization'
+        '[Diff Viewer] No current file, skipping highlighter initialization'
       )
     }
 
@@ -3353,7 +3353,7 @@ describe('WebGLDiffViewer', () => {
       await vm.initializeSyntaxHighlighter()
       // Should handle error gracefully
       expect(mockConsole.warn).toHaveBeenCalledWith(
-        '[WebGL Diff Viewer] Failed to initialize syntax highlighter:',
+        '[Diff Viewer] Failed to initialize syntax highlighter:',
         expect.any(Error)
       )
     }
@@ -3361,14 +3361,14 @@ describe('WebGLDiffViewer', () => {
 
   it('should handle highlightVisibleRows edge cases', async () => {
     // Create a fresh wrapper to avoid previous console calls
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         currentFile: 'test.js',
         diffData: createMockDiffData(),
       },
     })
 
-    const vm = wrapper.vm as WebGLDiffViewerInstance
+    const vm = wrapper.vm as DualColumnDiffViewerInstance
 
     if (vm.highlightVisibleRows) {
       // Clear previous console calls
@@ -3423,14 +3423,14 @@ describe('WebGLDiffViewer', () => {
       ],
     }
 
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         currentFile: 'test.js',
         diffData: diffDataWithGaps,
       },
     })
 
-    const vm = wrapper.vm as WebGLDiffViewerInstance
+    const vm = wrapper.vm as DualColumnDiffViewerInstance
 
     if (vm.handleUpButtonClick && vm.handleDownButtonClick) {
       // Test with undefined hunkIndex
@@ -3498,14 +3498,14 @@ describe('WebGLDiffViewer', () => {
       ],
     }
 
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         currentFile: 'test.js',
         diffData: diffDataBetweenHunks,
       },
     })
 
-    const vm = wrapper.vm as WebGLDiffViewerInstance
+    const vm = wrapper.vm as DualColumnDiffViewerInstance
 
     // Should handle gaps between hunks
     if (vm.alignedDiffRows) {
@@ -3557,7 +3557,7 @@ describe('WebGLDiffViewer', () => {
       ],
     }
 
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         diffData: extremeDiffData,
       },
@@ -3597,13 +3597,13 @@ describe('WebGLDiffViewer', () => {
       ],
     }
 
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         diffData: diffDataWithGaps,
       },
     })
 
-    const vm = wrapper.vm as WebGLDiffViewerInstance
+    const vm = wrapper.vm as DualColumnDiffViewerInstance
 
     if (vm.partiallyExpanded && vm.expandedContext) {
       const fileKey = 'src_test_ts'
@@ -3689,14 +3689,14 @@ describe('WebGLDiffViewer', () => {
       ],
     }
 
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         currentFile: 'multi-gap-test.js',
         diffData: diffDataWithMultipleGaps,
       },
     })
 
-    const vm = wrapper.vm as WebGLDiffViewerInstance
+    const vm = wrapper.vm as DualColumnDiffViewerInstance
 
     // Test expansion between hunks
     if (vm.expandSection) {
@@ -3714,14 +3714,14 @@ describe('WebGLDiffViewer', () => {
 
   it('should handle getHighlightedContent with caching scenarios', async () => {
     const diffData = createMockDiffData()
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         currentFile: 'test.js',
         diffData: diffData,
       },
     })
 
-    const vm = wrapper.vm as WebGLDiffViewerInstance
+    const vm = wrapper.vm as DualColumnDiffViewerInstance
 
     if (vm.getHighlightedContent && vm.highlightingCache) {
       // Test cache miss
@@ -3754,14 +3754,14 @@ describe('WebGLDiffViewer', () => {
      * These branches handle cases where highlighter initialization fails
      */
     it('should handle debug function error branches for failed highlighter creation', async () => {
-      const wrapper = mount(WebGLDiffViewer, {
+      const wrapper = mount(DualColumnDiffViewer, {
         props: {
           currentFile: 'test.js',
           diffData: createMockDiffData(),
         },
       })
 
-      const vm = wrapper.vm as unknown as WebGLDiffViewerInstance
+      const vm = wrapper.vm as unknown as DualColumnDiffViewerInstance
 
       // Simulate debug functions being called directly
       // Test forceDiffHighlighting with missing requirements (line 1834)
@@ -3791,14 +3791,14 @@ describe('WebGLDiffViewer', () => {
      */
     it('should handle syntax highlighter initialization errors', async () => {
       // Test that component handles case when no highlighter is available
-      const wrapper = mount(WebGLDiffViewer, {
+      const wrapper = mount(DualColumnDiffViewer, {
         props: {
           currentFile: 'test.js',
           diffData: createMockDiffData(),
         },
       })
 
-      const vm = wrapper.vm as unknown as WebGLDiffViewerInstance
+      const vm = wrapper.vm as unknown as DualColumnDiffViewerInstance
 
       // Force highlighter to be null to simulate initialization failure
       if (vm.diffHighlighter !== undefined) {
@@ -3817,14 +3817,14 @@ describe('WebGLDiffViewer', () => {
      * This covers the catch block when Prism highlighting throws an error
      */
     it('should handle highlight content errors gracefully', async () => {
-      const wrapper = mount(WebGLDiffViewer, {
+      const wrapper = mount(DualColumnDiffViewer, {
         props: {
           currentFile: 'test.js',
           diffData: createMockDiffData(),
         },
       })
 
-      const vm = wrapper.vm as unknown as WebGLDiffViewerInstance
+      const vm = wrapper.vm as unknown as DualColumnDiffViewerInstance
 
       // Test escapeHtml function which is the fallback when highlighting fails
       if (vm.escapeHtml) {
@@ -3855,14 +3855,14 @@ describe('WebGLDiffViewer', () => {
      * This covers the empty catch block when file content fetching fails
      */
     it('should handle expansion section file fetch errors silently', async () => {
-      const wrapper = mount(WebGLDiffViewer, {
+      const wrapper = mount(DualColumnDiffViewer, {
         props: {
           currentFile: 'test.js',
           diffData: createMockDiffDataWithGaps(),
         },
       })
 
-      const vm = wrapper.vm as unknown as WebGLDiffViewerInstance
+      const vm = wrapper.vm as unknown as DualColumnDiffViewerInstance
 
       // Test that expansion function exists and can be called
       if (vm.expandSection) {
@@ -3870,14 +3870,14 @@ describe('WebGLDiffViewer', () => {
         expect(typeof vm.expandSection).toBe('function')
 
         // Test with missing project root to trigger error path
-        const wrapper2 = mount(WebGLDiffViewer, {
+        const wrapper2 = mount(DualColumnDiffViewer, {
           props: {
             currentFile: '', // Empty file to trigger early return
             diffData: createMockDiffDataWithGaps(),
           },
         })
 
-        const vm2 = wrapper2.vm as unknown as WebGLDiffViewerInstance
+        const vm2 = wrapper2.vm as unknown as DualColumnDiffViewerInstance
 
         if (vm2.expandSection) {
           // This should trigger the early return condition (line 1456-1459)
@@ -3892,14 +3892,14 @@ describe('WebGLDiffViewer', () => {
      * Test additional conditional branch edge cases for complete coverage
      */
     it('should handle edge cases in conditional branches', async () => {
-      const wrapper = mount(WebGLDiffViewer, {
+      const wrapper = mount(DualColumnDiffViewer, {
         props: {
           currentFile: 'test.js',
           diffData: createMockDiffData(),
         },
       })
 
-      const vm = wrapper.vm as unknown as WebGLDiffViewerInstance
+      const vm = wrapper.vm as unknown as DualColumnDiffViewerInstance
 
       // Test escapeHtml with various edge cases
       if (vm.escapeHtml) {
@@ -3945,7 +3945,7 @@ describe('WebGLDiffViewer', () => {
 
       try {
         // Test when window is defined (normal browser environment)
-        const wrapper = mount(WebGLDiffViewer, {
+        const wrapper = mount(DualColumnDiffViewer, {
           props: {
             currentFile: 'test.js',
             diffData: createMockDiffData(),
@@ -3970,14 +3970,14 @@ describe('WebGLDiffViewer', () => {
      * Test debug function error conditions specifically targeting lines 1824-1825, 1834
      */
     it('should cover debug function error branches with missing requirements (lines 1824-1825, 1834)', async () => {
-      const wrapper = mount(WebGLDiffViewer, {
+      const wrapper = mount(DualColumnDiffViewer, {
         props: {
           currentFile: 'test.js',
           diffData: null, // No diff data to trigger line 1834
         },
       })
 
-      const vm = wrapper.vm as unknown as WebGLDiffViewerInstance
+      const vm = wrapper.vm as unknown as DualColumnDiffViewerInstance
 
       // Mock window debug functions to test the exact uncovered lines
       const mockWindow = window as unknown as {
@@ -4020,14 +4020,14 @@ describe('WebGLDiffViewer', () => {
      * Test initializeSyntaxHighlighter error throwing scenarios
      */
     it('should handle initializeSyntaxHighlighter throwing errors', async () => {
-      const wrapper = mount(WebGLDiffViewer, {
+      const wrapper = mount(DualColumnDiffViewer, {
         props: {
           currentFile: '', // No file to avoid successful initialization
           diffData: createMockDiffData(),
         },
       })
 
-      const vm = wrapper.vm as unknown as WebGLDiffViewerInstance
+      const vm = wrapper.vm as unknown as DualColumnDiffViewerInstance
 
       // Test the early return when no currentFile (line 370-375)
       if (vm.initializeSyntaxHighlighter) {
@@ -4037,7 +4037,7 @@ describe('WebGLDiffViewer', () => {
 
         // Should log the early return message
         expect(consoleSpy).toHaveBeenCalledWith(
-          '[WebGL Diff Viewer] No current file, skipping highlighter initialization'
+          '[Diff Viewer] No current file, skipping highlighter initialization'
         )
 
         consoleSpy.mockRestore()
@@ -4055,14 +4055,14 @@ describe('WebGLDiffViewer', () => {
      * Test highlightContent error paths with mocked Prism errors
      */
     it('should handle highlightContent errors when highlighter.highlightLine throws', async () => {
-      const wrapper = mount(WebGLDiffViewer, {
+      const wrapper = mount(DualColumnDiffViewer, {
         props: {
           currentFile: 'test.js',
           diffData: createMockDiffData(),
         },
       })
 
-      const vm = wrapper.vm as unknown as WebGLDiffViewerInstance
+      const vm = wrapper.vm as unknown as DualColumnDiffViewerInstance
 
       // Mock a highlighter that throws an error
       const mockHighlighter = {
@@ -4087,7 +4087,7 @@ describe('WebGLDiffViewer', () => {
 
         // Should log the error (line 453)
         expect(consoleSpy).toHaveBeenCalledWith(
-          '[WebGL Diff Viewer] Failed to highlight content:',
+          '[Diff Viewer] Failed to highlight content:',
           expect.any(Error)
         )
       }
@@ -4108,14 +4108,14 @@ describe('WebGLDiffViewer', () => {
         }),
       }))
 
-      const wrapper = mount(WebGLDiffViewer, {
+      const wrapper = mount(DualColumnDiffViewer, {
         props: {
           currentFile: 'test.js',
           diffData: createMockDiffData(),
         },
       })
 
-      const vm = wrapper.vm as unknown as WebGLDiffViewerInstance
+      const vm = wrapper.vm as unknown as DualColumnDiffViewerInstance
 
       // Test the catch block in expandSection (lines 1605-1607)
       if (vm.expandSection) {
@@ -4131,7 +4131,7 @@ describe('WebGLDiffViewer', () => {
      * Test computed properties with edge case data
      */
     it('should handle diffStats computed property with empty hunks', () => {
-      const wrapper = mount(WebGLDiffViewer, {
+      const wrapper = mount(DualColumnDiffViewer, {
         props: {
           currentFile: 'test.js',
           diffData: {
@@ -4142,7 +4142,7 @@ describe('WebGLDiffViewer', () => {
         },
       })
 
-      const vm = wrapper.vm as unknown as WebGLDiffViewerInstance
+      const vm = wrapper.vm as unknown as DualColumnDiffViewerInstance
 
       // Test diffStats with empty hunks
       if (vm.diffStats) {
@@ -4155,7 +4155,7 @@ describe('WebGLDiffViewer', () => {
      * Test watcher conditions that trigger error paths
      */
     it('should handle watchers with missing conditions', async () => {
-      const wrapper = mount(WebGLDiffViewer, {
+      const wrapper = mount(DualColumnDiffViewer, {
         props: {
           currentFile: 'test.js',
           diffData: null,
@@ -4180,7 +4180,7 @@ describe('WebGLDiffViewer', () => {
      */
     it('should render all template conditional branches', async () => {
       // Test with no diffStats (line 7 v-if)
-      const wrapperNoDiffStats = mount(WebGLDiffViewer, {
+      const wrapperNoDiffStats = mount(DualColumnDiffViewer, {
         props: {
           currentFile: 'test.js',
           diffData: null,
@@ -4191,7 +4191,7 @@ describe('WebGLDiffViewer', () => {
       expect(wrapperNoDiffStats.find('.diff-stats').exists()).toBe(false)
 
       // Test with loading state (line 17 v-if)
-      const wrapperLoading = mount(WebGLDiffViewer, {
+      const wrapperLoading = mount(DualColumnDiffViewer, {
         props: {
           currentFile: 'test.js',
           isLoading: true,
@@ -4202,7 +4202,7 @@ describe('WebGLDiffViewer', () => {
       expect(wrapperLoading.find('.loading-overlay').exists()).toBe(true)
 
       // Test with diffData but no isLoading (line 22 v-else-if)
-      const wrapperWithData = mount(WebGLDiffViewer, {
+      const wrapperWithData = mount(DualColumnDiffViewer, {
         props: {
           currentFile: 'test.js',
           diffData: createMockDiffData(),
@@ -4214,7 +4214,7 @@ describe('WebGLDiffViewer', () => {
       expect(wrapperWithData.find('.diff-content').exists()).toBe(true)
 
       // Test with no diffData and no loading (line 249 v-else)
-      const wrapperNoData = mount(WebGLDiffViewer, {
+      const wrapperNoData = mount(DualColumnDiffViewer, {
         props: {
           currentFile: null,
           diffData: null,
@@ -4250,7 +4250,7 @@ describe('WebGLDiffViewer', () => {
         ],
       }
 
-      const wrapper = mount(WebGLDiffViewer, {
+      const wrapper = mount(DualColumnDiffViewer, {
         props: {
           currentFile: 'test.js',
           diffData: {
@@ -4277,7 +4277,7 @@ describe('WebGLDiffViewer', () => {
      */
     it('should handle onMounted lifecycle with missing dependencies', async () => {
       // Create component with missing currentFile
-      const wrapper = mount(WebGLDiffViewer, {
+      const wrapper = mount(DualColumnDiffViewer, {
         props: {
           currentFile: '', // Empty currentFile
           diffData: createMockDiffData(),
@@ -4305,14 +4305,14 @@ describe('WebGLDiffViewer', () => {
      * Test getHighlightedContent fallback paths
      */
     it('should test getHighlightedContent fallback scenarios', async () => {
-      const wrapper = mount(WebGLDiffViewer, {
+      const wrapper = mount(DualColumnDiffViewer, {
         props: {
           currentFile: 'test.js',
           diffData: createMockDiffData(),
         },
       })
 
-      const vm = wrapper.vm as unknown as WebGLDiffViewerInstance
+      const vm = wrapper.vm as unknown as DualColumnDiffViewerInstance
 
       if (vm.getHighlightedContent) {
         // First, disable the highlighter to test fallback to escapeHtml
@@ -4380,7 +4380,7 @@ describe('WebGLDiffViewer', () => {
         ],
       }
 
-      const wrapper = mount(WebGLDiffViewer, {
+      const wrapper = mount(DualColumnDiffViewer, {
         props: {
           currentFile: 'test.js',
           diffData: {
@@ -4391,7 +4391,7 @@ describe('WebGLDiffViewer', () => {
         },
       })
 
-      const vm = wrapper.vm as unknown as WebGLDiffViewerInstance
+      const vm = wrapper.vm as unknown as DualColumnDiffViewerInstance
 
       if (vm.canExpandUp && vm.canExpandDown) {
         // Test line 1679: return hasHiddenLines in canExpandUp for between-hunk sections
@@ -4463,7 +4463,7 @@ describe('WebGLDiffViewer', () => {
         ],
       }
 
-      const wrapper = mount(WebGLDiffViewer, {
+      const wrapper = mount(DualColumnDiffViewer, {
         props: {
           currentFile: 'expansion-test.js',
           diffData: {
@@ -4476,7 +4476,7 @@ describe('WebGLDiffViewer', () => {
 
       await nextTick()
 
-      const vm = wrapper.vm as unknown as WebGLDiffViewerInstance
+      const vm = wrapper.vm as unknown as DualColumnDiffViewerInstance
 
       // Test all the expansion-related methods
       if (
@@ -4512,7 +4512,7 @@ describe('WebGLDiffViewer', () => {
  * Target remaining uncovered lines and branches to achieve 90%+ coverage
  */
 describe('🎯 Additional Coverage - Computed Properties and Methods', () => {
-  let wrapper: VueWrapper<InstanceType<typeof WebGLDiffViewer>>
+  let wrapper: VueWrapper<InstanceType<typeof DualColumnDiffViewer>>
 
   afterEach(() => {
     if (wrapper) {
@@ -4564,14 +4564,14 @@ describe('🎯 Additional Coverage - Computed Properties and Methods', () => {
       ],
     }
 
-    const wrapper = mount(WebGLDiffViewer, {
+    const wrapper = mount(DualColumnDiffViewer, {
       props: {
         currentFile: 'test.js',
         diffData: diffDataVariousTypes,
       },
     })
 
-    const vm = wrapper.vm as unknown as WebGLDiffViewerInstance
+    const vm = wrapper.vm as unknown as DualColumnDiffViewerInstance
 
     // Test diffStats computed property
     if (vm.diffStats) {
@@ -4584,14 +4584,14 @@ describe('🎯 Additional Coverage - Computed Properties and Methods', () => {
    * Test alignedDiffRows computed property with empty data
    */
   it('should handle alignedDiffRows with empty diffData', () => {
-    const wrapper = mount(WebGLDiffViewer, {
+    const wrapper = mount(DualColumnDiffViewer, {
       props: {
         currentFile: 'test.js',
         diffData: null,
       },
     })
 
-    const vm = wrapper.vm as unknown as WebGLDiffViewerInstance
+    const vm = wrapper.vm as unknown as DualColumnDiffViewerInstance
 
     // Test alignedDiffRows computed returns empty array
     if (vm.alignedDiffRows) {
@@ -4637,7 +4637,7 @@ describe('🎯 Additional Coverage - Computed Properties and Methods', () => {
       ],
     }
 
-    const wrapper = mount(WebGLDiffViewer, {
+    const wrapper = mount(DualColumnDiffViewer, {
       props: {
         currentFile: 'test.js',
         diffData: diffDataForProcessing,
@@ -4657,7 +4657,7 @@ describe('🎯 Additional Coverage - Computed Properties and Methods', () => {
    * Test lineCorrespondenceMap computed property
    */
   it('should compute lineCorrespondenceMap with valid aligned rows', async () => {
-    const wrapper = mount(WebGLDiffViewer, {
+    const wrapper = mount(DualColumnDiffViewer, {
       props: {
         currentFile: 'test.js',
         diffData: createMockDiffData(),
@@ -4666,7 +4666,7 @@ describe('🎯 Additional Coverage - Computed Properties and Methods', () => {
 
     await nextTick()
 
-    const vm = wrapper.vm as unknown as WebGLDiffViewerInstance
+    const vm = wrapper.vm as unknown as DualColumnDiffViewerInstance
 
     // Test lineCorrespondenceMap computed property
     if (vm.lineCorrespondenceMap) {
@@ -4678,7 +4678,7 @@ describe('🎯 Additional Coverage - Computed Properties and Methods', () => {
    * Test syntax highlighting methods
    */
   it('should initialize and use syntax highlighter', async () => {
-    const wrapper = mount(WebGLDiffViewer, {
+    const wrapper = mount(DualColumnDiffViewer, {
       props: {
         currentFile: 'test.js',
         diffData: createMockDiffData(),
@@ -4687,7 +4687,7 @@ describe('🎯 Additional Coverage - Computed Properties and Methods', () => {
 
     await nextTick()
 
-    const vm = wrapper.vm as unknown as WebGLDiffViewerInstance
+    const vm = wrapper.vm as unknown as DualColumnDiffViewerInstance
 
     // Test syntax highlighter initialization
     if (vm.initializeSyntaxHighlighter) {
@@ -4716,7 +4716,7 @@ describe('🎯 Additional Coverage - Computed Properties and Methods', () => {
    * Test scroll synchronization methods
    */
   it('should handle scroll synchronization', async () => {
-    const wrapper = mount(WebGLDiffViewer, {
+    const wrapper = mount(DualColumnDiffViewer, {
       props: {
         currentFile: 'test.js',
         diffData: createMockDiffData(),
@@ -4725,7 +4725,7 @@ describe('🎯 Additional Coverage - Computed Properties and Methods', () => {
 
     await nextTick()
 
-    const vm = wrapper.vm as unknown as WebGLDiffViewerInstance
+    const vm = wrapper.vm as unknown as DualColumnDiffViewerInstance
 
     // Test handleScroll method
     if (vm.handleScroll) {
@@ -4748,7 +4748,7 @@ describe('🎯 Additional Coverage - Computed Properties and Methods', () => {
    * Test line hover methods and highlighting
    */
   it('should handle line hover and highlighting correctly', async () => {
-    const wrapper = mount(WebGLDiffViewer, {
+    const wrapper = mount(DualColumnDiffViewer, {
       props: {
         currentFile: 'test.js',
         diffData: createMockDiffData(),
@@ -4757,7 +4757,7 @@ describe('🎯 Additional Coverage - Computed Properties and Methods', () => {
 
     await nextTick()
 
-    const vm = wrapper.vm as unknown as WebGLDiffViewerInstance
+    const vm = wrapper.vm as unknown as DualColumnDiffViewerInstance
 
     // Test handleLineHover method
     if (vm.handleLineHover) {
@@ -4782,7 +4782,7 @@ describe('🎯 Additional Coverage - Computed Properties and Methods', () => {
    * Test groupNearbyChanges method
    */
   it('should group nearby changes correctly', async () => {
-    const wrapper = mount(WebGLDiffViewer, {
+    const wrapper = mount(DualColumnDiffViewer, {
       props: {
         currentFile: 'test.js',
         diffData: createMockDiffData(),
@@ -4791,7 +4791,7 @@ describe('🎯 Additional Coverage - Computed Properties and Methods', () => {
 
     await nextTick()
 
-    const vm = wrapper.vm as unknown as WebGLDiffViewerInstance
+    const vm = wrapper.vm as unknown as DualColumnDiffViewerInstance
 
     // Test groupNearbyChanges method
     if (vm.groupNearbyChanges) {
@@ -4810,7 +4810,7 @@ describe('🎯 Additional Coverage - Computed Properties and Methods', () => {
    * Test highlighting cache functionality
    */
   it('should use highlighting cache effectively', async () => {
-    const wrapper = mount(WebGLDiffViewer, {
+    const wrapper = mount(DualColumnDiffViewer, {
       props: {
         currentFile: 'test.js',
         diffData: createMockDiffData(),
@@ -4819,7 +4819,7 @@ describe('🎯 Additional Coverage - Computed Properties and Methods', () => {
 
     await nextTick()
 
-    const vm = wrapper.vm as unknown as WebGLDiffViewerInstance
+    const vm = wrapper.vm as unknown as DualColumnDiffViewerInstance
 
     // Test highlighting cache
     if (vm.highlightingCache) {
@@ -4846,7 +4846,7 @@ describe('🎯 Additional Coverage - Computed Properties and Methods', () => {
       hunks: [],
     }
 
-    const wrapper = mount(WebGLDiffViewer, {
+    const wrapper = mount(DualColumnDiffViewer, {
       props: {
         currentFile: 'image.png',
         diffData: binaryDiffData,
@@ -4862,7 +4862,7 @@ describe('🎯 Additional Coverage - Computed Properties and Methods', () => {
    * Test component with no currentFile prop
    */
   it('should handle missing currentFile prop', () => {
-    const wrapper = mount(WebGLDiffViewer, {
+    const wrapper = mount(DualColumnDiffViewer, {
       props: {
         diffData: createMockDiffData(),
       },
@@ -4876,7 +4876,7 @@ describe('🎯 Additional Coverage - Computed Properties and Methods', () => {
    * Test highlightVisibleRows method
    */
   it('should handle highlightVisibleRows method', async () => {
-    const wrapper = mount(WebGLDiffViewer, {
+    const wrapper = mount(DualColumnDiffViewer, {
       props: {
         currentFile: 'test.js',
         diffData: createMockDiffData(),
@@ -4885,7 +4885,7 @@ describe('🎯 Additional Coverage - Computed Properties and Methods', () => {
 
     await nextTick()
 
-    const vm = wrapper.vm as unknown as WebGLDiffViewerInstance
+    const vm = wrapper.vm as unknown as DualColumnDiffViewerInstance
 
     // Test highlightVisibleRows method
     if (vm.highlightVisibleRows) {
@@ -4898,7 +4898,7 @@ describe('🎯 Additional Coverage - Computed Properties and Methods', () => {
  * 🎯 Template Coverage Tests - Conditional Rendering Branches
  */
 describe('🎯 Template Coverage - Conditional Rendering', () => {
-  let wrapper: VueWrapper<InstanceType<typeof WebGLDiffViewer>>
+  let wrapper: VueWrapper<InstanceType<typeof DualColumnDiffViewer>>
 
   afterEach(() => {
     if (wrapper) {
@@ -4911,7 +4911,7 @@ describe('🎯 Template Coverage - Conditional Rendering', () => {
    */
   it('should render all template conditional branches correctly', async () => {
     // Test with loading state
-    const loadingWrapper = mount(WebGLDiffViewer, {
+    const loadingWrapper = mount(DualColumnDiffViewer, {
       props: {
         currentFile: 'test.js',
         isLoading: true,
@@ -4922,7 +4922,7 @@ describe('🎯 Template Coverage - Conditional Rendering', () => {
     expect(loadingWrapper.find('.loading-spinner').exists()).toBe(true)
 
     // Test with no data
-    const noDataWrapper = mount(WebGLDiffViewer, {
+    const noDataWrapper = mount(DualColumnDiffViewer, {
       props: {
         currentFile: 'test.js',
         diffData: null,
@@ -4934,7 +4934,7 @@ describe('🎯 Template Coverage - Conditional Rendering', () => {
     expect(noDataWrapper.find('.loading-overlay').exists()).toBe(false)
 
     // Test with data
-    const dataWrapper = mount(WebGLDiffViewer, {
+    const dataWrapper = mount(DualColumnDiffViewer, {
       props: {
         currentFile: 'test.js',
         diffData: createMockDiffData(),
@@ -4987,7 +4987,7 @@ describe('🎯 Template Coverage - Conditional Rendering', () => {
       ],
     }
 
-    const wrapper = mount(WebGLDiffViewer, {
+    const wrapper = mount(DualColumnDiffViewer, {
       props: {
         currentFile: 'test.js',
         diffData: gappedDiffData,
@@ -5003,7 +5003,7 @@ describe('🎯 Template Coverage - Conditional Rendering', () => {
    * Test expand button rendering and interactions
    */
   it('should render and interact with expand buttons', async () => {
-    const wrapper = mount(WebGLDiffViewer, {
+    const wrapper = mount(DualColumnDiffViewer, {
       props: {
         currentFile: 'test.js',
         diffData: createMockDiffData(),
@@ -5064,7 +5064,7 @@ describe('🎯 Template Coverage - Conditional Rendering', () => {
       ],
     }
 
-    const wrapper = mount(WebGLDiffViewer, {
+    const wrapper = mount(DualColumnDiffViewer, {
       props: {
         currentFile: 'test.js',
         diffData: styledDiffData,
@@ -5079,7 +5079,7 @@ describe('🎯 Template Coverage - Conditional Rendering', () => {
 })
 
 describe('🎯 Targeted Coverage Tests - Branch Coverage', () => {
-  let wrapper: VueWrapper<InstanceType<typeof WebGLDiffViewer>>
+  let wrapper: VueWrapper<InstanceType<typeof DualColumnDiffViewer>>
   const mockDiffData = createMockDiffData()
 
   afterEach(() => {
@@ -5089,7 +5089,7 @@ describe('🎯 Targeted Coverage Tests - Branch Coverage', () => {
   })
 
   it('should handle missing diffData prop gracefully', () => {
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         diffData: undefined,
         currentFile: 'test.js',
@@ -5102,7 +5102,7 @@ describe('🎯 Targeted Coverage Tests - Branch Coverage', () => {
   })
 
   it('should show loading state when isLoading is true', () => {
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         diffData: mockDiffData,
         currentFile: 'test.js',
@@ -5117,7 +5117,7 @@ describe('🎯 Targeted Coverage Tests - Branch Coverage', () => {
   })
 
   it('should handle wheel event on diff content', async () => {
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         diffData: mockDiffData,
         currentFile: 'test.js',
@@ -5156,14 +5156,14 @@ describe('🎯 Targeted Coverage Tests - Branch Coverage', () => {
       ],
     }
 
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         diffData: diffDataWithMultipleHunks,
         currentFile: 'multi-hunk.js',
       },
     })
 
-    const vm = wrapper.vm as WebGLDiffViewerInstance
+    const vm = wrapper.vm as DualColumnDiffViewerInstance
 
     if (vm.getExpandHintText) {
       expect(typeof vm.getExpandHintText(0)).toBe('string')
@@ -5173,14 +5173,14 @@ describe('🎯 Targeted Coverage Tests - Branch Coverage', () => {
   })
 
   it('should handle line highlighting for different sides', () => {
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         diffData: mockDiffData,
         currentFile: 'test.js',
       },
     })
 
-    const vm = wrapper.vm as WebGLDiffViewerInstance
+    const vm = wrapper.vm as DualColumnDiffViewerInstance
 
     if (vm.isLineHighlighted) {
       expect(vm.isLineHighlighted(0, 1, 'old')).toBe(false)
@@ -5206,14 +5206,14 @@ describe('🎯 Targeted Coverage Tests - Branch Coverage', () => {
       ],
     }
 
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         diffData: diffDataWithGaps,
         currentFile: 'gaps.js',
       },
     })
 
-    const vm = wrapper.vm as WebGLDiffViewerInstance
+    const vm = wrapper.vm as DualColumnDiffViewerInstance
 
     if (vm.canExpandUp && vm.canExpandDown) {
       expect(vm.canExpandUp(0)).toBe(true)
@@ -5224,14 +5224,14 @@ describe('🎯 Targeted Coverage Tests - Branch Coverage', () => {
   })
 
   it('should handle hasLinesUp and hasLinesDown functions', () => {
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         diffData: mockDiffData,
         currentFile: 'test.js',
       },
     })
 
-    const vm = wrapper.vm as WebGLDiffViewerInstance
+    const vm = wrapper.vm as DualColumnDiffViewerInstance
 
     if (vm.hasLinesUp && vm.hasLinesDown) {
       expect(vm.hasLinesUp(0)).toBe(false)
@@ -5264,14 +5264,14 @@ describe('🎯 Targeted Coverage Tests - Branch Coverage', () => {
       ],
     }
 
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         diffData: diffDataWithExpandable,
         currentFile: 'expandable.js',
       },
     })
 
-    const vm = wrapper.vm as WebGLDiffViewerInstance
+    const vm = wrapper.vm as DualColumnDiffViewerInstance
 
     if (vm.handleUpButtonClick && vm.handleDownButtonClick) {
       const mockEvent = { stopPropagation: vi.fn() } as unknown as Event
@@ -5293,7 +5293,7 @@ describe('🎯 Targeted Coverage Tests - Branch Coverage', () => {
       hunks: [],
     }
 
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         diffData: binaryDiffData,
         currentFile: 'binary-file.jpg',
@@ -5306,7 +5306,7 @@ describe('🎯 Targeted Coverage Tests - Branch Coverage', () => {
   })
 
   it('should handle props changes and reactivity', async () => {
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         diffData: mockDiffData,
         currentFile: 'test.js',
@@ -5351,7 +5351,7 @@ describe('🎯 Targeted Coverage Tests - Branch Coverage', () => {
       hunks: [],
     }
 
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         diffData: emptyDiffData,
         currentFile: 'empty.js',
@@ -5361,7 +5361,7 @@ describe('🎯 Targeted Coverage Tests - Branch Coverage', () => {
     expect(wrapper.exists()).toBe(true)
     expect(wrapper.find('.diff-content').exists()).toBe(true)
     // Should handle empty hunks gracefully
-    const vm = wrapper.vm as WebGLDiffViewerInstance
+    const vm = wrapper.vm as DualColumnDiffViewerInstance
     if (vm.processedOldSide && vm.processedNewSide) {
       expect(Array.isArray(vm.processedOldSide)).toBe(true)
       expect(Array.isArray(vm.processedNewSide)).toBe(true)
@@ -5418,14 +5418,14 @@ describe('🎯 Targeted Coverage Tests - Branch Coverage', () => {
       ],
     }
 
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         diffData: complexDiffData,
         currentFile: 'complex.js',
       },
     })
 
-    const vm = wrapper.vm as WebGLDiffViewerInstance
+    const vm = wrapper.vm as DualColumnDiffViewerInstance
 
     // Test expansion with complex multi-hunk scenario
     if (vm.expandSection) {
@@ -5465,14 +5465,14 @@ describe('🎯 Targeted Coverage Tests - Branch Coverage', () => {
       ],
     }
 
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         diffData: edgeCaseDiffData,
         currentFile: 'edge.js',
       },
     })
 
-    const vm = wrapper.vm as WebGLDiffViewerInstance
+    const vm = wrapper.vm as DualColumnDiffViewerInstance
 
     // Test with edge case values
     if (vm.isLineHighlighted) {
@@ -5488,7 +5488,7 @@ describe('🎯 Targeted Coverage Tests - Branch Coverage', () => {
 })
 
 describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
-  let wrapper: VueWrapper<InstanceType<typeof WebGLDiffViewer>>
+  let wrapper: VueWrapper<InstanceType<typeof DualColumnDiffViewer>>
   const mockDiffData = createMockDiffData()
 
   afterEach(() => {
@@ -5498,14 +5498,14 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
   })
 
   it('should expose all required computed properties and methods', () => {
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         diffData: mockDiffData,
         currentFile: 'test.js',
       },
     })
 
-    const vm = wrapper.vm as WebGLDiffViewerInstance
+    const vm = wrapper.vm as DualColumnDiffViewerInstance
 
     // Test computed properties
     expect(vm.diffStats).toBeDefined()
@@ -5550,7 +5550,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
       ],
     }
 
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         diffData: expandableDiffData,
         currentFile: 'expandable.js',
@@ -5575,7 +5575,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
 
   it('should handle template conditional branches for diff stats', () => {
     // Test with stats
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         diffData: mockDiffData,
         currentFile: 'test.js',
@@ -5595,7 +5595,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
       hunks: [],
     }
 
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         diffData: emptyDiffData,
         currentFile: 'empty.js',
@@ -5641,7 +5641,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
       ],
     }
 
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         diffData: mixedDiffData,
         currentFile: 'mixed.js',
@@ -5663,14 +5663,14 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
   })
 
   it('should handle syntax highlighting edge cases', () => {
-    wrapper = mount(WebGLDiffViewer, {
+    wrapper = mount(DualColumnDiffViewer, {
       props: {
         diffData: mockDiffData,
         currentFile: 'test.js',
       },
     })
 
-    const vm = wrapper.vm as WebGLDiffViewerInstance
+    const vm = wrapper.vm as DualColumnDiffViewerInstance
 
     if (vm.diffHighlighter) {
       // Test with various content types
@@ -5696,7 +5696,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
    */
   describe('🎯 Enhanced Coverage - Edge Case Scenarios', () => {
     it('should handle wheel event scrolling', async () => {
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           diffData: createMockDiffData(),
           currentFile: 'wheel-scroll.js',
@@ -5721,7 +5721,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
         hunks: [],
       }
 
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           diffData: binaryData,
           currentFile: 'image.png',
@@ -5768,7 +5768,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
         ],
       }
 
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           diffData: expandData,
           currentFile: 'expand-edge.js',
@@ -5777,7 +5777,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
 
       await nextTick()
 
-      const vm = wrapper.vm as WebGLDiffViewerInstance
+      const vm = wrapper.vm as DualColumnDiffViewerInstance
       if (vm.handleUpButtonClick && vm.handleDownButtonClick) {
         // Test expansion button handlers with edge case parameters
         const mockEvent = {
@@ -5819,7 +5819,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
         ],
       }
 
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           diffData: dangerousData,
           currentFile: 'security-test.html',
@@ -5856,7 +5856,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
         ],
       }
 
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           diffData: malformedData,
           currentFile: 'malformed.js',
@@ -5893,7 +5893,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
         ],
       }
 
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           diffData: extremeData,
           currentFile: 'extreme-content.js',
@@ -5905,7 +5905,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
     })
 
     it('should handle line highlighting with null values', async () => {
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           diffData: createMockDiffData(),
           currentFile: 'null-test.js',
@@ -5914,7 +5914,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
 
       await nextTick()
 
-      const vm = wrapper.vm as WebGLDiffViewerInstance
+      const vm = wrapper.vm as DualColumnDiffViewerInstance
       if (vm.isLineHighlighted) {
         // Test with null/undefined values
         expect(vm.isLineHighlighted(0, null, 'old')).toBeDefined()
@@ -5928,7 +5928,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
     it('should handle rapid prop updates', async () => {
       const files = ['file1.js', 'file2.ts', 'file3.py', 'file4.go']
 
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           diffData: createMockDiffData(),
           currentFile: files[0],
@@ -5946,7 +5946,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
     it('should handle syntax highlighter initialization failures', async () => {
       // Skip this test if createPrismDiffHighlighter is not available
       if (typeof createPrismDiffHighlighter === 'undefined') {
-        wrapper = mount(WebGLDiffViewer, {
+        wrapper = mount(DualColumnDiffViewer, {
           props: {
             diffData: createMockDiffData(),
             currentFile: 'highlighter-fail.js',
@@ -5963,7 +5963,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
         null as unknown as ReturnType<typeof createPrismDiffHighlighter>
       )
 
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           diffData: createMockDiffData(),
           currentFile: 'highlighter-fail.js',
@@ -5976,7 +5976,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
     })
 
     it('should handle memory cleanup on unmount', async () => {
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           diffData: createMockDiffData(),
           currentFile: 'cleanup.js',
@@ -5999,7 +5999,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
 
   describe('🔧 Computed Properties Coverage', () => {
     it('should test processedOldSide computed property', async () => {
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           diffData: createMockDiffData(),
           currentFile: 'processed-old.js',
@@ -6008,14 +6008,14 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
 
       await nextTick()
 
-      const vm = wrapper.vm as WebGLDiffViewerInstance
+      const vm = wrapper.vm as DualColumnDiffViewerInstance
       if (vm.processedOldSide) {
         expect(Array.isArray(vm.processedOldSide)).toBe(true)
       }
     })
 
     it('should test processedNewSide computed property', async () => {
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           diffData: createMockDiffData(),
           currentFile: 'processed-new.js',
@@ -6024,14 +6024,14 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
 
       await nextTick()
 
-      const vm = wrapper.vm as WebGLDiffViewerInstance
+      const vm = wrapper.vm as DualColumnDiffViewerInstance
       if (vm.processedNewSide) {
         expect(Array.isArray(vm.processedNewSide)).toBe(true)
       }
     })
 
     it('should test lineCorrespondenceMap computed property', async () => {
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           diffData: createMockDiffData(),
           currentFile: 'correspondence.js',
@@ -6040,7 +6040,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
 
       await nextTick()
 
-      const vm = wrapper.vm as WebGLDiffViewerInstance
+      const vm = wrapper.vm as DualColumnDiffViewerInstance
       if (vm.lineCorrespondenceMap) {
         expect(
           vm.lineCorrespondenceMap instanceof Map ||
@@ -6077,7 +6077,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
         ],
       }
 
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           diffData: edgeCaseData,
           currentFile: 'aligned-edge.js',
@@ -6086,7 +6086,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
 
       await nextTick()
 
-      const vm = wrapper.vm as WebGLDiffViewerInstance
+      const vm = wrapper.vm as DualColumnDiffViewerInstance
       if (vm.alignedDiffRows) {
         expect(Array.isArray(vm.alignedDiffRows)).toBe(true)
       }
@@ -6095,7 +6095,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
 
   describe('📱 UI Event Coverage', () => {
     it('should handle getExpandHintText function', async () => {
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           diffData: createMockDiffData(),
           currentFile: 'hint-text.js',
@@ -6104,7 +6104,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
 
       await nextTick()
 
-      const vm = wrapper.vm as WebGLDiffViewerInstance
+      const vm = wrapper.vm as DualColumnDiffViewerInstance
       if (vm.getExpandHintText) {
         expect(typeof vm.getExpandHintText(0)).toBe('string')
         expect(typeof vm.getExpandHintText(undefined)).toBe('string')
@@ -6112,7 +6112,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
     })
 
     it('should handle hover state management', async () => {
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           diffData: createMockDiffData(),
           currentFile: 'hover-state.js',
@@ -6121,7 +6121,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
 
       await nextTick()
 
-      const vm = wrapper.vm as WebGLDiffViewerInstance
+      const vm = wrapper.vm as DualColumnDiffViewerInstance
       if (vm.handleLineHover && vm.clearLineHover) {
         // Test hover state changes
         vm.handleLineHover(0, 5, 'old')
@@ -6164,7 +6164,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
         ],
       }
 
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           diffData: statsData,
           currentFile: 'stats-edge.js',
@@ -6231,7 +6231,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
         ],
       }
 
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           diffData: complexDiffData,
           currentFile: 'expansion-complex.js',
@@ -6240,7 +6240,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
 
       await nextTick()
 
-      const vm = wrapper.vm as WebGLDiffViewerInstance
+      const vm = wrapper.vm as DualColumnDiffViewerInstance
 
       // Test expansion state that covers line 1679 (hasHiddenLines logic)
       if (vm.canExpandUp && vm.canExpandDown) {
@@ -6296,7 +6296,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
         ],
       }
 
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           diffData: singleHunkData,
           currentFile: 'single-hunk.js',
@@ -6305,7 +6305,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
 
       await nextTick()
 
-      const vm = wrapper.vm as WebGLDiffViewerInstance
+      const vm = wrapper.vm as DualColumnDiffViewerInstance
 
       if (vm.canExpandDown) {
         // Test with hunkIndex = 0 (first hunk) to trigger lines 1716-1720
@@ -6359,7 +6359,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
     })
 
     it('should test hasLinesUp function coverage', async () => {
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           diffData: createMockDiffData(),
           currentFile: 'has-lines-up.js',
@@ -6368,7 +6368,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
 
       await nextTick()
 
-      const vm = wrapper.vm as WebGLDiffViewerInstance
+      const vm = wrapper.vm as DualColumnDiffViewerInstance
       if (vm.hasLinesUp) {
         const result1 = vm.hasLinesUp(0)
         expect(typeof result1).toBe('boolean')
@@ -6404,7 +6404,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
         ],
       }
 
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           diffData: extremeData,
           currentFile: 'extreme-boundaries.js',
@@ -6413,7 +6413,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
 
       await nextTick()
 
-      const vm = wrapper.vm as WebGLDiffViewerInstance
+      const vm = wrapper.vm as DualColumnDiffViewerInstance
 
       // Test edge cases that might trigger different branches
       if (vm.canExpandUp && vm.canExpandDown) {
@@ -6431,7 +6431,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
     })
 
     it('should test partial expansion state manipulation for boundary conditions', async () => {
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           diffData: createMockDiffData(),
           currentFile: 'partial-expansion-boundary.js',
@@ -6440,7 +6440,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
 
       await nextTick()
 
-      const vm = wrapper.vm as WebGLDiffViewerInstance
+      const vm = wrapper.vm as DualColumnDiffViewerInstance
 
       if (vm.partiallyExpanded && vm.canExpandUp && vm.canExpandDown) {
         const fileKey = 'partial-expansion-boundary_js'
@@ -6491,7 +6491,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
     })
 
     it('should test getExpandHintText with various scenarios', async () => {
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           diffData: createMockDiffData(),
           currentFile: 'expand-hint-text.js',
@@ -6500,7 +6500,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
 
       await nextTick()
 
-      const vm = wrapper.vm as WebGLDiffViewerInstance
+      const vm = wrapper.vm as DualColumnDiffViewerInstance
       if (vm.getExpandHintText) {
         // Test various scenarios to improve coverage
         expect(typeof vm.getExpandHintText(0)).toBe('string')
@@ -6565,7 +6565,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
         ],
       }
 
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           diffData: complexEdgeData,
           currentFile: 'complex-edge-cases.js',
@@ -6574,7 +6574,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
 
       await nextTick()
 
-      const vm = wrapper.vm as WebGLDiffViewerInstance
+      const vm = wrapper.vm as DualColumnDiffViewerInstance
 
       // Test all expansion functions with multiple hunks to trigger different code paths
       if (vm.canExpandUp && vm.canExpandDown && vm.hasLinesUp) {
@@ -6597,7 +6597,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
     })
 
     it('should test getExpandHintText with remaining === 0 - line 1639', async () => {
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           diffData: createMockDiffData(),
           currentFile: 'expand-hint-remaining-zero.js',
@@ -6606,7 +6606,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
 
       await nextTick()
 
-      const vm = wrapper.vm as WebGLDiffViewerInstance
+      const vm = wrapper.vm as DualColumnDiffViewerInstance
       if (vm.getExpandHintText && vm.partiallyExpanded) {
         // Use exact same logic as component: props.currentFile.replace(/[^a-zA-Z0-9]/g, '_')
         const currentFile = 'expand-hint-remaining-zero.js'
@@ -6653,7 +6653,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
         ],
       }
 
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           diffData: invalidPrevHunkData,
           currentFile: 'invalid-prev-hunk.js',
@@ -6662,7 +6662,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
 
       await nextTick()
 
-      const vm = wrapper.vm as WebGLDiffViewerInstance
+      const vm = wrapper.vm as DualColumnDiffViewerInstance
       if (vm.canExpandUp) {
         // Test with hunkIndex > 0 but no actual previous hunk to trigger line 1675
         // This should trigger the !prevHunk condition at line 1674-1675
@@ -6694,7 +6694,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
         ],
       }
 
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           diffData: invalidPrevHunkDownData,
           currentFile: 'invalid-prev-hunk-down.js',
@@ -6703,7 +6703,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
 
       await nextTick()
 
-      const vm = wrapper.vm as WebGLDiffViewerInstance
+      const vm = wrapper.vm as DualColumnDiffViewerInstance
       if (vm.canExpandDown) {
         // Test with hunkIndex > 0 but no actual previous hunk to trigger line 1725
         // This should trigger the !prevHunk condition at line 1724-1725
@@ -6722,7 +6722,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
         configurable: true,
       })
 
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           diffData: createMockDiffData(),
           currentFile: 'context-expansion-test.js',
@@ -6731,7 +6731,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
 
       await nextTick()
 
-      const vm = wrapper.vm as WebGLDiffViewerInstance
+      const vm = wrapper.vm as DualColumnDiffViewerInstance
 
       // Trigger context expansion to hit line 1610 (await nextTick())
       if (vm.expandContextUp) {
@@ -6784,7 +6784,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
     })
 
     it('should test complex expansion edge cases with file content', async () => {
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           currentFile: 'expansion-test.js',
           diffData: {
@@ -6821,14 +6821,14 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
 
     it('should handle syntax highlighting error scenarios', async () => {
       // Test highlighter initialization failure
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           currentFile: 'error-test.js',
           diffData: null,
         },
       })
 
-      const vm = wrapper.vm as WebGLDiffViewerInstance
+      const vm = wrapper.vm as DualColumnDiffViewerInstance
 
       // Mock a failing highlighter
       if (vm.initializeSyntaxHighlighter) {
@@ -6847,7 +6847,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
     })
 
     it('should test hover and correspondence functionality', async () => {
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           currentFile: 'hover-test.js',
           diffData: {
@@ -6897,7 +6897,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
     })
 
     it('should test expansion state management and cleanup', async () => {
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           currentFile: 'state-test.js',
           diffData: {
@@ -6939,7 +6939,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
     })
 
     it('should handle wheel event and scrolling', async () => {
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           currentFile: 'scroll-test.js',
           diffData: {
@@ -6989,7 +6989,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
 
       Object.assign(global.window, mockWindow)
 
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           currentFile: 'debug-test.js',
           diffData: {
@@ -7022,7 +7022,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
 
     it('should handle complex diff data scenarios and edge cases', async () => {
       // Test with binary file data
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           currentFile: 'binary.png',
           diffData: {
@@ -7076,7 +7076,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
         })),
       }
 
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           currentFile: 'large.js',
           diffData: largeDiff,
@@ -7138,7 +7138,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
       ]
 
       for (const testCase of testCases) {
-        wrapper = mount(WebGLDiffViewer, { props: testCase.props })
+        wrapper = mount(DualColumnDiffViewer, { props: testCase.props })
         await flushPromises()
 
         expect(wrapper.find(testCase.expectedClass).exists()).toBe(true)
@@ -7147,7 +7147,7 @@ describe('🎯 Targeted Coverage Tests - Function Coverage', () => {
     })
 
     it('should handle component unmount and cleanup', async () => {
-      wrapper = mount(WebGLDiffViewer, {
+      wrapper = mount(DualColumnDiffViewer, {
         props: {
           currentFile: 'cleanup-test.js',
           diffData: {

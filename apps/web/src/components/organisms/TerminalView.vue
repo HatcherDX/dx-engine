@@ -159,6 +159,7 @@ async function initializeTerminal(): Promise<void> {
     terminalInstance.value = await XTerminalFactory.createTerminal(
       terminalContainer.value,
       {
+        debug: true, // Enable debug logging to see WebGL status
         terminal: {
           cols: props.cols,
           rows: props.rows,
@@ -177,7 +178,8 @@ async function initializeTerminal(): Promise<void> {
           enableSearch: true,
           enableClipboard: true,
           enableUnicode11: true,
-          enableWebGL: true,
+          enableWebGL: true, // WebGL addon enabled
+          debug: true, // Debug for addon manager
         },
         resize: {
           enabled: true,
@@ -188,8 +190,38 @@ async function initializeTerminal(): Promise<void> {
         backpressure: {
           enabled: true,
         },
+        webgl: {
+          enabled: true, // Enable WebGL renderer
+          debug: true, // Debug for WebGL renderer
+          enablePerformanceMonitoring: true, // Monitor FPS
+        },
       }
     )
+
+    // Log WebGL status
+    if (terminalInstance.value.webgl) {
+      console.log('[TerminalView] ✅ WebGL renderer initialized')
+      const contextInfo = terminalInstance.value.webgl.getContextInfo()
+      if (contextInfo) {
+        console.log('[TerminalView] WebGL Context:', contextInfo)
+        console.log(
+          `[TerminalView] GPU: ${contextInfo.vendor} - ${contextInfo.renderer}`
+        )
+      }
+    } else {
+      // Check if WebGL was loaded via AddonManager
+      const loadedAddons = terminalInstance.value.addons.getLoadedAddons()
+      const hasWebGL = loadedAddons.some(
+        (addon) => addon.toString() === 'webgl'
+      )
+      if (hasWebGL) {
+        console.log('[TerminalView] ✅ WebGL addon loaded via AddonManager')
+      } else {
+        console.warn(
+          '[TerminalView] ⚠️  WebGL not available, using canvas renderer'
+        )
+      }
+    }
 
     if (!terminalInstance.value) {
       throw new Error('Failed to create terminal')

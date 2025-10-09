@@ -6,7 +6,6 @@ import { useChatSidebar } from './composables/useChatSidebar'
 import { useOnboarding } from './composables/useOnboarding'
 import { useTerminalModeDetector } from './composables/useTerminalModeDetector'
 import { useProjectContext } from './composables/useProjectContext'
-// import { useNotifications } from './composables/useNotifications'
 import UnifiedFrame from './components/templates/UnifiedFrame.vue'
 import QuantumPipeline from './components/molecules/QuantumPipeline.vue'
 import ModeSelector from './components/molecules/ModeSelector.vue'
@@ -89,8 +88,8 @@ const { loadProject, isLoading: isProjectLoading } = useProjectContext()
 // Initialize task manager for close workspace
 const { closeWorkspace } = useTaskManager()
 
-// Initialize notifications system (available for future use)
-// const { notify } = useNotifications()
+// Notifications system available globally via useNotifications() composable
+// Components can import and use: const { success, error } = useNotifications()
 
 // Application state
 const currentMode = ref<ModeType>('generative')

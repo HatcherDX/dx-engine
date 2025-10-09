@@ -130,7 +130,7 @@ export default defineConfig({
     sequence: {
       shuffle: false,
       concurrent: false,
-      hooks: 'list', // Use 'list' instead of 'stack' to prevent cleanup timing issues
+      hooks: 'stack', // Use 'stack' (default) to ensure proper worker state access during cleanup
       setupFiles: 'parallel',
     },
 

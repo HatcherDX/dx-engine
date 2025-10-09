@@ -5,20 +5,33 @@
  * Initializes test environment for ARM64 platforms, validates native
  * module availability, and configures architecture-specific mocks.
  *
+ * CRITICAL: This file is loaded as setupFiles in vitest configs.
+ * DO NOT import from 'vitest' here (vi, afterEach, etc.) as it causes
+ * "Vitest failed to access its internal state" errors in CI environments.
+ *
+ * With globals: true enabled in vitest configs, all vitest utilities
+ * (vi, describe, it, expect, afterEach, afterAll, etc.) are available globally.
+ * Just use them directly without importing or declaring.
+ *
  * @remarks
  * This setup file ensures that tests run correctly on ARM64 architectures
  * by detecting the platform, validating binaries, and setting up appropriate
  * mocks for modules that may not have ARM64 support.
+ *
+ * @see https://vitest.dev/config/#globals
+ * @see https://vitest.dev/config/#setupfiles
  *
  * @author Hatcher DX Team
  * @since 1.0.0
  * @internal
  */
 
-import { vi } from 'vitest'
 import { arch, platform, cpus } from 'os'
 import { existsSync } from 'fs'
 import { join } from 'path'
+
+// vi and afterAll are available globally via globals: true
+// No need to import or declare - just use them directly
 
 // Architecture detection
 const currentArch = arch()

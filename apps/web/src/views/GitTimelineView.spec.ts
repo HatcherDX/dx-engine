@@ -14,7 +14,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, VueWrapper, flushPromises } from '@vue/test-utils'
 import { nextTick, ref } from 'vue'
 import GitTimelineView from './GitTimelineView.vue'
-import WebGLDiffViewer from '../components/organisms/WebGLDiffViewer.vue'
+import DualColumnDiffViewer from '../components/organisms/DualColumnDiffViewer.vue'
 
 // Mock composables
 const mockSelectedFile = ref<string | null>(null)
@@ -137,10 +137,10 @@ describe('GitTimelineView', () => {
     return mount(GitTimelineView, {
       global: {
         components: {
-          WebGLDiffViewer,
+          DualColumnDiffViewer,
         },
         stubs: {
-          WebGLDiffViewer: {
+          DualColumnDiffViewer: {
             template: `
               <div class="webgl-diff-viewer-stub"
                    :current-file="currentFile"
@@ -175,13 +175,13 @@ describe('GitTimelineView', () => {
 
       expect(wrapper.find('.git-timeline-view').exists()).toBe(true)
       expect(wrapper.find('.timeline-content-container').exists()).toBe(true)
-      expect(wrapper.findComponent({ name: 'WebGLDiffViewer' }).exists()).toBe(
-        false
-      ) // It's stubbed
+      expect(
+        wrapper.findComponent({ name: 'DualColumnDiffViewer' }).exists()
+      ).toBe(false) // It's stubbed
       expect(wrapper.find('.webgl-diff-viewer-stub').exists()).toBe(true)
     })
 
-    it('should pass correct props to WebGLDiffViewer', async () => {
+    it('should pass correct props to DualColumnDiffViewer', async () => {
       wrapper = createWrapper()
 
       // Set some test data

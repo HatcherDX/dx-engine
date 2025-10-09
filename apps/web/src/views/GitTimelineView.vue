@@ -2,7 +2,7 @@
   <div class="git-timeline-view">
     <!-- Content Area: Side-by-Side Diff Viewer -->
     <div class="timeline-content-container">
-      <WebGLDiffViewer
+      <DualColumnDiffViewer
         :current-file="selectedFile"
         :commits="commitHistory"
         :current-commit-index="selectedCommitIndex"
@@ -22,7 +22,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import WebGLDiffViewer from '../components/organisms/WebGLDiffViewer.vue'
+import DualColumnDiffViewer from '../components/organisms/DualColumnDiffViewer.vue'
 import { useTimelineEvents } from '../composables/useTimelineEvents'
 import { useProjectContext } from '../composables/useProjectContext'
 import { useGitIntegration } from '../composables/useGitIntegration'
