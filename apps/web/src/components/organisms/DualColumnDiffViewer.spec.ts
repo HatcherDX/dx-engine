@@ -377,7 +377,7 @@ describe('DualColumnDiffViewer', () => {
       wrapper = mount(DualColumnDiffViewer)
 
       expect(wrapper.exists()).toBe(true)
-      expect(wrapper.find('.webgl-diff-viewer').exists()).toBe(true)
+      expect(wrapper.find('.dual-column-diff-viewer').exists()).toBe(true)
       // Header and viewport are only shown when there's content
       expect(wrapper.find('.empty-state-container').exists()).toBe(true)
     })

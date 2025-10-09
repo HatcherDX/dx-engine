@@ -357,7 +357,7 @@ console.log('Result:', result);`
 
       for (const method of methods) {
         await expect(method()).rejects.toThrow(
-          'Full implementation pending future phases'
+          'DiffEngine is a FUTURE placeholder for semantic analysis (2026+)'
         )
       }
     })
