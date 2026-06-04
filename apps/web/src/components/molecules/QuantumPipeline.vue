@@ -17,7 +17,7 @@
             class="test-trigger"
             :disabled="isRunning"
             title="Test Actions Pipeline"
-            @click="executeActions"
+            @click="() => executeActions()"
           >
             <BaseIcon
               :name="isRunning ? 'Loader' : 'Play'"

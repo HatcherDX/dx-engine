@@ -23,7 +23,7 @@
 
 import { computed, reactive } from 'vue'
 import { parse as parseYAML } from 'yaml'
-import { ActionScheduler } from '@hatcherdx/hatcher-actions'
+import { ActionScheduler } from '@hatcherdx/hatcher-actions/scheduler'
 import type {
   ActionDefinition,
   ActionResult,

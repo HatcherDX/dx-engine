@@ -180,7 +180,7 @@
                   <div class="meta__item">
                     <BaseIcon name="Clock" />
                     <span class="meta__duration"
-                      >~{{ action.estimatedDuration / 1000 }}s</span
+                      >~{{ (action.estimatedDuration ?? 0) / 1000 }}s</span
                     >
                   </div>
                 </div>
@@ -381,6 +381,7 @@
     <!-- Create/Edit Modal -->
     <CompactModal
       v-if="showEditModal"
+      :visible="true"
       :title="editingAction ? 'Edit Action' : 'Create Action'"
       @close="closeEditModal"
     >
@@ -516,6 +517,7 @@
     <!-- Import Modal -->
     <CompactModal
       v-if="showImportModal"
+      :visible="true"
       title="Import YAML Configuration"
       @close="showImportModal = false"
     >
@@ -990,10 +992,10 @@ async function importConfiguration() {
   try {
     // Parse YAML (simplified - in production use a proper YAML parser)
     // For now, we'll use the IPC handler to validate
-    const result = await window.electronAPI.invoke(
+    const result = (await window.electronAPI.invoke(
       'actions:validate-config',
       importYAML.value
-    )
+    )) as { valid: boolean; errors: string[] }
 
     if (!result.valid) {
       validationErrors.value = result.errors
@@ -1025,10 +1027,10 @@ async function loadConfiguration() {
   try {
     if (!props.projectPath) return
 
-    const yaml = await window.electronAPI.invoke(
+    const yaml = (await window.electronAPI.invoke(
       'actions:load-config',
       props.projectPath
-    )
+    )) as string | null
 
     if (yaml) {
       // Parse YAML and populate state
