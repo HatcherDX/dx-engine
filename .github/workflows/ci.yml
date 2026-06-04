@@ -223,10 +223,10 @@ jobs:
           name: git-test-results-${{ matrix.os }}
           path: universal/git-genius/coverage/integration/
 
-  # Electron integration tests with OS matrix (runs on main branch)
+  # Electron integration tests with OS matrix (gates PRs to main + runs on main)
   electron-integration-tests:
     runs-on: ${{ matrix.os }}
-    if: github.ref == 'refs/heads/main' || github.base_ref == 'nightly' || contains(github.event.pull_request.labels.*.name, 'test-electron')
+    if: github.ref == 'refs/heads/main' || github.base_ref == 'main' || github.base_ref == 'nightly' || contains(github.event.pull_request.labels.*.name, 'test-electron')
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
@@ -428,7 +428,7 @@ jobs:
   # ARM64 Architecture Tests - Native ARM64 support validation
   arm64-native-tests:
     runs-on: ${{ matrix.os }}
-    if: github.ref == 'refs/heads/main' || github.base_ref == 'nightly' || contains(github.event.pull_request.labels.*.name, 'test-arm64')
+    if: github.ref == 'refs/heads/main' || github.base_ref == 'main' || github.base_ref == 'nightly' || contains(github.event.pull_request.labels.*.name, 'test-arm64')
     strategy:
       matrix:
         include:
@@ -533,7 +533,7 @@ jobs:
   # Windows ARM64 Tests via Cross-compilation
   windows-arm64-build:
     runs-on: windows-latest
-    if: github.ref == 'refs/heads/main' || github.base_ref == 'nightly' || contains(github.event.pull_request.labels.*.name, 'test-arm64')
+    if: github.ref == 'refs/heads/main' || github.base_ref == 'main' || github.base_ref == 'nightly' || contains(github.event.pull_request.labels.*.name, 'test-arm64')
 
     steps:
       - name: Checkout repository
