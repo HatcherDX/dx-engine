@@ -97,3 +97,6 @@ fix-*.mjs
 check-*.mjs
 ensure-*.mjs
 /logs
+
+# TypeScript incremental build cache (never commit)
+*.tsbuildinfo
