@@ -8,11 +8,18 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    },
+    "./browser": {
+      "types": "./dist/browser.d.ts",
+      "import": "./dist/browser.js",
+      "require": "./dist/browser.js"
     },
     "./system/browser": {
       "types": "./dist/system/browser.d.ts",
-      "import": "./dist/system/browser.js"
+      "import": "./dist/system/browser.js",
+      "require": "./dist/system/browser.js"
     }
   },
   "files": [
@@ -63,7 +70,10 @@
   "peerDependencies": {
     "electron": ">=30.0.0",
     "xterm": "^5.3.0",
-    "xterm-addon-fit": "^0.8.0",
-    "xterm-addon-web-links": "^0.9.0"
+    "@xterm/addon-fit": "^0.10.0",
+    "@xterm/addon-search": "^0.15.0",
+    "@xterm/addon-web-links": "^0.11.0",
+    "@xterm/addon-clipboard": "^0.1.0",
+    "@xterm/addon-unicode11": "^0.8.0"
   }
 }

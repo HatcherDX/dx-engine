@@ -796,4 +796,102 @@ describe('CodeSidebar.vue', () => {
 
     consoleSpy.mockRestore()
   })
+
+  // 🎯 Context7: 100% Coverage Tests
+  describe('🎯 Coverage: Edge cases and empty states', () => {
+    it('should handle shouldShowNode with collapsed parent directory', () => {
+      const wrapper = mount(CodeSidebar)
+
+      interface NodeItem {
+        depth: number
+        path: string
+      }
+
+      interface CodeSidebarVM {
+        expandedDirs: Set<string>
+        shouldShowNode: (item: NodeItem) => boolean
+      }
+
+      const vm = wrapper.vm as unknown as CodeSidebarVM
+
+      // Clear all expanded directories
+      vm.expandedDirs.clear()
+
+      // Test child node when parent is NOT expanded
+      const childNode: NodeItem = {
+        depth: 2,
+        path: 'src/components/BaseButton.vue',
+      }
+
+      // Should return false since parent 'src' is not expanded
+      const isVisible = vm.shouldShowNode(childNode)
+      expect(isVisible).toBe(false)
+    })
+
+    it('should return empty string for getFileExtension when lastDot <= 0', () => {
+      const wrapper = mount(CodeSidebar)
+
+      interface CodeSidebarVM {
+        getFileExtension: (filename: string) => string
+      }
+
+      const vm = wrapper.vm as unknown as CodeSidebarVM
+
+      // Test file with no extension (lastDot = -1)
+      expect(vm.getFileExtension('noextension')).toBe('')
+
+      // Test file starting with dot (lastDot = 0)
+      expect(vm.getFileExtension('.gitignore')).toBe('')
+
+      // Test empty string
+      expect(vm.getFileExtension('')).toBe('')
+    })
+
+    it('should test getFileIcon with various edge cases', () => {
+      const wrapper = mount(CodeSidebar)
+
+      interface FileItem {
+        type: 'file' | 'directory'
+        extension?: string
+      }
+
+      interface CodeSidebarVM {
+        getFileIcon: (item: FileItem) => string
+      }
+
+      const vm = wrapper.vm as unknown as CodeSidebarVM
+
+      // Test all missing edge cases in switch statement
+      // These test the various case blocks that might not have been covered
+      expect(vm.getFileIcon({ type: 'file', extension: 'pdf' })).toBe('Code') // default case
+      expect(vm.getFileIcon({ type: 'file', extension: 'doc' })).toBe('Code') // default case
+      expect(vm.getFileIcon({ type: 'file', extension: 'zip' })).toBe('Code') // default case
+    })
+
+    it('should handle click on expand icon to toggle directory (line 37)', async () => {
+      const wrapper = mount(CodeSidebar)
+
+      interface CodeSidebarVM {
+        expandedDirs: Set<string>
+      }
+
+      const vm = wrapper.vm as unknown as CodeSidebarVM
+
+      // Get initial expanded directories count
+      const initialExpandedCount = vm.expandedDirs.size
+
+      // Find the first directory item's expand icon
+      const expandIcon = wrapper.find('.expand-icon')
+      expect(expandIcon.exists()).toBe(true)
+
+      // Click the expand icon to trigger the @click.stop event (line 37)
+      await expandIcon.trigger('click')
+      await wrapper.vm.$nextTick()
+
+      // The expand icon click should have toggled a directory
+      // Either added or removed from expandedDirs
+      const newExpandedCount = vm.expandedDirs.size
+      expect(newExpandedCount).not.toBe(initialExpandedCount)
+    })
+  })
 })

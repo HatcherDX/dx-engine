@@ -1,19 +1,15 @@
 <template>
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    stroke-width="2"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-  >
-    <path d="m18 6-12 12" />
-    <path d="m6 6 12 12" />
-  </svg>
+  <IconBase v-bind="$attrs" :stroke-width="1.5">
+    <path d="M18 6L6 18" />
+    <path d="M6 6l12 12" />
+  </IconBase>
 </template>
 
 <script setup lang="ts">
+import IconBase from './IconBase.vue'
+
 defineOptions({
   name: 'XIcon',
+  inheritAttrs: false,
 })
 </script>

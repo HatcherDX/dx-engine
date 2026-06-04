@@ -68,7 +68,7 @@ vi.mock('xterm', () => ({
   Terminal: vi.fn(() => mocks.xtermTerminal),
 }))
 
-vi.mock('xterm-addon-fit', () => ({
+vi.mock('@xterm/addon-fit', () => ({
   FitAddon: vi.fn(() => mocks.fitAddon),
 }))
 
@@ -613,6 +613,48 @@ describe('TerminalInstance', () => {
       expect(mocks.xtermTerminal.blur).not.toHaveBeenCalled()
       expect(mocks.xtermTerminal.clear).not.toHaveBeenCalled()
     })
+
+    /**
+     * Tests operations when terminal exists but is not ready.
+     *
+     * @returns void
+     * Should handle operations gracefully when terminal is not ready
+     *
+     * @public
+     */
+    it('should handle operations when terminal exists but is not ready', () => {
+      // Manually set _xtermTerminal without setting _isReady
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Accessing private _xtermTerminal property for testing
+      ;(instance as any)._xtermTerminal = mocks.xtermTerminal
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Accessing private _isReady property for testing
+      ;(instance as any)._isReady = false
+
+      const focusSpy = vi.fn()
+      const blurSpy = vi.fn()
+      instance.on('focus', focusSpy)
+      instance.on('blur', blurSpy)
+
+      // Operations should not call xterm methods when not ready
+      instance.resize(100, 50)
+      instance.focus()
+      instance.blur()
+      instance.clear()
+      instance.writeData('test')
+
+      expect(mocks.xtermTerminal.resize).not.toHaveBeenCalled()
+      expect(mocks.xtermTerminal.focus).not.toHaveBeenCalled()
+      expect(mocks.xtermTerminal.blur).not.toHaveBeenCalled()
+      expect(mocks.xtermTerminal.clear).not.toHaveBeenCalled()
+      expect(mocks.xtermTerminal.write).not.toHaveBeenCalled()
+
+      // Config should still be updated for resize
+      expect(instance.config.cols).toBe(100)
+      expect(instance.config.rows).toBe(50)
+
+      // Events should still be emitted for focus/blur
+      expect(focusSpy).toHaveBeenCalled()
+      expect(blurSpy).toHaveBeenCalled()
+    })
   })
 
   describe('Selection and clipboard', () => {
@@ -762,6 +804,84 @@ describe('TerminalInstance', () => {
         id: 'terminal-1',
         data: 'pasted text',
       })
+    })
+
+    /**
+     * Tests paste when navigator.clipboard is not available.
+     *
+     * @returns Promise<void>
+     * Should handle missing clipboard API gracefully
+     *
+     * @public
+     */
+    it('should handle paste when navigator.clipboard is not available', async () => {
+      // Save original navigator
+      const originalNavigator = global.navigator
+
+      // Set navigator without clipboard
+      Object.defineProperty(global, 'navigator', {
+        value: {},
+        writable: true,
+        configurable: true,
+      })
+
+      await instance.paste()
+
+      // Should not throw and should not call any mocks
+      expect(mocks.clipboard.readText).not.toHaveBeenCalled()
+      expect(mocks.electronAPI.send).not.toHaveBeenCalled()
+
+      // Restore navigator
+      Object.defineProperty(global, 'navigator', {
+        value: originalNavigator,
+        writable: true,
+        configurable: true,
+      })
+    })
+
+    /**
+     * Tests paste when clipboard text is empty.
+     *
+     * @returns Promise<void>
+     * Should not send empty text to terminal
+     *
+     * @public
+     */
+    it('should not paste empty text from clipboard', async () => {
+      mocks.clipboard.readText.mockResolvedValue('')
+
+      await instance.paste()
+
+      expect(mocks.clipboard.readText).toHaveBeenCalled()
+      // Should not send empty text
+      expect(mocks.electronAPI.send).not.toHaveBeenCalled()
+    })
+
+    /**
+     * Tests paste when window.electronAPI is not available.
+     *
+     * @returns Promise<void>
+     * Should handle missing electronAPI gracefully
+     *
+     * @public
+     */
+    it('should handle paste when window.electronAPI is not available', async () => {
+      // Save and remove electronAPI
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Accessing global window for test setup
+      const originalElectronAPI = (global as any).window.electronAPI
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Accessing global window for test cleanup
+      delete (global as any).window.electronAPI
+
+      mocks.clipboard.readText.mockResolvedValue('pasted text')
+
+      await instance.paste()
+
+      expect(mocks.clipboard.readText).toHaveBeenCalled()
+      // Should not throw even without electronAPI
+
+      // Restore electronAPI
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Accessing global window for test cleanup
+      ;(global as any).window.electronAPI = originalElectronAPI
     })
 
     /**
@@ -1023,6 +1143,43 @@ describe('TerminalInstance', () => {
     })
 
     /**
+     * Tests terminal statistics with undefined cols/rows.
+     *
+     * @returns void
+     * Should return default values when cols/rows are undefined
+     *
+     * @example
+     * ```typescript
+     * const configWithoutSize = { id: 'terminal-2', name: 'No Size Terminal' }
+     * const instance = new TerminalInstance(configWithoutSize)
+     * const stats = instance.getStats()
+     * expect(stats.cols).toBe(80) // default value
+     * expect(stats.rows).toBe(24) // default value
+     * ```
+     *
+     * @public
+     */
+    it('should return default cols/rows in stats when config values are undefined', () => {
+      // Create instance with config that has no cols/rows
+      const configWithoutSize: TerminalConfig = {
+        id: 'terminal-2',
+        name: 'No Size Terminal',
+        // cols and rows are intentionally undefined
+      }
+      const instanceNoSize = new TerminalInstance(configWithoutSize, 5678)
+
+      const stats = instanceNoSize.getStats()
+
+      expect(stats).toMatchObject({
+        id: 'terminal-2',
+        title: 'No Size Terminal',
+        pid: 5678,
+        cols: 80, // Should use default value
+        rows: 24, // Should use default value
+      })
+    })
+
+    /**
      * Tests xterm terminal getter.
      *
      * @returns void
@@ -1083,6 +1240,400 @@ describe('TerminalInstance', () => {
       instance.writeData('test data')
 
       expect(instance.lastActivity.getTime()).toBeGreaterThan(initialActivity)
+    })
+  })
+
+  describe('100% Coverage - Additional edge cases', () => {
+    beforeEach(async () => {
+      instance = new TerminalInstance(mockConfig)
+    })
+
+    /**
+     * Tests onTitleChange callback to cover line 162.
+     *
+     * @returns void
+     * Should emit title-changed event when terminal title changes
+     *
+     * @example
+     * ```typescript
+     * const titleChangeCallback = mocks.xtermTerminal.onTitleChange.mock.calls[0][0]
+     * titleChangeCallback('New Title')
+     * expect(instance.title).toBe('New Title')
+     * ```
+     *
+     * @public
+     */
+    it('should handle title change from terminal', async () => {
+      const mockContainer = document.createElement('div')
+      mocks.xtermTerminal.open.mockImplementation(() => {})
+
+      // Create a spy to track emit calls
+      const emitSpy = vi.spyOn(instance, 'emit')
+
+      await instance.initializeXterm(mockContainer)
+
+      // Get the onTitleChange callback
+      expect(mocks.xtermTerminal.onTitleChange).toHaveBeenCalled()
+      const titleChangeCallback =
+        mocks.xtermTerminal.onTitleChange.mock.calls[0][0]
+
+      // Trigger the title change
+      titleChangeCallback('New Terminal Title')
+
+      // Verify the title was updated and event was emitted
+      expect(instance.title).toBe('New Terminal Title')
+      expect(emitSpy).toHaveBeenCalledWith(
+        'title-changed',
+        'New Terminal Title'
+      )
+    })
+
+    /**
+     * Tests ResizeObserver callback to cover lines 179-183.
+     *
+     * @returns void
+     * Should call fitAddon.fit() when container resizes
+     *
+     * @example
+     * ```typescript
+     * const resizeCallback = ResizeObserver.mock.calls[0][0]
+     * resizeCallback()
+     * expect(mocks.fitAddon.fit).toHaveBeenCalled()
+     * ```
+     *
+     * @public
+     */
+    it('should handle resize observer callback', async () => {
+      const mockContainer = document.createElement('div')
+      mocks.xtermTerminal.open.mockImplementation(() => {})
+
+      // Set up ResizeObserver mock properly
+      let resizeCallback: ResizeObserverCallback | null = null
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Accessing global ResizeObserver for testing
+      ;(global as any).ResizeObserver = vi
+        .fn()
+        .mockImplementation((callback) => {
+          resizeCallback = callback
+          return mocks.resizeObserver
+        })
+
+      await instance.initializeXterm(mockContainer)
+
+      // Verify ResizeObserver was created and callback was set
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mocking global ResizeObserver for testing
+      expect((global as any).ResizeObserver).toHaveBeenCalled()
+      expect(resizeCallback).toBeTruthy()
+
+      // Clear previous fit calls
+      mocks.fitAddon.fit.mockClear()
+
+      // Trigger the resize callback
+      resizeCallback!([])
+
+      // Verify fit was called
+      expect(mocks.fitAddon.fit).toHaveBeenCalledTimes(1)
+    })
+
+    /**
+     * Tests ResizeObserver callback when terminal is disposed to cover branch.
+     *
+     * @returns void
+     * Should not call fit when terminal is disposed
+     *
+     * @example
+     * ```typescript
+     * instance.dispose()
+     * resizeCallback()
+     * expect(mocks.fitAddon.fit).not.toHaveBeenCalled()
+     * ```
+     *
+     * @public
+     */
+    it('should not fit on resize when disposed', async () => {
+      const mockContainer = document.createElement('div')
+      mocks.xtermTerminal.open.mockImplementation(() => {})
+
+      let resizeCallback: ResizeObserverCallback | null = null
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mocking global ResizeObserver for testing
+      ;(global as any).ResizeObserver = vi
+        .fn()
+        .mockImplementation((callback) => {
+          resizeCallback = callback
+          return mocks.resizeObserver
+        })
+
+      await instance.initializeXterm(mockContainer)
+
+      // Dispose the terminal
+      instance.dispose()
+
+      // Clear fit calls after initialization
+      mocks.fitAddon.fit.mockClear()
+
+      // Trigger resize after disposal
+      resizeCallback!([])
+
+      // Should not call fit when disposed
+      expect(mocks.fitAddon.fit).not.toHaveBeenCalled()
+    })
+
+    /**
+     * Tests ResizeObserver callback when xterm terminal is null.
+     *
+     * @returns void
+     * Should not call fit when xterm terminal is null
+     *
+     * @public
+     */
+    it('should not fit on resize when xterm terminal is null', async () => {
+      const mockContainer = document.createElement('div')
+      mocks.xtermTerminal.open.mockImplementation(() => {})
+
+      let resizeCallback: ResizeObserverCallback | null = null
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mocking global ResizeObserver for testing
+      ;(global as any).ResizeObserver = vi
+        .fn()
+        .mockImplementation((callback) => {
+          resizeCallback = callback
+          return mocks.resizeObserver
+        })
+
+      await instance.initializeXterm(mockContainer)
+
+      // Set xterm terminal to null
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Accessing private _xtermTerminal property for testing
+      ;(instance as any)._xtermTerminal = null
+
+      // Clear fit calls
+      mocks.fitAddon.fit.mockClear()
+
+      // Trigger resize
+      resizeCallback!([])
+
+      // Should not call fit when xterm is null
+      expect(mocks.fitAddon.fit).not.toHaveBeenCalled()
+    })
+
+    /**
+     * Tests selectAll early return when disposed to cover line 281.
+     *
+     * @returns void
+     * Should return early when terminal is disposed
+     *
+     * @example
+     * ```typescript
+     * instance.dispose()
+     * instance.selectAll()
+     * expect(mocks.xtermTerminal.selectAll).not.toHaveBeenCalled()
+     * ```
+     *
+     * @public
+     */
+    it('should return early from selectAll when disposed', async () => {
+      const mockContainer = document.createElement('div')
+      mocks.xtermTerminal.open.mockImplementation(() => {})
+      await instance.initializeXterm(mockContainer)
+
+      // Clear previous calls
+      mocks.xtermTerminal.selectAll.mockClear()
+
+      // Dispose the terminal
+      instance.dispose()
+
+      // Try to select all when disposed
+      instance.selectAll()
+
+      // Should not call xterm selectAll
+      expect(mocks.xtermTerminal.selectAll).not.toHaveBeenCalled()
+    })
+
+    /**
+     * Tests selectAll early return when not ready.
+     *
+     * @returns void
+     * Should return early when terminal is not ready
+     *
+     * @public
+     */
+    it('should return early from selectAll when not ready', () => {
+      // Clear previous calls
+      mocks.xtermTerminal.selectAll.mockClear()
+
+      // Try to select all before initialization
+      instance.selectAll()
+
+      // Should not call xterm selectAll
+      expect(mocks.xtermTerminal.selectAll).not.toHaveBeenCalled()
+    })
+
+    /**
+     * Tests selectAll early return when xterm terminal is null.
+     *
+     * @returns void
+     * Should return early when xterm terminal is null
+     *
+     * @public
+     */
+    it('should return early from selectAll when xterm is null', async () => {
+      const mockContainer = document.createElement('div')
+      mocks.xtermTerminal.open.mockImplementation(() => {})
+      await instance.initializeXterm(mockContainer)
+
+      // Set xterm terminal to null
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Accessing private _xtermTerminal property for testing
+      ;(instance as any)._xtermTerminal = null
+
+      // Clear previous calls
+      mocks.xtermTerminal.selectAll.mockClear()
+
+      // Try to select all with null xterm
+      instance.selectAll()
+
+      // Should not call xterm selectAll
+      expect(mocks.xtermTerminal.selectAll).not.toHaveBeenCalled()
+    })
+
+    /**
+     * Tests onData callback with electronAPI to cover lines 136-142.
+     *
+     * @returns void
+     * Should send input to backend via IPC when data is received
+     *
+     * @public
+     */
+    it('should send data to backend via electronAPI in onData callback', async () => {
+      const mockContainer = document.createElement('div')
+      mocks.xtermTerminal.open.mockImplementation(() => {})
+
+      // Set up window.electronAPI
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mocking global window for testing
+      ;(global as any).window = { electronAPI: mocks.electronAPI }
+
+      await instance.initializeXterm(mockContainer)
+
+      // Get the onData callback
+      expect(mocks.xtermTerminal.onData).toHaveBeenCalled()
+      const onDataCallback = mocks.xtermTerminal.onData.mock.calls[0][0]
+
+      // Clear send calls
+      mocks.electronAPI.send.mockClear()
+
+      // Trigger the data callback
+      onDataCallback('test input')
+
+      // Verify electronAPI was called
+      expect(mocks.electronAPI.send).toHaveBeenCalledWith('terminal-input', {
+        id: instance.id,
+        data: 'test input',
+      })
+
+      // Verify lastActivity was updated
+      expect(instance.lastActivity.getTime()).toBeGreaterThan(0)
+    })
+
+    /**
+     * Tests onResize callback with electronAPI to cover lines 148-155.
+     *
+     * @returns void
+     * Should notify backend of resize via IPC
+     *
+     * @public
+     */
+    it('should notify backend of resize via electronAPI in onResize callback', async () => {
+      const mockContainer = document.createElement('div')
+      mocks.xtermTerminal.open.mockImplementation(() => {})
+
+      // Set up window.electronAPI
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mocking global window for testing
+      ;(global as any).window = { electronAPI: mocks.electronAPI }
+
+      // Create a spy to track emit calls
+      const emitSpy = vi.spyOn(instance, 'emit')
+
+      await instance.initializeXterm(mockContainer)
+
+      // Get the onResize callback
+      expect(mocks.xtermTerminal.onResize).toHaveBeenCalled()
+      const onResizeCallback = mocks.xtermTerminal.onResize.mock.calls[0][0]
+
+      // Clear send calls
+      mocks.electronAPI.send.mockClear()
+
+      // Trigger the resize callback
+      onResizeCallback({ cols: 100, rows: 40 })
+
+      // Verify event was emitted
+      expect(emitSpy).toHaveBeenCalledWith('resize', 100, 40)
+
+      // Verify electronAPI was called
+      expect(mocks.electronAPI.send).toHaveBeenCalledWith('terminal-resize', {
+        id: instance.id,
+        cols: 100,
+        rows: 40,
+      })
+    })
+
+    /**
+     * Tests onData callback without electronAPI.
+     *
+     * @returns void
+     * Should still update lastActivity even without electronAPI
+     *
+     * @public
+     */
+    it('should handle onData without electronAPI', async () => {
+      const mockContainer = document.createElement('div')
+      mocks.xtermTerminal.open.mockImplementation(() => {})
+
+      // Remove window.electronAPI
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mocking global window for testing
+      ;(global as any).window = {}
+
+      await instance.initializeXterm(mockContainer)
+
+      // Get the onData callback
+      const onDataCallback = mocks.xtermTerminal.onData.mock.calls[0][0]
+
+      const initialActivity = instance.lastActivity.getTime()
+
+      // Wait to ensure time difference
+      await new Promise((resolve) => setTimeout(resolve, 10))
+
+      // Trigger the data callback
+      onDataCallback('test input')
+
+      // Verify lastActivity was still updated
+      expect(instance.lastActivity.getTime()).toBeGreaterThan(initialActivity)
+    })
+
+    /**
+     * Tests onResize callback without electronAPI.
+     *
+     * @returns void
+     * Should still emit resize event without electronAPI
+     *
+     * @public
+     */
+    it('should handle onResize without electronAPI', async () => {
+      const mockContainer = document.createElement('div')
+      mocks.xtermTerminal.open.mockImplementation(() => {})
+
+      // Remove window.electronAPI
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mocking global window for testing
+      ;(global as any).window = {}
+
+      const emitSpy = vi.spyOn(instance, 'emit')
+
+      await instance.initializeXterm(mockContainer)
+
+      // Get the onResize callback
+      const onResizeCallback = mocks.xtermTerminal.onResize.mock.calls[0][0]
+
+      // Trigger the resize callback
+      onResizeCallback({ cols: 80, rows: 24 })
+
+      // Verify event was still emitted
+      expect(emitSpy).toHaveBeenCalledWith('resize', 80, 24)
     })
   })
 })

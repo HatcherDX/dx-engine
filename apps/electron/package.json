@@ -22,8 +22,10 @@
     "dev": "vite build --mode development && dotenvx run -f .env.development -- electron dist-vite/index.cjs",
     "dev:watch": "vite build --mode development --watch & sleep 3 && dotenvx run -f .env.development -- electron dist-vite/index.cjs",
     "bundle": "npx rimraf ./dist && webpack --config webpack.config.cjs",
-    "build:dev": "vite build --mode development && pnpm bundle",
-    "build:prod": "vite build && pnpm bundle",
+    "bundle:dev": "npx rimraf ./dist && MODE=development webpack --config webpack.config.cjs",
+    "bundle:prod": "npx rimraf ./dist && MODE=production webpack --config webpack.config.cjs",
+    "build:dev": "vite build --mode development && pnpm bundle:dev",
+    "build:prod": "vite build && pnpm bundle:prod",
     "pack:app": "npx tsx scripts/build.ts",
     "pack:dev": "pnpm build:dev && dotenvx run -f .env.development -- pnpm pack:app",
     "pack:prod": "pnpm build:prod && dotenvx run -f .env.production -- pnpm pack:app",
@@ -47,6 +49,7 @@
     "@electron/notarize": "^3.0.1",
     "@electron/rebuild": "^4.0.1",
     "@hatcherdx/dx-engine-preload": "workspace:*",
+    "@mapbox/node-pre-gyp": "^2.0.0",
     "@types/node": "^22.14.1",
     "@types/uuid": "^9.0.0",
     "@vitest/coverage-v8": "^3.2.4",
@@ -54,6 +57,7 @@
     "electron-builder": "26.0.12",
     "electron-rebuild": "^3.2.9",
     "electron-updater": "6.6.2",
+    "memfs": "^4.48.1",
     "node-pty": "1.0.0",
     "terser-webpack-plugin": "^5.3.14",
     "typescript": "5.8.3",
@@ -63,12 +67,20 @@
   },
   "dependencies": {
     "@dotenvx/dotenvx": "^1.39.1",
+    "@hatcherdx/ai-cli": "workspace:*",
+    "@hatcherdx/storage": "workspace:*",
     "@hatcherdx/terminal-system": "workspace:*",
     "@xterm/addon-search": "^0.15.0",
     "@xterm/addon-unicode11": "^0.8.0",
+    "argon2": "^0.31.0",
+    "chokidar": "^4.0.3",
     "express": "^5.1.0",
     "express-ws": "^5.0.2",
     "simple-git": "^3.28.0",
+    "tslog": "^4.9.3",
     "uuid": "^9.0.0"
+  },
+  "optionalDependencies": {
+    "better-sqlite3": "^11.6.0"
   }
 }

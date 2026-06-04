@@ -1,0 +1,46 @@
+{
+  "name": "@hatcherdx/ai-cli",
+  "version": "1.0.0",
+  "description": "Generic AI CLI provider system for Claude Code, Gemini, and other AI tools",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint . --ext .ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "ai",
+    "cli",
+    "claude",
+    "gemini",
+    "chatgpt",
+    "provider",
+    "electron"
+  ],
+  "author": {
+    "name": "Chriss Mejia",
+    "email": "chriss@hatche.rs"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.14.1",
+    "@vitest/coverage-v8": "^3.2.4",
+    "typescript": "5.8.3",
+    "vitest": "^3.2.4"
+  },
+  "dependencies": {},
+  "peerDependencies": {
+    "typescript": ">=5.0.0"
+  }
+}

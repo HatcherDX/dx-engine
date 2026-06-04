@@ -1,7 +1,7 @@
 <template>
   <div class="address-bar" :class="addressBarClasses">
-    <!-- Adaptive Breadcrumb -->
-    <div class="address-breadcrumb">
+    <!-- Adaptive Breadcrumb (hidden in generative mode) -->
+    <div v-if="currentMode !== 'generative'" class="address-breadcrumb">
       <AdaptiveBreadcrumb
         :current-mode="currentMode"
         v-bind="breadcrumbContext"
@@ -18,6 +18,26 @@
       @focus="handleFocus"
       @blur="handleBlur"
     />
+
+    <!-- Command suggestions dropdown -->
+    <div v-if="showCommandSuggestions" class="command-suggestions">
+      <div
+        v-for="(command, index) in filteredCommands"
+        :key="command.name"
+        :class="[
+          'command-suggestion',
+          { selected: index === selectedCommandIndex },
+        ]"
+        @click="selectCommand(command)"
+        @mouseenter="selectedCommandIndex = index"
+      >
+        <span class="command-name">/{{ command.name }}</span>
+        <span class="command-description">{{ command.description }}</span>
+      </div>
+      <div v-if="filteredCommands.length === 0" class="no-commands">
+        No commands found
+      </div>
+    </div>
 
     <!-- Action buttons -->
     <div class="address-actions">
@@ -45,11 +65,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, nextTick } from 'vue'
+import { computed, ref, nextTick, onMounted } from 'vue'
 import type { ModeType } from './ModeSelector.vue'
 import BaseIcon from '../atoms/BaseIcon.vue'
 import BaseButton from '../atoms/BaseButton.vue'
 import AdaptiveBreadcrumb from './AdaptiveBreadcrumb.vue'
+
+interface Command {
+  name: string
+  description: string
+  category: string
+}
 
 interface Props {
   currentMode: ModeType
@@ -75,10 +101,49 @@ const emit = defineEmits<Emits>()
 
 const inputRef = ref<HTMLInputElement | null>(null)
 const isFocused = ref(false)
+const availableCommands = ref<Command[]>([])
+const selectedCommandIndex = ref(0)
 
 const inputValue = computed({
   get: () => props.value,
   set: (value) => emit('update:value', value),
+})
+
+// Check if input starts with / (command mode)
+const isCommandMode = computed(() => {
+  return props.currentMode === 'generative' && inputValue.value.startsWith('/')
+})
+
+// Filter commands based on input
+const filteredCommands = computed(() => {
+  if (!isCommandMode.value) return []
+
+  const query = inputValue.value.slice(1).toLowerCase() // Remove leading /
+  if (query === '') return availableCommands.value
+
+  return availableCommands.value.filter(
+    (cmd) =>
+      cmd.name.toLowerCase().includes(query) ||
+      cmd.description.toLowerCase().includes(query)
+  )
+})
+
+// Show command suggestions
+const showCommandSuggestions = computed(() => {
+  return (
+    isCommandMode.value && isFocused.value && filteredCommands.value.length > 0
+  )
+})
+
+// Load commands from Electron API
+onMounted(async () => {
+  if (window.electronAPI?.commands) {
+    try {
+      availableCommands.value = await window.electronAPI.commands.list()
+    } catch (error) {
+      console.error('[AddressBar] Failed to load commands:', error)
+    }
+  }
 })
 
 // Mode-specific configuration
@@ -86,7 +151,7 @@ const modeConfigs = {
   generative: {
     icon: 'Terminal',
     prefix: '$',
-    placeholder: 'Ask AI or enter command...',
+    placeholder: 'Enter command...',
   },
   visual: {
     icon: 'Eye',
@@ -141,6 +206,37 @@ const inputClasses = computed(() => {
 })
 
 const handleKeydown = (event: KeyboardEvent) => {
+  // Handle command suggestion navigation
+  if (showCommandSuggestions.value) {
+    if (event.key === 'ArrowDown') {
+      event.preventDefault()
+      selectedCommandIndex.value = Math.min(
+        selectedCommandIndex.value + 1,
+        filteredCommands.value.length - 1
+      )
+      return
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault()
+      selectedCommandIndex.value = Math.max(selectedCommandIndex.value - 1, 0)
+      return
+    } else if (event.key === 'Enter') {
+      event.preventDefault()
+      const command = filteredCommands.value[selectedCommandIndex.value]
+      if (command) {
+        selectCommand(command)
+      }
+      return
+    } else if (event.key === 'Tab') {
+      event.preventDefault()
+      const command = filteredCommands.value[selectedCommandIndex.value]
+      if (command) {
+        inputValue.value = `/${command.name}`
+      }
+      return
+    }
+  }
+
+  // Normal key handling
   if (event.key === 'Enter') {
     emit('enter', inputValue.value)
     if (canExecute.value) {
@@ -148,6 +244,33 @@ const handleKeydown = (event: KeyboardEvent) => {
     }
   } else if (event.key === 'Escape') {
     inputRef.value?.blur()
+  }
+}
+
+const selectCommand = async (command: Command) => {
+  if (!window.electronAPI?.commands) {
+    console.warn('[AddressBar] Commands API not available')
+    return
+  }
+
+  try {
+    console.log('[AddressBar] Executing command:', command.name)
+    const result = await window.electronAPI.commands.execute(command.name)
+
+    if (result.success) {
+      console.log('[AddressBar] Command executed successfully:', result)
+      // Clear input after successful execution
+      inputValue.value = ''
+
+      // Notify parent to handle command result
+      if (result.data?.action) {
+        emit('execute', result.data.action as string, props.currentMode)
+      }
+    } else {
+      console.error('[AddressBar] Command execution failed:', result.message)
+    }
+  } catch (error) {
+    console.error('[AddressBar] Failed to execute command:', error)
   }
 }
 
@@ -183,12 +306,12 @@ defineExpose({
 
 <style scoped>
 .address-bar {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 2px 6px;
-  max-width: 100%;
-  min-width: 300px;
+  width: 100%;
   background-color: var(--bg-primary);
   border: 1px solid var(--border-primary);
   border-radius: 8px;
@@ -202,7 +325,7 @@ defineExpose({
 
 .address-disabled {
   opacity: 0.5;
-  cursor: not-allowed;
+  cursor: default;
 }
 
 .address-input {
@@ -244,6 +367,58 @@ defineExpose({
 
 .dark .address-actions button:hover {
   background-color: var(--hover-bg-dark) !important;
+}
+
+/* Command suggestions dropdown */
+.command-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 8px;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 1000;
+}
+
+.command-suggestion {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  cursor: pointer;
+  border-left: 3px solid transparent;
+  transition: all 0.15s ease;
+}
+
+.command-suggestion:hover,
+.command-suggestion.selected {
+  background-color: var(--bg-secondary);
+  border-left-color: var(--accent-color);
+}
+
+.command-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-right: 12px;
+}
+
+.command-description {
+  font-size: 12px;
+  color: var(--text-secondary);
+  flex: 1;
+}
+
+.no-commands {
+  padding: 24px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 14px;
 }
 
 /* Responsive adjustments */

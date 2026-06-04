@@ -4,18 +4,10 @@
       <div class="detail-content">
         <!-- Header Section -->
         <div class="detail-header">
-          <div class="task-info">
-            <div class="task-icon">
-              {{ selectedTask?.title.split(' ')[0] }}
-            </div>
-            <div class="task-meta">
-              <h1 class="task-title">
-                {{ selectedTask?.title.substring(2).trim() }}
-              </h1>
-              <p class="task-description">{{ selectedTask?.description }}</p>
-              <p class="example-text">e.g., {{ selectedTask?.example }}</p>
-            </div>
-          </div>
+          <h1 class="task-title">
+            {{ selectedTask?.title || '' }}
+          </h1>
+          <p class="task-description">{{ selectedTask?.description || '' }}</p>
         </div>
 
         <!-- Input Section -->
@@ -28,10 +20,16 @@
             <input
               id="task-name"
               v-model="taskName"
+              v-disable-terminal
               type="text"
               class="task-input"
-              placeholder="e.g., Add User Login"
-              @input="updateSlugFromName"
+              :placeholder="taskNamePlaceholder"
+              @input="
+                () => {
+                  updateSlugFromName()
+                  syncToBridge()
+                }
+              "
             />
           </div>
 
@@ -43,29 +41,34 @@
               v-model="fullBranchName"
               type="text"
               class="task-input branch-input"
-              placeholder="feature/add-user-login"
+              :class="{ 'has-error': branchValidationError }"
+              :placeholder="branchPlaceholder"
+              :readonly="!isBranchNameEditable"
+              @click="isBranchNameEditable = true"
+              @blur="isBranchNameEditable = false"
+              @input="
+                () => {
+                  isCustomBranch = true
+                  validateBranch(fullBranchName)
+                  syncToBridge()
+                }
+              "
             />
+            <span v-if="branchValidationError" class="error-message">
+              {{ branchValidationError }}
+            </span>
           </div>
         </div>
 
         <!-- Action Section -->
         <div class="action-section">
-          <CtaButton :disabled="!canStartBuilding" @click="handleStartBuilding">
+          <CtaButton
+            v-disable-terminal
+            :disabled="!canStartBuilding"
+            @click="handleStartBuilding"
+          >
             Start Building
           </CtaButton>
-        </div>
-
-        <!-- Navigation Section -->
-        <div class="navigation-section">
-          <BaseButton
-            variant="ghost"
-            size="md"
-            class="back-button"
-            @click="handleBack"
-          >
-            <BaseIcon name="ArrowRight" size="sm" class="back-icon" />
-            Change Task Type
-          </BaseButton>
         </div>
       </div>
     </div>
@@ -73,26 +76,79 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useOnboarding } from '../../composables/useOnboarding'
-import BaseButton from '../atoms/BaseButton.vue'
-import BaseIcon from '../atoms/BaseIcon.vue'
+import {
+  terminalInputBridge,
+  type TaskDetails,
+} from '../../composables/useTerminalInputBridge'
+import { validateBranchName } from '../../utils/gitValidation'
 import CtaButton from '../atoms/CtaButton.vue'
 
-const { getSelectedTask, nextStep, previousStep } = useOnboarding()
+const {
+  getSelectedTask,
+  getSelectedBranch,
+  nextStep,
+  selectBranch,
+  currentStep,
+} = useOnboarding()
 
 // Get the selected task
 const selectedTask = computed(() => getSelectedTask.value)
 
-// Form state
-const taskName = ref('')
+// Get reactive task details from bridge
+const { taskName: bridgeTaskName } = terminalInputBridge.useTaskDetails()
+
+// Form state - initialize from bridge or empty
+const taskName = ref(bridgeTaskName.value || '')
 const fullBranchName = ref('')
+const isBranchNameEditable = ref(false)
+const isCustomBranch = ref(false)
+const branchValidationError = ref<string | undefined>()
+
+// Flag to prevent feedback loops
+const isUpdatingFromBridge = ref(false)
+
+// Unsubscribe function for bridge listener
+let unsubscribe: (() => void) | null = null
 
 // Computed properties
 const canStartBuilding = computed(() => {
   return (
-    taskName.value.trim().length > 0 && fullBranchName.value.trim().length > 0
+    taskName.value.trim().length > 0 &&
+    fullBranchName.value.trim().length > 0 &&
+    !branchValidationError.value
   )
+})
+
+const taskNamePlaceholder = computed(() => {
+  if (!selectedTask.value) return 'e.g., Add User Login'
+
+  const placeholderMap: Record<string, string> = {
+    'create-feature': 'e.g., Add User Login',
+    'fix-bug': 'e.g., Fix Login Button on Safari',
+    'improve-documentation': 'e.g., Update API Documentation',
+    'perform-maintenance': 'e.g., Update Dependencies',
+    'refactor-code': 'e.g., Extract Authentication Logic',
+  }
+
+  const taskId = selectedTask.value.id
+  return taskId
+    ? placeholderMap[taskId] || 'e.g., Your task name'
+    : 'e.g., Your task name'
+})
+
+const branchPlaceholder = computed(() => {
+  const taskId = selectedTask.value?.id
+  const prefix = getBranchPrefix(taskId ?? undefined)
+  const placeholderMap: Record<string, string> = {
+    feature: 'feature/add-user-login',
+    bugfix: 'bugfix/fix-login-button',
+    docs: 'docs/update-readme',
+    chore: 'chore/update-dependencies',
+    refactor: 'refactor/extract-component',
+  }
+  return placeholderMap[prefix] || 'feature/your-task-name'
 })
 
 // Convert task name to slug format
@@ -103,119 +159,275 @@ const slugify = (text: string): string => {
     .replace(/^-+|-+$/g, '')
 }
 
-// Update branch name when task name changes
-const updateSlugFromName = (): void => {
-  if (taskName.value) {
-    fullBranchName.value = `feature/${slugify(taskName.value)}`
+/**
+ * Converts a branch name slug back to a human-readable task name.
+ *
+ * @param branchName - The full branch name (e.g., "feature/add-user-login")
+ * @returns Human-readable task name (e.g., "Add User Login")
+ *
+ * @remarks
+ * This function is used when navigating back from branch creation to task detail,
+ * allowing the user to see and edit their previously entered task name.
+ *
+ * @public
+ * @since 1.0.0
+ */
+const extractTaskNameFromBranch = (branchName: string): string => {
+  // Extract the slug part after the prefix
+  const parts = branchName.split('/')
+  if (parts.length < 2) return ''
+
+  const slug = parts[1]
+
+  // Convert slug to title case: "add-user-login" → "Add User Login"
+  return slug
+    .split('-')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+}
+
+// Get branch prefix based on task type
+const getBranchPrefix = (taskId: string | undefined): string => {
+  if (!taskId) return 'feature'
+
+  const prefixMap: Record<string, string> = {
+    'create-feature': 'feature',
+    'fix-bug': 'bugfix',
+    'improve-documentation': 'docs',
+    'perform-maintenance': 'chore',
+    'refactor-code': 'refactor',
+  }
+
+  return prefixMap[taskId] || 'feature'
+}
+
+/**
+ * Loads existing data from the selected branch configuration.
+ *
+ * @remarks
+ * This function is called when the component mounts or when the task changes,
+ * to restore previously entered data when navigating back from later steps.
+ *
+ * @public
+ * @since 1.0.0
+ */
+const loadExistingData = (): void => {
+  const existingBranch = getSelectedBranch.value
+
+  if (existingBranch?.name) {
+    console.log('[TaskDetail] Loading existing branch data:', existingBranch)
+
+    // Extract task name from branch name
+    const extractedTaskName = extractTaskNameFromBranch(existingBranch.name)
+    if (extractedTaskName) {
+      taskName.value = extractedTaskName
+      fullBranchName.value = existingBranch.name
+      console.log('[TaskDetail] Loaded task name:', extractedTaskName)
+    }
   }
 }
 
-// Initialize with example if task is "Create Feature"
-watch(
-  selectedTask,
-  (task) => {
-    if (task?.id === 'create-feature') {
-      taskName.value = 'Add User Login'
-      fullBranchName.value = 'feature/add-user-login'
+// Update branch name when task name changes (only if not custom branch)
+const updateSlugFromName = (): void => {
+  if (!isCustomBranch.value && selectedTask.value) {
+    if (taskName.value) {
+      const taskId = selectedTask.value.id
+      const prefix = getBranchPrefix(taskId ?? undefined)
+      const proposedBranch = `${prefix}/${slugify(taskName.value)}`
+      fullBranchName.value = proposedBranch
+      validateBranch(proposedBranch)
+    } else {
+      // Clear branch name when task name is empty
+      fullBranchName.value = ''
+      branchValidationError.value = undefined
     }
-  },
-  { immediate: true }
-)
+  }
+}
+
+// Validate branch name
+const validateBranch = (branchName: string): void => {
+  if (!branchName) {
+    branchValidationError.value = undefined
+    return
+  }
+
+  const validation = validateBranchName(branchName)
+  if (!validation.isValid) {
+    branchValidationError.value = validation.error
+    // If there's a suggestion, we could optionally apply it
+    // For now, we'll just show the error
+  } else {
+    branchValidationError.value = undefined
+  }
+}
+
+// Load existing data when component mounts
+onMounted(() => {
+  console.log('[TaskDetail] Component mounted, loading existing data')
+  loadExistingData()
+
+  // Subscribe to terminal input bridge updates
+  unsubscribe = terminalInputBridge.subscribe((details: TaskDetails) => {
+    console.log('[TaskDetail] Bridge update:', details)
+
+    // Set flag to prevent feedback loop
+    isUpdatingFromBridge.value = true
+
+    // Update task name from bridge
+    taskName.value = details.taskName
+
+    // Handle branch name
+    if (details.branchName === null) {
+      // null means auto-generate based on task name
+      isCustomBranch.value = false
+      updateSlugFromName()
+    } else if (details.branchName === '') {
+      // Empty string means clear (when task name is also empty)
+      isCustomBranch.value = false
+      isBranchNameEditable.value = false
+      fullBranchName.value = ''
+    } else {
+      // Custom branch name provided
+      isCustomBranch.value = true
+      isBranchNameEditable.value = true
+
+      // Construct full branch name with prefix if needed
+      if (!details.branchName.includes('/')) {
+        const taskId = selectedTask.value?.id
+        const prefix = getBranchPrefix(taskId ?? undefined)
+        fullBranchName.value = `${prefix}/${details.branchName}`
+      } else {
+        fullBranchName.value = details.branchName
+      }
+
+      // Validate the custom branch name
+      validateBranch(fullBranchName.value)
+    }
+
+    // Clear flag after Vue's next tick to ensure DOM updates are complete
+    nextTick(() => {
+      isUpdatingFromBridge.value = false
+    })
+  })
+})
+
+// Watch for navigation to this step to load existing data
+watch(currentStep, (newStep) => {
+  if (newStep === 'task-detail') {
+    console.log(
+      '[TaskDetail] Navigated to task-detail step, loading existing data'
+    )
+    loadExistingData()
+  }
+})
+
+// Handle task changes intelligently (without immediate to allow onMounted to run first)
+watch(selectedTask, (newTask, oldTask) => {
+  if (!newTask) return
+
+  // Only clear form if the task actually changed
+  if (oldTask && newTask.id !== oldTask.id) {
+    console.log('[TaskDetail] Task changed, clearing form')
+    taskName.value = ''
+    fullBranchName.value = ''
+  } else if (!oldTask) {
+    console.log('[TaskDetail] Initial task load, checking for existing data')
+    // On initial load, try to load existing data if available
+    loadExistingData()
+  }
+})
+
+// Sync input field changes back to bridge when user types in the form
+const syncToBridge = () => {
+  // Don't sync if we're updating from bridge to prevent feedback loop
+  if (isUpdatingFromBridge.value) {
+    console.log(
+      '[TaskDetail] Skipping sync to bridge - update came from bridge'
+    )
+    return
+  }
+
+  // Construct the input string for the bridge
+  let inputString = taskName.value
+
+  if (isCustomBranch.value && fullBranchName.value) {
+    // Extract just the branch slug part if it has a prefix
+    const parts = fullBranchName.value.split('/')
+    const branchSlug = parts.length > 1 ? parts[1] : fullBranchName.value
+    inputString += ` | ${branchSlug}`
+  }
+
+  // Update the bridge (which will trigger terminal display update)
+  terminalInputBridge.updateInput(inputString, inputString.length)
+}
 
 // Event handlers
 const handleStartBuilding = (): void => {
-  // TODO: Store task details and proceed to next step
+  // Store branch configuration
+  selectBranch({
+    name: fullBranchName.value,
+    base: 'main', // Default base branch
+    agent: 'default', // Default agent
+  })
+
+  // Proceed to next step
   nextStep()
 }
 
-const handleBack = (): void => {
-  // Clear form data when going back
-  taskName.value = ''
-  fullBranchName.value = ''
-  previousStep()
-}
+// Cleanup bridge subscription
+onUnmounted(() => {
+  if (unsubscribe) {
+    unsubscribe()
+  }
+})
 </script>
 
 <style scoped>
 .onboarding-task-detail {
-  position: relative;
+  width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
-  background: linear-gradient(
-    135deg,
-    var(--bg-primary) 0%,
-    var(--bg-secondary) 100%
-  );
-  padding: 24px;
 }
 
 .detail-container {
-  max-width: 700px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
   width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
   animation: fade-in-up 0.8s ease-out;
 }
 
 .detail-content {
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border-primary);
-  border-radius: 16px;
-  padding: 40px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(8px);
-}
-
-.dark .detail-content {
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  background-color: transparent;
+  padding: 0;
 }
 
 /* Header Section */
 .detail-header {
-  margin-bottom: 32px;
-}
-
-.task-info {
-  display: flex;
-  align-items: flex-start;
-  gap: 20px;
-}
-
-.task-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 64px;
-  height: 64px;
-  font-size: 36px;
-  flex-shrink: 0;
-}
-
-.task-meta {
-  flex: 1;
+  text-align: center;
+  margin-bottom: 48px;
 }
 
 .task-title {
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 700;
   color: var(--text-primary);
-  margin-bottom: 8px;
-  line-height: 1.3;
+  margin: 0 0 12px 0;
 }
 
 .task-description {
   font-size: 16px;
   color: var(--text-secondary);
-  line-height: 1.4;
-  margin-bottom: 8px;
-}
-
-.example-text {
-  font-size: 13px;
-  color: var(--text-tertiary);
-  font-style: italic;
-  margin: 0;
+  line-height: 1.5;
+  margin: 0 0 12px 0;
 }
 
 /* Input Section */
@@ -268,28 +480,45 @@ const handleBack = (): void => {
   font-size: 14px;
 }
 
+.branch-input[readonly] {
+  background-color: var(--bg-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.branch-input[readonly]:hover {
+  background-color: var(--bg-tertiary);
+}
+
+.task-input.has-error {
+  border-color: var(--error-color, #dc3545);
+}
+
+.task-input.has-error:focus {
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+}
+
+.error-message {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--error-color, #dc3545);
+  line-height: 1.4;
+}
+
+.input-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  pointer-events: none;
+}
+
 /* Action Section */
 .action-section {
   display: flex;
   justify-content: center;
-  margin-bottom: 32px;
-}
-
-/* Navigation */
-.navigation-section {
-  display: flex;
-  justify-content: flex-start;
-}
-
-.back-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--text-secondary);
-}
-
-.back-icon {
-  transform: rotate(180deg);
 }
 
 /* Animations */
@@ -321,7 +550,6 @@ const handleBack = (): void => {
   .task-icon {
     width: 56px;
     height: 56px;
-    font-size: 32px;
   }
 
   .task-title {

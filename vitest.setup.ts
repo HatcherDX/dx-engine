@@ -1,21 +1,57 @@
+// CRITICAL: Load storage mocks FIRST before any other imports
+// Set env var to ensure mocks are applied
+process.env.VITEST_MOCK_SQLITE = 'true'
+// Import test-mocks to trigger vi.mock() calls for better-sqlite3, argon2, lz4, brotli
+import './universal/storage/src/test-mocks'
+
 import { config, RouterLinkStub } from '@vue/test-utils'
-import { vi } from 'vitest'
+
+/**
+ * @fileoverview Global test setup file for Vitest.
+ *
+ * @description
+ * CRITICAL: This file is loaded as setupFiles in vitest.config.ts.
+ * DO NOT import from 'vitest' here (vi, afterEach, etc.) as it causes
+ * "Vitest failed to access its internal state" errors in CI environments.
+ *
+ * With globals: true enabled in vitest.config.ts, all vitest utilities
+ * (vi, describe, it, expect, afterEach, etc.) are available globally.
+ * Just use them directly without importing or declaring.
+ *
+ * @see https://vitest.dev/config/#globals
+ * @see https://vitest.dev/config/#setupfiles
+ *
+ * @author Hatcher DX Team
+ * @since 1.0.0
+ */
+
+// vi and afterEach are available globally via globals: true
+// No need to import or declare - just use them directly
+
+// Context7 Best Practice: Clear mocks before each test
+beforeEach(() => {
+  // Clear all mock call history
+  vi.clearAllMocks()
+
+  // NOTE: vi.clearAllTimers() commented out - can cause "Vitest failed to access
+  // its internal state" errors when accessing worker state during cleanup
+  // vi.clearAllTimers()
+
+  // Note: vi.resetModules() removed as it breaks module-level mocks
+})
+
+// Mock CSS imports - must be at top level
+vi.mock('xterm/css/xterm.css', () => ({
+  default: {},
+}))
+
+// Logger mocking removed - tests should mock Logger individually when needed
+// This allows logger.spec.ts to test the real Logger implementation
 
 // Declare global for Vue Test Utils auto unmount tracking
 declare global {
   // eslint-disable-next-line no-var
   var __vueTestUtilsAutoUnmountEnabled: boolean | undefined
-}
-
-// Apply storage mocks in CI environment before any other imports
-if (
-  process.env.CI ||
-  process.env.GITHUB_ACTIONS ||
-  process.env.VITEST_MOCK_SQLITE === 'true'
-) {
-  process.env.VITEST_MOCK_SQLITE = 'true'
-  // Import storage mocks for CI environment
-  import('./universal/storage/src/test-mocks')
 }
 
 // Mock básico de fetch
@@ -64,6 +100,92 @@ global.ResizeObserver = vi.fn(() => ({
   unobserve: vi.fn(),
   disconnect: vi.fn(),
 }))
+
+// Mock localStorage for all environments
+const localStorageMock = {
+  getItem: vi.fn(() => null),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+  clear: vi.fn(),
+  length: 0,
+  key: vi.fn(),
+}
+
+// Mock document if not available
+if (typeof document === 'undefined') {
+  global.document = {
+    createElement: vi.fn(() => ({
+      style: {},
+      classList: {
+        add: vi.fn(),
+        remove: vi.fn(),
+        contains: vi.fn(),
+      },
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      appendChild: vi.fn(),
+      removeChild: vi.fn(),
+      querySelector: vi.fn(() => null),
+      querySelectorAll: vi.fn(() => []),
+    })),
+    getElementById: vi.fn(() => null),
+    querySelector: vi.fn(() => null),
+    querySelectorAll: vi.fn(() => []),
+    body: {
+      style: {},
+      classList: {
+        add: vi.fn(),
+        remove: vi.fn(),
+        contains: vi.fn(),
+      },
+      appendChild: vi.fn(),
+      removeChild: vi.fn(),
+    },
+    documentElement: {
+      style: {},
+    },
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  } as Partial<Document>
+}
+
+// Mock window if not available
+if (typeof window === 'undefined') {
+  global.window = {
+    document: global.document,
+    localStorage: localStorageMock,
+    sessionStorage: localStorageMock,
+    location: {
+      href: 'http://localhost:3000',
+      pathname: '/',
+      search: '',
+      hash: '',
+    },
+    navigator: {
+      userAgent: 'Vitest',
+    },
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+    CustomEvent: class CustomEvent extends Event {
+      detail: unknown
+      constructor(type: string, eventInitDict?: CustomEventInit) {
+        super(type, eventInitDict)
+        this.detail = eventInitDict?.detail
+      }
+    },
+  } as Partial<Window & typeof globalThis>
+} else {
+  // If window exists, ensure localStorage is mocked
+  Object.defineProperty(window, 'localStorage', {
+    value: localStorageMock,
+    writable: true,
+    configurable: true,
+  })
+}
+
+// Also set global localStorage
+global.localStorage = localStorageMock
 
 // Global error handler to prevent uncaught exceptions in tests
 // These errors are expected in tests that deliberately throw errors
@@ -139,32 +261,28 @@ if (typeof window !== 'undefined') {
   })
 }
 
-const localStorageMock = {
-  getItem: vi.fn(),
-  setItem: vi.fn(),
-  removeItem: vi.fn(),
-  clear: vi.fn(),
-}
-Object.defineProperty(window, 'localStorage', { value: localStorageMock })
+// Manual DOM cleanup without enableAutoUnmount
+// Context7 pattern: enableAutoUnmount causes "Vitest failed to access its internal state"
+// errors in CI because it tries to access vitest context during cleanup phase.
+// Use simple synchronous cleanup to avoid worker timeouts.
+afterEach(() => {
+  // CRITICAL: Clear all mocks first (Context7 best practice)
+  vi.clearAllMocks()
 
-// Auto unmount - only enable once
-import { enableAutoUnmount } from '@vue/test-utils'
-// Use try-catch to handle multiple calls gracefully
-// This can happen when running tests in parallel or with certain pool configurations
-try {
-  // Only call if not in CI or if explicitly needed
-  if (!globalThis.__vueTestUtilsAutoUnmountEnabled) {
-    enableAutoUnmount(afterEach)
-    globalThis.__vueTestUtilsAutoUnmountEnabled = true
+  // NOTE: DO NOT use vi.restoreAllMocks() here - it breaks module-level mocks!
+  // NOTE: DO NOT call vi.useRealTimers() here - it causes "Vitest failed to access
+  // its internal state" errors when trying to communicate with worker during cleanup
+  // vi.useRealTimers()
+
+  // Clear DOM content synchronously - no async to avoid worker communication timeouts
+  if (typeof document !== 'undefined' && document.body) {
+    document.body.innerHTML = ''
   }
-} catch (error) {
-  // Silently ignore if already enabled - this is expected in some configurations
-  // The error "enableAutoUnmount cannot be called more than once" is harmless
-  if (!error.message?.includes('cannot be called more than once')) {
-    // Re-throw if it's a different error
-    throw error
-  }
-}
+
+  // CRITICAL: Event listeners on window persist across tests
+  // Clearing innerHTML above should trigger Vue component unmount hooks
+  // which will remove event listeners. No additional action needed here.
+})
 
 // CRITICAL SAFETY: Environment variable stubbing for Git safety
 process.env.NODE_ENV = 'test'
@@ -275,7 +393,20 @@ vi.mock('child_process', () => {
   }
 })
 
-// Initialize Git safety monitoring with timeout protection
+// IMPORTANT: Async initialization at module level causes "Vitest failed to access
+// its internal state" errors because async operations may still be running when
+// test suites complete, causing RPC communication failures with the worker.
+//
+// Context7 Best Practice: Avoid async operations in setupFiles. Use synchronous
+// initialization with globalThis.defined flag if needed.
+//
+// Git safety is already fully protected by:
+// 1. Environment variables (NODE_ENV=test, VITEST=true, GIT_TERMINAL_PROMPT=0)
+// 2. child_process mocks (lines 296-397) that block all Git operations
+// 3. This additional async initialization is redundant and causes worker state errors
+//
+// Commented out to prevent "Vitest failed to access its internal state" error:
+/*
 interface GitSafetyDetectorModule {
   GitSafetyDetector: {
     getInstance: () => {
@@ -295,7 +426,6 @@ interface GitSafetyDetectorModule {
 
 const initGitSafety = async () => {
   try {
-    // Set a timeout to prevent hanging on module import
     const importPromise = import(
       '@/universal/terminal-system/src/utils/GitSafetyDetector'
     )
@@ -325,7 +455,6 @@ const initGitSafety = async () => {
       console.warn('⚠️ This could indicate a configuration problem')
     }
   } catch (importError) {
-    // Fallback if module not available - don't break tests
     console.log(
       '🛡️ Git Safety: Basic protection active (enhanced detector not available)',
       (importError as Error).message || 'Import failed'
@@ -333,12 +462,12 @@ const initGitSafety = async () => {
   }
 }
 
-// Initialize with timeout protection
 initGitSafety().catch((error) => {
   console.warn(
     '⚠️ Git Safety: Could not initialize enhanced monitoring:',
     error
   )
 })
+*/
 
 console.log('✅ Global vitest setup completed with Git safety protections')

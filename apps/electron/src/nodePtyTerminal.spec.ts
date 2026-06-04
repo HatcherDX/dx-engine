@@ -266,7 +266,7 @@ describe('NodePtyTerminal', () => {
 
       expect(mockNodePty.spawn).toHaveBeenCalledWith(
         '/bin/bash',
-        [],
+        ['--norc', '--noprofile'],
         expect.objectContaining({
           name: 'xterm-color',
           cols: 120,
@@ -815,7 +815,7 @@ describe('NodePtyTerminal', () => {
 
       expect(mockNodePty.spawn).toHaveBeenCalledWith(
         expect.any(String),
-        [],
+        ['--norc', '--noprofile'],
         expect.objectContaining({
           cwd: expect.any(String),
         })
@@ -833,7 +833,7 @@ describe('NodePtyTerminal', () => {
 
       expect(mockNodePty.spawn).toHaveBeenCalledWith(
         expect.any(String),
-        [],
+        ['--norc', '--noprofile'],
         expect.objectContaining({
           cwd: '/home/testuser',
         })
@@ -856,7 +856,7 @@ describe('NodePtyTerminal', () => {
 
       expect(mockNodePty.spawn).toHaveBeenCalledWith(
         expect.any(String),
-        [],
+        ['--norc', '--noprofile'],
         expect.objectContaining({
           env: expect.objectContaining({
             TERM: 'xterm-256color',

@@ -53,6 +53,9 @@ interface MockHTMLElement extends Partial<HTMLElement> {
     remove: ReturnType<typeof vi.fn>
     toggle: ReturnType<typeof vi.fn>
   }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mocking HTMLElement.style for testing flexibility
+  style?: any
+  remove?: ReturnType<typeof vi.fn>
 }
 
 // Mock dependencies with vi.hoisted
@@ -82,6 +85,7 @@ const mocks = vi.hoisted(() => {
     mockTerminalContainer: {
       className: '',
       style: {},
+      remove: vi.fn(),
     },
     mockTerminalInstance: {
       id: 'test-ui-uuid-123',
@@ -255,14 +259,24 @@ describe('TerminalUI', () => {
     >
     createElementMock.mockImplementation((tagName: string) => {
       if (tagName === 'div') {
-        return {
+        const divElement = {
           innerHTML: '',
           className: '',
           style: {},
           appendChild: vi.fn(),
           querySelectorAll: vi.fn(() => []),
+          querySelector: vi.fn(),
           remove: vi.fn(),
         } as Partial<HTMLDivElement>
+
+        // Store references for later access in tests
+        if (!mocks.mockTabsContainer.innerHTML) {
+          Object.assign(mocks.mockTabsContainer, divElement)
+        } else if (!mocks.mockContentContainer.innerHTML) {
+          Object.assign(mocks.mockContentContainer, divElement)
+        }
+
+        return divElement
       }
       if (tagName === 'style') {
         return { textContent: '' } as Partial<HTMLStyleElement>
@@ -423,6 +437,22 @@ describe('TerminalUI', () => {
       expect(mockContainer.className).toBe('terminal-ui-container')
       expect(mockContainer.innerHTML).toBe('')
     })
+
+    /**
+     * Tests initialization without container fails gracefully.
+     *
+     * @returns Promise<void>
+     * Should handle null container gracefully
+     *
+     * @public
+     */
+    it('should handle initialization with null container', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Testing null container edge case
+      await terminalUI.initialize(null as any)
+
+      // Should not throw but also should not setup observer
+      expect(mocks.resizeObserver.observe).not.toHaveBeenCalled()
+    })
   })
 
   describe('Terminal creation', () => {
@@ -526,6 +556,26 @@ describe('TerminalUI', () => {
 
       expect(readySpy).toHaveBeenCalledWith('test-ui-uuid-123')
     })
+
+    /**
+     * Tests terminal UI setup without content container.
+     *
+     * @returns Promise<void>
+     * Should handle missing content container gracefully
+     *
+     * @public
+     */
+    it('should handle terminal UI setup without content container', async () => {
+      // Create a new UI without proper initialization
+      const newUI = new TerminalUI(mockTabManager)
+      const instance = await newUI.createTerminal()
+
+      expect(instance).toBe(mocks.mockTerminalInstance)
+      // Should not attempt to append to non-existent container
+      expect(mocks.mockTerminalInstance.initializeXterm).not.toHaveBeenCalled()
+
+      newUI.dispose()
+    })
   })
 
   describe('Terminal removal', () => {
@@ -558,6 +608,54 @@ describe('TerminalUI', () => {
       expect(result).toBe(true)
       expect(mockTabManager.removeTab).toHaveBeenCalledWith('test-ui-uuid-123')
       expect(closeSpy).toHaveBeenCalledWith('test-ui-uuid-123')
+    })
+
+    /**
+     * Tests terminal removal with split pane cleanup.
+     *
+     * @returns Promise<void>
+     * Should remove split pane element when terminal is removed
+     *
+     * @public
+     */
+    it('should remove split pane element when terminal is removed', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mocking DOM element for testing
+      const mockElement = { remove: vi.fn() } as any
+
+      // Manually add split pane to test removal
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Accessing private _splitPanes Map for testing
+      const splitPanesMap = (terminalUI as any)._splitPanes as Map<string, any>
+      splitPanesMap.set('test-ui-uuid-123', {
+        id: 'pane-test-ui-uuid-123',
+        terminalId: 'test-ui-uuid-123',
+        element: mockElement,
+        isActive: true,
+        size: 100,
+      })
+
+      await terminalUI.removeTerminal('test-ui-uuid-123')
+
+      expect(mockElement.remove).toHaveBeenCalled()
+      expect(splitPanesMap.has('test-ui-uuid-123')).toBe(false)
+    })
+
+    /**
+     * Tests terminal removal when tab manager fails.
+     *
+     * @returns Promise<void>
+     * Should return false when tab manager fails to remove
+     *
+     * @public
+     */
+    it('should handle tab manager removal failure', async () => {
+      mockTabManager.removeTab = vi.fn().mockResolvedValue(false)
+      const closeSpy = vi.fn()
+      terminalUI.on('close-request', closeSpy)
+
+      const result = await terminalUI.removeTerminal('test-ui-uuid-123')
+
+      expect(result).toBe(false)
+      expect(closeSpy).not.toHaveBeenCalled()
     })
 
     /**
@@ -656,6 +754,172 @@ describe('TerminalUI', () => {
         rows: 24,
       })
       expect(splitSpy).toHaveBeenCalledWith('test-ui-uuid-123')
+    })
+
+    /**
+     * Tests vertical terminal splitting when UI is disposed.
+     *
+     * @returns Promise<void>
+     * Should return null when UI is disposed
+     *
+     * @public
+     */
+    it('should return null when splitting vertically with disposed UI', async () => {
+      terminalUI.dispose()
+
+      const result = await terminalUI.splitTerminalVertical('test-ui-uuid-123')
+
+      expect(result).toBeNull()
+    })
+
+    /**
+     * Tests vertical splitting non-existent terminal.
+     *
+     * @returns Promise<void>
+     * Should return null when source terminal doesn't exist
+     *
+     * @public
+     */
+    it('should return null when splitting non-existent terminal vertically', async () => {
+      mockTabManager.getTab = vi.fn().mockReturnValue(null)
+
+      const result = await terminalUI.splitTerminalVertical('non-existent')
+
+      expect(result).toBeNull()
+    })
+
+    /**
+     * Tests split layout setup with proper pane configuration.
+     *
+     * @returns Promise<void>
+     * Should setup split panes with correct dimensions
+     *
+     * @public
+     */
+    it('should setup split layout with both panes having elements', async () => {
+      // Create source pane with element
+      const sourceElement = {
+        style: { width: '', height: '' },
+        appendChild: vi.fn(),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mocking DOM element for testing
+      } as any
+      const newElement = {
+        style: { width: '', height: '' },
+        appendChild: vi.fn(),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mocking DOM element for testing
+      } as any
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Accessing private _splitPanes Map for testing
+      const splitPanesMap = (terminalUI as any)._splitPanes as Map<string, any>
+      splitPanesMap.set('test-ui-uuid-123', {
+        id: 'pane-test-ui-uuid-123',
+        terminalId: 'test-ui-uuid-123',
+        element: sourceElement,
+        isActive: true,
+        size: 100,
+      })
+
+      // Mock new terminal creation to add new pane
+      mockTabManager.createTab = vi.fn().mockResolvedValue({
+        ...mocks.mockTerminalInstance,
+        id: 'new-terminal-id',
+      })
+
+      // Add new pane before split layout is called
+      const originalCreateTerminal = terminalUI.createTerminal.bind(terminalUI)
+      terminalUI.createTerminal = vi.fn().mockImplementation(async (config) => {
+        const result = await originalCreateTerminal(config)
+        splitPanesMap.set('new-terminal-id', {
+          id: 'pane-new-terminal-id',
+          terminalId: 'new-terminal-id',
+          element: newElement,
+          isActive: true,
+          size: 100,
+        })
+        return { ...result, id: 'new-terminal-id' }
+      })
+
+      await terminalUI.splitTerminalHorizontal('test-ui-uuid-123')
+
+      expect(sourceElement.style.width).toBe('50%')
+      expect(newElement.style.width).toBe('50%')
+    })
+
+    /**
+     * Tests vertical split layout setup with proper pane configuration.
+     *
+     * @returns Promise<void>
+     * Should setup vertical split panes with correct dimensions
+     *
+     * @public
+     */
+    it('should setup vertical split layout with proper dimensions', async () => {
+      // Create source pane with element
+      const sourceElement = {
+        style: { width: '', height: '' },
+        appendChild: vi.fn(),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mocking DOM element for testing
+      } as any
+      const newElement = {
+        style: { width: '', height: '' },
+        appendChild: vi.fn(),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mocking DOM element for testing
+      } as any
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Accessing private _splitPanes Map for testing
+      const splitPanesMap = (terminalUI as any)._splitPanes as Map<string, any>
+      splitPanesMap.set('test-ui-uuid-123', {
+        id: 'pane-test-ui-uuid-123',
+        terminalId: 'test-ui-uuid-123',
+        element: sourceElement,
+        isActive: true,
+        size: 100,
+      })
+
+      // Mock new terminal creation to add new pane
+      mockTabManager.createTab = vi.fn().mockResolvedValue({
+        ...mocks.mockTerminalInstance,
+        id: 'new-terminal-id',
+      })
+
+      // Add new pane before split layout is called
+      const originalCreateTerminal = terminalUI.createTerminal.bind(terminalUI)
+      terminalUI.createTerminal = vi.fn().mockImplementation(async (config) => {
+        const result = await originalCreateTerminal(config)
+        splitPanesMap.set('new-terminal-id', {
+          id: 'pane-new-terminal-id',
+          terminalId: 'new-terminal-id',
+          element: newElement,
+          isActive: true,
+          size: 100,
+        })
+        return { ...result, id: 'new-terminal-id' }
+      })
+
+      await terminalUI.splitTerminalVertical('test-ui-uuid-123')
+
+      expect(sourceElement.style.height).toBe('50%')
+      expect(newElement.style.height).toBe('50%')
+    })
+
+    /**
+     * Tests split layout when content container is missing.
+     *
+     * @returns Promise<void>
+     * Should handle missing content container gracefully
+     *
+     * @public
+     */
+    it('should handle split layout without content container', async () => {
+      // Remove content container reference
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Accessing private _contentContainer for testing
+      ;(terminalUI as any)._contentContainer = null
+
+      const result =
+        await terminalUI.splitTerminalHorizontal('test-ui-uuid-123')
+
+      // Should still create terminal but not setup layout
+      expect(result).toBe(mocks.mockTerminalInstance)
     })
 
     /**
@@ -786,6 +1050,82 @@ describe('TerminalUI', () => {
 
       expect(result).toBe(false)
     })
+
+    /**
+     * Tests active tab UI update without tabs container.
+     *
+     * @returns void
+     * Should handle missing tabs container gracefully
+     *
+     * @public
+     */
+    it('should handle active tab UI update without tabs container', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Accessing private _tabsContainer for testing
+      ;(terminalUI as any)._tabsContainer = null
+
+      const result = terminalUI.switchToTab('test-ui-uuid-123')
+
+      expect(result).toBe(true)
+      // Should not throw when tabs container is missing
+    })
+
+    /**
+     * Tests active tab UI update with split panes.
+     *
+     * @returns void
+     * Should show/hide split panes based on active tab
+     *
+     * @public
+     */
+    it('should update split pane visibility when switching tabs', async () => {
+      await terminalUI.createTerminal()
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mocking DOM element for testing
+      const mockElement1 = { style: { display: '' } } as any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mocking DOM element for testing
+      const mockElement2 = { style: { display: '' } } as any
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Accessing private _splitPanes Map for testing
+      const splitPanesMap = (terminalUI as any)._splitPanes as Map<string, any>
+      splitPanesMap.set('terminal-1', {
+        id: 'pane-1',
+        terminalId: 'terminal-1',
+        element: mockElement1,
+        isActive: false,
+        size: 50,
+      })
+      splitPanesMap.set('terminal-2', {
+        id: 'pane-2',
+        terminalId: 'terminal-2',
+        element: mockElement2,
+        isActive: false,
+        size: 50,
+      })
+
+      // Create mock tabs container with querySelectorAll
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Accessing private _tabsContainer for testing
+      ;(terminalUI as any)._tabsContainer = {
+        querySelectorAll: vi
+          .fn()
+          .mockReturnValue([
+            { classList: { toggle: vi.fn() } },
+            { classList: { toggle: vi.fn() } },
+          ]),
+      }
+
+      // Mock tab order to match our test terminals
+      mockTabManager.getTabsInOrder = vi.fn().mockReturnValue([
+        { id: 'terminal-1', instance: {}, isActive: false },
+        { id: 'terminal-2', instance: {}, isActive: false },
+      ])
+
+      terminalUI.switchToTab('terminal-1')
+
+      expect(mockElement1.style.display).toBe('block')
+      expect(mockElement2.style.display).toBe('none')
+      expect(splitPanesMap.get('terminal-1').isActive).toBe(true)
+      expect(splitPanesMap.get('terminal-2').isActive).toBe(false)
+    })
   })
 
   describe('Theme management', () => {
@@ -820,6 +1160,37 @@ describe('TerminalUI', () => {
 
       expect(mocks.mockTerminalInstance.xtermTerminal.options.theme).toEqual(
         expect.objectContaining(customTheme)
+      )
+    })
+
+    /**
+     * Tests theme updating for terminal without xterm or not ready.
+     *
+     * @returns void
+     * Should skip terminals that are not ready or missing xterm
+     *
+     * @public
+     */
+    it('should skip terminals without xterm or not ready', () => {
+      const terminalWithoutXterm = {
+        ...mocks.mockTerminalInstance,
+        xtermTerminal: null,
+      }
+      const terminalNotReady = { ...mocks.mockTerminalInstance, isReady: false }
+
+      mockTabManager.getAllTabs = vi
+        .fn()
+        .mockReturnValue([
+          terminalWithoutXterm,
+          terminalNotReady,
+          mocks.mockTerminalInstance,
+        ])
+
+      terminalUI.updateTheme({ background: '#000000' })
+
+      // Only the ready terminal with xterm should be updated
+      expect(mocks.mockTerminalInstance.xtermTerminal.options.theme).toEqual(
+        expect.objectContaining({ background: '#000000' })
       )
     })
 
@@ -873,6 +1244,105 @@ describe('TerminalUI', () => {
         mocks.mockTerminalInstance.xtermTerminal._core._addonManager._addons[0]
           .instance.fit
       ).toHaveBeenCalled()
+    })
+
+    /**
+     * Tests resizing with fit addon that has direct fit method.
+     *
+     * @returns void
+     * Should call fit() directly on addon when available
+     *
+     * @public
+     */
+    it('should call fit() directly on addon when available', () => {
+      const fitMock = vi.fn()
+      const terminalWithDirectFit = {
+        ...mocks.mockTerminalInstance,
+        xtermTerminal: {
+          options: { theme: {} },
+          _core: {
+            _addonManager: {
+              _addons: [
+                {
+                  fit: fitMock, // Direct fit method
+                },
+              ],
+            },
+          },
+        },
+      }
+
+      mockTabManager.getAllTabs = vi
+        .fn()
+        .mockReturnValue([terminalWithDirectFit])
+
+      terminalUI.resizeTerminals()
+
+      expect(fitMock).toHaveBeenCalled()
+    })
+
+    /**
+     * Tests resizing terminal without fit addon.
+     *
+     * @returns void
+     * Should handle terminal without fit addon gracefully
+     *
+     * @public
+     */
+    it('should handle terminal without fit addon', () => {
+      const terminalWithoutFit = {
+        ...mocks.mockTerminalInstance,
+        xtermTerminal: {
+          options: { theme: {} },
+          _core: {
+            _addonManager: {
+              _addons: [],
+            },
+          },
+        },
+      }
+
+      mockTabManager.getAllTabs = vi.fn().mockReturnValue([terminalWithoutFit])
+
+      expect(() => terminalUI.resizeTerminals()).not.toThrow()
+    })
+
+    /**
+     * Tests resizing terminal without extended terminal structure.
+     *
+     * @returns void
+     * Should handle incomplete terminal structure gracefully
+     *
+     * @public
+     */
+    it('should handle terminal without extended structure', () => {
+      const basicTerminal = {
+        ...mocks.mockTerminalInstance,
+        xtermTerminal: {
+          options: { theme: {} },
+          // No _core property
+        },
+      }
+
+      mockTabManager.getAllTabs = vi.fn().mockReturnValue([basicTerminal])
+
+      expect(() => terminalUI.resizeTerminals()).not.toThrow()
+    })
+
+    /**
+     * Tests resizing without container.
+     *
+     * @returns void
+     * Should return early when container is missing
+     *
+     * @public
+     */
+    it('should not resize when container is missing', () => {
+      const newUI = new TerminalUI(mockTabManager)
+
+      expect(() => newUI.resizeTerminals()).not.toThrow()
+
+      newUI.dispose()
     })
 
     /**
@@ -953,6 +1423,44 @@ describe('TerminalUI', () => {
       expect(stats.splitPanes).toBe(0)
 
       uninitializedUI.dispose()
+    })
+
+    /**
+     * Tests statistics with split panes and multiple terminals.
+     *
+     * @returns void
+     * Should return accurate counts for split panes and terminals
+     *
+     * @public
+     */
+    it('should return stats with split panes and terminals', async () => {
+      await terminalUI.createTerminal()
+
+      // Add split panes
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Accessing private _splitPanes Map for testing
+      const splitPanesMap = (terminalUI as any)._splitPanes as Map<string, any>
+      splitPanesMap.set('pane1', { id: 'pane1' })
+      splitPanesMap.set('pane2', { id: 'pane2' })
+
+      // Mock multiple terminals with different ready states
+      const terminal1 = { ...mocks.mockTerminalInstance, isReady: true }
+      const terminal2 = { ...mocks.mockTerminalInstance, isReady: false }
+      const terminal3 = { ...mocks.mockTerminalInstance, isReady: true }
+
+      mockTabManager.getAllTabs = vi
+        .fn()
+        .mockReturnValue([terminal1, terminal2, terminal3])
+      mockTabManager.getTabCount = vi.fn().mockReturnValue(3)
+
+      const stats = terminalUI.getUIStats()
+
+      expect(stats).toEqual({
+        hasContainer: true,
+        splitPanes: 3, // Including the one created in createTerminal
+        activeTerminals: 2, // Only ready terminals
+        totalTerminals: 3,
+        theme: 'default',
+      })
     })
   })
 
@@ -1068,6 +1576,313 @@ describe('TerminalUI', () => {
       // This test verifies the event is registered but doesn't trigger it
       // as error emission is handled by terminal instances
       expect(errorSpy).not.toHaveBeenCalled()
+    })
+
+    /**
+     * Tests tab manager event handlers.
+     *
+     * @returns void
+     * Should update tabs UI when tab manager events are triggered
+     *
+     * @public
+     */
+    it('should update tabs UI on tab manager events', () => {
+      // Get the registered event handlers
+      const tabCreatedHandler = mockTabManager.on.mock.calls.find(
+        (call) => call[0] === 'tab-created'
+      )?.[1]
+      const tabRemovedHandler = mockTabManager.on.mock.calls.find(
+        (call) => call[0] === 'tab-removed'
+      )?.[1]
+      const tabActivatedHandler = mockTabManager.on.mock.calls.find(
+        (call) => call[0] === 'tab-activated'
+      )?.[1]
+      const tabTitleChangedHandler = mockTabManager.on.mock.calls.find(
+        (call) => call[0] === 'tab-title-changed'
+      )?.[1]
+
+      // Mock tabs container for updateTabsUI
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Accessing private _tabsContainer for testing
+      ;(terminalUI as any)._tabsContainer = {
+        innerHTML: '',
+        appendChild: vi.fn(),
+        querySelectorAll: vi.fn().mockReturnValue([]),
+      }
+
+      // Trigger events
+      tabCreatedHandler?.('new-tab-id')
+      tabRemovedHandler?.('removed-tab-id')
+      tabActivatedHandler?.('activated-tab-id')
+      tabTitleChangedHandler?.('renamed-tab-id', 'New Title')
+
+      // Verify tabs were updated (getTabsInOrder called for each event)
+      expect(mockTabManager.getTabsInOrder).toHaveBeenCalled()
+    })
+
+    /**
+     * Tests tab click handler in updateTabsUI.
+     *
+     * @returns void
+     * Should switch to tab when clicked
+     *
+     * @public
+     */
+    it('should handle tab click to switch tabs', async () => {
+      await terminalUI.createTerminal()
+
+      // Setup tabs container
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Accessing private _tabsContainer for testing
+      ;(terminalUI as any)._tabsContainer = {
+        innerHTML: '',
+        appendChild: vi.fn(),
+        querySelectorAll: vi.fn().mockReturnValue([]),
+      }
+
+      // Trigger updateTabsUI
+      const tabCreatedHandler = mockTabManager.on.mock.calls.find(
+        (call) => call[0] === 'tab-created'
+      )?.[1]
+      tabCreatedHandler?.('test-ui-uuid-123')
+
+      // Get the created button element
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Accessing mock calls for testing
+      const createElementCalls = (document.createElement as any).mock.calls
+      const buttonCall = createElementCalls.find(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mocking call signature for testing
+        (call: any[]) => call[0] === 'button'
+      )
+      const buttonIndex = createElementCalls.indexOf(buttonCall)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Accessing mock results for testing
+      const button = (document.createElement as any).mock.results[buttonIndex]
+        ?.value
+
+      // Trigger click
+      if (button?.onclick) {
+        button.onclick()
+      }
+
+      expect(mockTabManager.activateTab).toHaveBeenCalledWith(
+        'test-ui-uuid-123'
+      )
+    })
+
+    /**
+     * Tests close button click handler in updateTabsUI.
+     *
+     * @returns void
+     * Should remove terminal when close button clicked
+     *
+     * @public
+     */
+    it('should handle close button click to remove terminal', async () => {
+      await terminalUI.createTerminal()
+
+      // Setup tabs container
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Accessing private _tabsContainer for testing
+      ;(terminalUI as any)._tabsContainer = {
+        innerHTML: '',
+        appendChild: vi.fn(),
+        querySelectorAll: vi.fn().mockReturnValue([]),
+      }
+
+      // Trigger updateTabsUI
+      const tabCreatedHandler = mockTabManager.on.mock.calls.find(
+        (call) => call[0] === 'tab-created'
+      )?.[1]
+      tabCreatedHandler?.('test-ui-uuid-123')
+
+      // Get the created close button (second button created)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Accessing mock calls for testing
+      const createElementCalls = (document.createElement as any).mock.calls
+      const buttonCalls = createElementCalls.filter(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mocking call signature for testing
+        (call: any[]) => call[0] === 'button'
+      )
+      const closeButtonIndex = createElementCalls.indexOf(buttonCalls[1])
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Accessing mock results for testing
+      const closeButton = (document.createElement as any).mock.results[
+        closeButtonIndex
+      ]?.value
+
+      // Mock event for stopPropagation
+      const mockEvent = { stopPropagation: vi.fn() }
+
+      // Trigger close button click
+      if (closeButton?.onclick) {
+        closeButton.onclick(mockEvent)
+      }
+
+      expect(mockEvent.stopPropagation).toHaveBeenCalled()
+      expect(mockTabManager.removeTab).toHaveBeenCalledWith('test-ui-uuid-123')
+    })
+
+    /**
+     * Tests updateTabsUI without tabs container.
+     *
+     * @returns void
+     * Should handle missing tabs container gracefully
+     *
+     * @public
+     */
+    it('should handle updateTabsUI without tabs container', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Accessing private _tabsContainer for testing
+      ;(terminalUI as any)._tabsContainer = null
+
+      // Trigger tab created event
+      const tabCreatedHandler = mockTabManager.on.mock.calls.find(
+        (call) => call[0] === 'tab-created'
+      )?.[1]
+
+      expect(() => tabCreatedHandler?.('test-ui-uuid-123')).not.toThrow()
+    })
+
+    /**
+     * Tests updateTabsUI with inactive tab to cover ternary branch.
+     *
+     * @returns void
+     * Should properly render inactive tab without active class
+     *
+     * @public
+     */
+    it('should render inactive tab without active class', async () => {
+      await terminalUI.createTerminal()
+
+      // Setup tabs to return two tabs - first active, second inactive
+      mockTabManager.getTabsInOrder.mockReturnValue([
+        {
+          id: 'active-tab',
+          instance: mocks.mockTerminalInstance,
+          isActive: true, // Active tab
+        },
+        {
+          id: 'inactive-tab',
+          instance: mocks.mockTerminalInstance,
+          isActive: false, // Inactive tab - this is what we're testing
+        },
+      ])
+
+      // Setup tabs container
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Accessing private _tabsContainer for testing
+      ;(terminalUI as any)._tabsContainer = {
+        innerHTML: '',
+        appendChild: vi.fn(),
+        querySelectorAll: vi.fn().mockReturnValue([]),
+      }
+
+      // Clear previous createElement calls
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Accessing mock for testing
+      ;(document.createElement as any).mockClear()
+
+      // Trigger updateTabsUI
+      const tabCreatedHandler = mockTabManager.on.mock.calls.find(
+        (call) => call[0] === 'tab-created'
+      )?.[1]
+      tabCreatedHandler?.('inactive-tab')
+
+      // Get created buttons (should be at least 2, plus close buttons)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Accessing mock calls for testing
+      const createElementCalls = (document.createElement as any).mock.calls
+      const buttonCalls = createElementCalls.filter(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mocking call signature for testing
+        (call: any[]) => call[0] === 'button'
+      )
+
+      // Find the tab buttons specifically (not close buttons)
+      const tabButtons = []
+      for (let i = 0; i < buttonCalls.length; i++) {
+        const buttonIndex = createElementCalls.indexOf(buttonCalls[i])
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Accessing mock results for testing
+        const button = (document.createElement as any).mock.results[buttonIndex]
+          ?.value
+        if (button?.className?.includes('terminal-tab')) {
+          tabButtons.push(button)
+        }
+      }
+
+      expect(tabButtons.length).toBeGreaterThanOrEqual(2)
+
+      // Get the inactive tab button
+      const inactiveButton = tabButtons.find(
+        (btn) => !btn.className.includes('active')
+      )
+
+      // Should have found an inactive button
+      expect(inactiveButton).toBeTruthy()
+      expect(inactiveButton?.className).toContain('terminal-tab')
+      expect(inactiveButton?.className).not.toContain('active')
+    })
+
+    /**
+     * Tests updateActiveTabUI with split pane without element.
+     *
+     * @returns void
+     * Should handle split pane without element gracefully
+     *
+     * @public
+     */
+    it('should handle split pane without element in updateActiveTabUI', async () => {
+      await terminalUI.createTerminal()
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Accessing private _splitPanes Map for testing
+      const splitPanesMap = (terminalUI as any)._splitPanes as Map<string, any>
+      splitPanesMap.set('terminal-1', {
+        id: 'pane-1',
+        terminalId: 'terminal-1',
+        element: null, // No element
+        isActive: false,
+        size: 50,
+      })
+
+      // Setup tabs container with querySelectorAll
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Accessing private _tabsContainer for testing
+      ;(terminalUI as any)._tabsContainer = {
+        querySelectorAll: vi.fn().mockReturnValue([
+          {
+            dataset: { terminalId: 'test-ui-uuid-123' },
+            classList: {
+              add: vi.fn(),
+              remove: vi.fn(),
+              toggle: vi.fn(),
+            },
+          },
+        ]),
+      }
+
+      // Should not throw when switching tabs
+      expect(() => terminalUI.switchToTab('test-ui-uuid-123')).not.toThrow()
+    })
+
+    /**
+     * Tests container structure setup to ensure proper initialization.
+     *
+     * @returns void
+     * Should setup container structure correctly
+     *
+     * @public
+     */
+    it('should setup container structure during initialization', async () => {
+      // Create a fresh terminalUI
+      const testUI = new TerminalUI(mockTabManager)
+
+      // Initialize the UI with container
+      await testUI.initialize(mockContainer)
+
+      // Verify container structure was setup
+      expect(mockContainer.className).toContain('terminal-ui-container')
+
+      // Verify tabs container was created
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Accessing mock calls for testing
+      const tabsContainerCall = (document.createElement as any).mock.calls.find(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mocking call signature for testing
+        (call: any[]) => call[0] === 'div'
+      )
+      expect(tabsContainerCall).toBeTruthy()
+
+      // Verify the UI is properly initialized (checking container is set)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Accessing private _container for testing
+      expect((testUI as any)._container).toBe(mockContainer)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Accessing private _isDisposed for testing
+      expect((testUI as any)._isDisposed).toBe(false)
     })
   })
 })

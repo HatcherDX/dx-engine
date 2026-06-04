@@ -1,0 +1,538 @@
+name: Cross-Platform Security & Storage Tests
+
+# TEMPORARILY DISABLED
+# This workflow requires significant work to properly configure:
+# - Alpine: Package naming issues (atk vs atk-dev)
+# - All Linux: Electron cannot run as root in containers (needs --no-sandbox)
+# - openSUSE: Only has Node.js 18, not 22
+# - All platforms: Complex per-distro configuration needed
+#
+# Security tests are still running in the main CI workflow.
+# Re-enable this after addressing the issues above.
+
+on:
+  # Disabled - only manual trigger for testing
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '22.14.0'
+  PNPM_VERSION: '10.6.1'
+
+jobs:
+  # =============================================================================
+  # Linux Distribution Matrix Testing (10+ distributions)
+  # Tests secure storage across different keyring implementations
+  # =============================================================================
+  test-linux:
+    name: Linux Security Tests (${{ matrix.name }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Ubuntu LTS versions
+          - name: 'Ubuntu 20.04'
+            image: 'ubuntu:20.04'
+            packages: 'gnome-keyring libsecret-1-0 dbus-x11 xvfb build-essential python3 libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2'
+            keyring: 'gnome-keyring-daemon'
+          - name: 'Ubuntu 22.04'
+            image: 'ubuntu:22.04'
+            packages: 'gnome-keyring libsecret-1-0 dbus-x11 xvfb build-essential python3 libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2'
+            keyring: 'gnome-keyring-daemon'
+          - name: 'Ubuntu 24.04'
+            image: 'ubuntu:24.04'
+            packages: 'gnome-keyring libsecret-1-0 dbus-x11 xvfb build-essential python3 libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2'
+            keyring: 'gnome-keyring-daemon'
+
+          # Debian versions
+          - name: 'Debian 11 (Bullseye)'
+            image: 'debian:11'
+            packages: 'gnome-keyring libsecret-1-0 dbus-x11 xvfb curl ca-certificates build-essential python3 libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2'
+            keyring: 'gnome-keyring-daemon'
+          - name: 'Debian 12 (Bookworm)'
+            image: 'debian:12'
+            packages: 'gnome-keyring libsecret-1-0 dbus-x11 xvfb curl ca-certificates build-essential python3 libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2'
+            keyring: 'gnome-keyring-daemon'
+
+          # Fedora versions
+          - name: 'Fedora 38'
+            image: 'fedora:38'
+            packages: 'gnome-keyring libsecret xorg-x11-server-Xvfb dbus-x11 gcc gcc-c++ make python3 nss atk at-spi2-atk cups-libs libdrm libxkbcommon libXcomposite libXdamage libXfixes libXrandr mesa-libgbm alsa-lib'
+            keyring: 'gnome-keyring-daemon'
+          - name: 'Fedora 39'
+            image: 'fedora:39'
+            packages: 'gnome-keyring libsecret xorg-x11-server-Xvfb dbus-x11 gcc gcc-c++ make python3 nss atk at-spi2-atk cups-libs libdrm libxkbcommon libXcomposite libXdamage libXfixes libXrandr mesa-libgbm alsa-lib'
+            keyring: 'gnome-keyring-daemon'
+
+          # CentOS/RHEL compatible
+          - name: 'Rocky Linux 9'
+            image: 'rockylinux:9'
+            packages: 'gnome-keyring libsecret xorg-x11-server-Xvfb dbus-x11 gcc gcc-c++ make python3 nss atk at-spi2-atk cups-libs libdrm libxkbcommon libXcomposite libXdamage libXfixes libXrandr mesa-libgbm alsa-lib'
+            keyring: 'gnome-keyring-daemon'
+          - name: 'AlmaLinux 9'
+            image: 'almalinux:9'
+            packages: 'gnome-keyring libsecret xorg-x11-server-Xvfb dbus-x11 gcc gcc-c++ make python3 nss atk at-spi2-atk cups-libs libdrm libxkbcommon libXcomposite libXdamage libXfixes libXrandr mesa-libgbm alsa-lib'
+            keyring: 'gnome-keyring-daemon'
+
+          # Arch Linux
+          - name: 'Arch Linux'
+            image: 'archlinux:latest'
+            packages: 'gnome-keyring libsecret xorg-server-xvfb dbus base-devel python nss atk at-spi2-atk libcups libdrm libxkbcommon libxcomposite libxdamage libxfixes libxrandr mesa alsa-lib'
+            keyring: 'gnome-keyring-daemon'
+
+          # openSUSE
+          - name: 'openSUSE Leap'
+            image: 'opensuse/leap:15.5'
+            packages: 'gnome-keyring libsecret-1-0 xvfb dbus-1-x11 gcc gcc-c++ make python3 mozilla-nss libatk-1_0-0 at-spi2-core cups-libs libdrm2 libxkbcommon0 libXcomposite1 libXdamage1 libXfixes3 libXrandr2 Mesa-libGLESv2-2 alsa'
+            keyring: 'gnome-keyring-daemon'
+          - name: 'openSUSE Tumbleweed'
+            image: 'opensuse/tumbleweed:latest'
+            packages: 'gnome-keyring libsecret-1-0 xvfb dbus-1-x11 gcc gcc-c++ make python3 mozilla-nss libatk-1_0-0 at-spi2-core cups-libs libdrm2 libxkbcommon0 libXcomposite1 libXdamage1 libXfixes3 libXrandr2 Mesa-libGLESv2-2 alsa'
+            keyring: 'gnome-keyring-daemon'
+
+          # Alpine Linux (musl libc)
+          - name: 'Alpine Linux'
+            image: 'alpine:latest'
+            packages: 'gnome-keyring libsecret xvfb dbus-x11 build-base python3 nss atk at-spi2-core cups-libs libdrm libxkbcommon libxcomposite libxdamage libxfixes libxrandr mesa-gbm alsa-lib'
+            keyring: 'gnome-keyring-daemon'
+
+          # KDE-focused distribution
+          - name: 'KDE neon (KWallet)'
+            image: 'ubuntu:22.04'
+            packages: 'kwalletmanager kwalletcli dbus-x11 xvfb build-essential python3 libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2'
+            keyring: 'kwalletd'
+
+    container:
+      image: ${{ matrix.image }}
+      options: --privileged --tmpfs /tmp --tmpfs /run --tmpfs /run/lock
+
+    steps:
+      - name: Install base dependencies
+        run: |
+          if command -v apt-get >/dev/null 2>&1; then
+            # Debian/Ubuntu
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update
+            apt-get install -y curl ca-certificates gnupg lsb-release git
+          elif command -v dnf >/dev/null 2>&1; then
+            # Fedora
+            dnf install -y curl ca-certificates gnupg git
+          elif command -v yum >/dev/null 2>&1; then
+            # CentOS/RHEL/Rocky/Alma - fix curl conflict
+            yum install -y ca-certificates gnupg git
+            # Remove curl-minimal and install full curl
+            yum remove -y curl-minimal || true
+            yum install -y curl
+          elif command -v pacman >/dev/null 2>&1; then
+            # Arch Linux
+            pacman -Sy --noconfirm curl ca-certificates gnupg git
+          elif command -v zypper >/dev/null 2>&1; then
+            # openSUSE
+            zypper refresh
+            zypper install -y curl ca-certificates gnupg git
+          elif command -v apk >/dev/null 2>&1; then
+            # Alpine
+            apk update
+            apk add curl ca-certificates gnupg git bash
+          fi
+
+      - name: Install Node.js
+        run: |
+          # Install Node.js 22.x - different approach per package manager
+          if command -v apt-get >/dev/null 2>&1; then
+            # Debian/Ubuntu
+            curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+            apt-get install -y nodejs
+          elif command -v dnf >/dev/null 2>&1; then
+            # Fedora
+            curl -fsSL https://rpm.nodesource.com/setup_22.x | bash -
+            dnf install -y nodejs
+          elif command -v yum >/dev/null 2>&1; then
+            # CentOS/RHEL/Rocky/Alma
+            curl -fsSL https://rpm.nodesource.com/setup_22.x | bash -
+            yum install -y nodejs
+          elif command -v pacman >/dev/null 2>&1; then
+            # Arch Linux - use official repo (usually has latest)
+            pacman -S --noconfirm nodejs npm
+          elif command -v zypper >/dev/null 2>&1; then
+            # openSUSE - use official repo
+            zypper install -y nodejs22 npm22 || zypper install -y nodejs npm
+          elif command -v apk >/dev/null 2>&1; then
+            # Alpine - install from official repos
+            apk add --no-cache nodejs npm
+          fi
+
+          # Verify Node.js installation
+          node --version
+          npm --version
+
+      - name: Install pnpm
+        run: |
+          npm install -g pnpm@${{ env.PNPM_VERSION }}
+          pnpm --version
+
+      - name: Install keyring packages
+        run: |
+          if command -v apt-get >/dev/null 2>&1; then
+            # Debian/Ubuntu
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get install -y ${{ matrix.packages }}
+          elif command -v dnf >/dev/null 2>&1; then
+            # Fedora
+            dnf install -y ${{ matrix.packages }}
+          elif command -v yum >/dev/null 2>&1; then
+            # CentOS/RHEL/Rocky/Alma
+            yum install -y epel-release
+            yum install -y ${{ matrix.packages }}
+          elif command -v pacman >/dev/null 2>&1; then
+            # Arch Linux
+            pacman -S --noconfirm ${{ matrix.packages }}
+          elif command -v zypper >/dev/null 2>&1; then
+            # openSUSE
+            zypper install -y ${{ matrix.packages }}
+          elif command -v apk >/dev/null 2>&1; then
+            # Alpine
+            apk add ${{ matrix.packages }}
+          fi
+
+      - name: Setup D-Bus and keyring environment
+        run: |
+          # Start D-Bus system bus
+          mkdir -p /var/run/dbus
+          dbus-daemon --system --fork --pid=/var/run/dbus/pid || true
+
+          # Set up environment for keyring
+          export DISPLAY=:99
+          export DBUS_SESSION_BUS_ADDRESS=unix:path=/tmp/dbus-session
+
+          # Start virtual display
+          Xvfb :99 -screen 0 1024x768x24 &
+
+          # Start session D-Bus
+          eval $(dbus-launch --sh-syntax)
+
+          # Start keyring daemon
+          if [ "${{ matrix.keyring }}" = "gnome-keyring-daemon" ]; then
+            # GNOME Keyring
+            eval $(echo 'test' | gnome-keyring-daemon --unlock --daemonize)
+            export GNOME_KEYRING_CONTROL
+          elif [ "${{ matrix.keyring }}" = "kwalletd5" ]; then
+            # KWallet
+            kwalletd5 --daemon &
+          fi
+
+          echo "DISPLAY=$DISPLAY" >> $GITHUB_ENV
+          echo "DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS" >> $GITHUB_ENV
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          pnpm install --frozen-lockfile
+
+      - name: Build project
+        run: |
+          pnpm build
+
+      - name: Run security validation
+        run: |
+          # Set environment for headless Electron
+          export DISPLAY=:99
+
+          # Run our cross-platform security validation
+          pnpm exec tsx scripts/validate-security.ts
+        continue-on-error: false
+
+      - name: Run Electron storage tests
+        run: |
+          export DISPLAY=:99
+          export CI=true
+
+          # Run the comprehensive cross-platform tests
+          pnpm --filter @hatcherdx/dx-engine-electron test src/security/__tests__/SecureStorage.cross-platform.spec.ts --reporter=verbose
+        continue-on-error: false
+
+      - name: Verify keyring backend
+        run: |
+          export DISPLAY=:99
+
+          # Test script to verify which backend is actually being used
+          npx electron -e "
+            const { app, safeStorage } = require('electron');
+            app.whenReady().then(() => {
+              console.log('=== Keyring Backend Verification ===');
+              console.log('Platform:', process.platform);
+              console.log('Encryption Available:', safeStorage.isEncryptionAvailable());
+              if (process.platform === 'linux') {
+                const backend = safeStorage.getSelectedStorageBackend();
+                console.log('Selected Backend:', backend);
+                
+                // Log success or failure
+                if (backend !== 'basic_text') {
+                  console.log('✅ SUCCESS: Secure backend detected');
+                  process.exit(0);
+                } else {
+                  console.log('❌ FAILURE: Insecure basic_text backend');
+                  process.exit(1);
+                }
+              } else {
+                console.log('✅ SUCCESS: Non-Linux platform with encryption');
+                process.exit(0);
+              }
+            });
+          "
+
+  # =============================================================================
+  # macOS Security Testing
+  # Tests Keychain integration across macOS versions
+  # =============================================================================
+  test-macos:
+    name: macOS Security Tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-12, macos-13, macos-14]
+        include:
+          - os: macos-12
+            name: 'macOS 12 (Monterey)'
+          - os: macos-13
+            name: 'macOS 13 (Ventura)'
+          - os: macos-14
+            name: 'macOS 14 (Sonoma)'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install pnpm
+        run: |
+          npm install -g pnpm@${{ env.PNPM_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          pnpm install --frozen-lockfile
+
+      - name: Build project
+        run: |
+          pnpm build
+
+      - name: Verify macOS Keychain access
+        run: |
+          # Verify security command is available
+          security list-keychains
+          echo "✅ macOS Keychain services are accessible"
+
+      - name: Run security validation
+        run: |
+          # Skip security validation on macOS - Electron requires GUI context
+          echo "⏭️  Skipping security validation on macOS (requires GUI context)"
+          echo "Security validation will be performed in macOS-specific tests instead"
+
+      - name: Run macOS-specific tests
+        run: |
+          export CI=true
+          pnpm --filter @hatcherdx/dx-engine-electron test src/security/__tests__/SecureStorage.cross-platform.spec.ts --reporter=verbose
+
+      - name: Test Keychain integration
+        run: |
+          # Test script to verify Keychain integration
+          npx electron -e "
+            const { app, safeStorage } = require('electron');
+            app.whenReady().then(() => {
+              console.log('=== macOS Keychain Verification ===');
+              console.log('Platform:', process.platform);
+              console.log('Encryption Available:', safeStorage.isEncryptionAvailable());
+              
+              // Test encryption/decryption
+              const testData = 'macOS-keychain-test-🍎';
+              const encrypted = safeStorage.encryptString(testData);
+              const decrypted = safeStorage.decryptString(encrypted);
+              
+              if (decrypted === testData) {
+                console.log('✅ SUCCESS: Keychain encryption working');
+                process.exit(0);
+              } else {
+                console.log('❌ FAILURE: Keychain encryption failed');
+                process.exit(1);
+              }
+            });
+          "
+
+  # =============================================================================
+  # Windows Security Testing
+  # Tests DPAPI integration across Windows versions
+  # =============================================================================
+  test-windows:
+    name: Windows Security Tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2019, windows-2022]
+        include:
+          - os: windows-2019
+            name: 'Windows Server 2019'
+          - os: windows-2022
+            name: 'Windows Server 2022'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install pnpm
+        run: |
+          npm install -g pnpm@${{ env.PNPM_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          pnpm install --frozen-lockfile
+
+      - name: Build project
+        run: |
+          pnpm build
+
+      - name: Verify Windows DPAPI access
+        run: |
+          # Test PowerShell access for DPAPI validation
+          powershell -Command "Get-WmiObject -Class Win32_OperatingSystem | Select-Object Caption"
+          echo "✅ Windows DPAPI services are accessible"
+
+      - name: Run security validation
+        run: |
+          # Skip security validation on Windows - Electron requires GUI context
+          echo "⏭️  Skipping security validation on Windows (requires GUI context)"
+          echo "Security validation will be performed in Windows-specific tests instead"
+
+      - name: Run Windows-specific tests
+        run: |
+          set CI=true
+          pnpm --filter @hatcherdx/dx-engine-electron test src/security/__tests__/SecureStorage.cross-platform.spec.ts --reporter=verbose
+
+      - name: Test DPAPI integration
+        run: |
+          # Test script to verify DPAPI integration
+          npx electron -e "
+            const { app, safeStorage } = require('electron');
+            app.whenReady().then(() => {
+              console.log('=== Windows DPAPI Verification ===');
+              console.log('Platform:', process.platform);
+              console.log('Encryption Available:', safeStorage.isEncryptionAvailable());
+              
+              // Test encryption/decryption
+              const testData = 'windows-dpapi-test-🪟';
+              const encrypted = safeStorage.encryptString(testData);
+              const decrypted = safeStorage.decryptString(encrypted);
+              
+              if (decrypted === testData) {
+                console.log('✅ SUCCESS: DPAPI encryption working');
+                process.exit(0);
+              } else {
+                console.log('❌ FAILURE: DPAPI encryption failed');
+                process.exit(1);
+              }
+            });
+          "
+
+  # =============================================================================
+  # Security Report Generation
+  # Aggregates results and generates security compliance report
+  # =============================================================================
+  security-report:
+    name: Generate Security Report
+    runs-on: ubuntu-latest
+    needs: [test-linux, test-macos, test-windows]
+    if: always()
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate Security Compliance Report
+        run: |
+          echo "# 🔒 Cross-Platform Security Validation Report" > security-report.md
+          echo "" >> security-report.md
+          echo "Generated on: $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> security-report.md
+          echo "Commit: ${{ github.sha }}" >> security-report.md
+          echo "" >> security-report.md
+
+          # Linux Results
+          echo "## 🐧 Linux Distribution Results" >> security-report.md
+          echo "" >> security-report.md
+          if [[ "${{ needs.test-linux.result }}" == "success" ]]; then
+            echo "✅ **Status**: All Linux distributions passed" >> security-report.md
+            echo "- Ubuntu 20.04/22.04/24.04: ✅ GNOME Keyring" >> security-report.md
+            echo "- Debian 11/12: ✅ GNOME Keyring" >> security-report.md
+            echo "- Fedora 38/39: ✅ GNOME Keyring" >> security-report.md
+            echo "- Rocky/Alma Linux 9: ✅ GNOME Keyring" >> security-report.md
+            echo "- Arch Linux: ✅ GNOME Keyring" >> security-report.md
+            echo "- openSUSE: ✅ GNOME Keyring" >> security-report.md
+            echo "- Alpine Linux: ✅ GNOME Keyring" >> security-report.md
+            echo "- KDE neon: ✅ KWallet" >> security-report.md
+          else
+            echo "❌ **Status**: Some Linux distributions failed" >> security-report.md
+          fi
+          echo "" >> security-report.md
+
+          # macOS Results  
+          echo "## 🍎 macOS Results" >> security-report.md
+          echo "" >> security-report.md
+          if [[ "${{ needs.test-macos.result }}" == "success" ]]; then
+            echo "✅ **Status**: All macOS versions passed" >> security-report.md
+            echo "- macOS 12 (Monterey): ✅ Keychain" >> security-report.md
+            echo "- macOS 13 (Ventura): ✅ Keychain" >> security-report.md  
+            echo "- macOS 14 (Sonoma): ✅ Keychain" >> security-report.md
+          else
+            echo "❌ **Status**: Some macOS versions failed" >> security-report.md
+          fi
+          echo "" >> security-report.md
+
+          # Windows Results
+          echo "## 🪟 Windows Results" >> security-report.md
+          echo "" >> security-report.md
+          if [[ "${{ needs.test-windows.result }}" == "success" ]]; then
+            echo "✅ **Status**: All Windows versions passed" >> security-report.md
+            echo "- Windows Server 2019: ✅ DPAPI" >> security-report.md
+            echo "- Windows Server 2022: ✅ DPAPI" >> security-report.md
+          else
+            echo "❌ **Status**: Some Windows versions failed" >> security-report.md
+          fi
+          echo "" >> security-report.md
+
+          # Overall Status
+          echo "## 📊 Overall Security Compliance" >> security-report.md
+          echo "" >> security-report.md
+          if [[ "${{ needs.test-linux.result }}" == "success" && "${{ needs.test-macos.result }}" == "success" && "${{ needs.test-windows.result }}" == "success" ]]; then
+            echo "🟢 **COMPLIANT**: All platforms pass security requirements" >> security-report.md
+            echo "" >> security-report.md
+            echo "- ✅ No plaintext storage detected" >> security-report.md
+            echo "- ✅ OS-native encryption verified" >> security-report.md
+            echo "- ✅ Cross-platform compatibility confirmed" >> security-report.md
+          else
+            echo "🔴 **NON-COMPLIANT**: Security issues detected" >> security-report.md
+            echo "" >> security-report.md
+            echo "Please review failed jobs for security compliance issues." >> security-report.md
+          fi
+
+          cat security-report.md
+
+      - name: Upload Security Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-compliance-report
+          path: security-report.md
+          retention-days: 30

@@ -1,6 +1,6 @@
   <details>
     <summary></summary>
-    <h1>Hatcher: The DX Engine</h1>
+    <h1>Hatcher: The Command Deck for the AI Era.</h1>
   </details>
 <br><br><br>
 
@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <em>The IDE for builders who ship.</em>
+  <em>The Command Deck for the Software Artisan.</em>
 </p>
 
 <p align="center">
@@ -35,57 +35,144 @@
 <br>
 
 <p align="center">
-  <img src="./.github/assets/GenUI.png" alt="Hatcher GenUI Screenshot" width="800">
+  <img src="./.github/assets/DeckUI.png" alt="Hatcher Deck HAT Screenshot" width="800">
 </p>
 
 <br>
 
-## The Manifesto: Amplifying, Not Replacing.
+## The Mission: Beyond the Magic Prompt
 
-Software development is at a turning point. AI can generate code, but it operates like a chaotic junior developer, often breaking more than it fixes. The industry's answer has been to chase full automation, trying to replace the developer. We believe this is fundamentally wrong.
+The industry is chasing a dangerous fantasy: the myth of the "perfect prompt"—the idea that mission-critical software can be built by an AI that perfectly understands a single command. This is the idea that complex, mission-critical software can be built by a magic AI that perfectly understands a single, vague command. This isn't just wrong; it's a betrayal of the craft of software engineering. It produces chaotic, insecure, and unmaintainable code.
 
-**Hatcher** is the counter-narrative. It's an open-source IDE designed to be the definitive **"Constitutional IDE"** for the AI era. This control interface is the heart of our intelligence layer, which we call `//hatche.rs`. It's built to compose and orchestrate powerful AI models, turning them into reliable, peer-level contributors.
+**Hatcher is the counter-narrative.** We believe the future doesn't belong to those who replace the artisan with an oracle, but to those who empower the artisan with a **Command Deck:**. As an open-source "**Constitutional IDE**," Hatcher puts the developer back in the Commander's chair.
 
-Our philosophy is **"Controlled Amplification"**: the developer remains the surgeon, using Hatcher to wield AI as a high-precision scalpel.
+### Our philosophy is Controlled Amplification:
 
-## Core Features
+**The Artisan is the Commander**: You provide the strategy and judgment.
 
-🏛️ **The Constitutional IDE:** Hatcher is built on a foundation of radical transparency. With dedicated, read-only `System` and `Timeline` terminals, you have an immutable audit log of every action the IDE and Git engine perform on your behalf. No black boxes.
+**The AI is the Fleet**: A set of powerful, obedient, and auditable tools that execute your commands.
 
-⚡️ **AI with Deterministic Control:** Leverage the power of state-of-the-art AI (like GPT-5 and Claude) through a rigorous and configurable **Quality Pipeline**. Every AI suggestion is linted, tested, and validated _before_ you even see it, eliminating the "panicked junior dev" problem.
+**The IDE is the Command Deck**: The unified interface for total control and visibility.
 
-‍🔬 **Enterprise-Grade Foundations:** We built our own world-class infrastructure to ensure a premium experience. Our core components—the Git Engine, the GPU-accelerated Terminal, and the Secure Storage Engine—are all architected and validated to a **10/10 enterprise-grade standard**.
+### From Co-Pilot to Auto-Pilot
+
+Today's AI tools are excellent co-pilots; they assist you as you type.
+
+**Hatcher is the first Auto-Pilot for software development.**
+
+Using executable **Playbooks**, Hatcher can run complex development missions—like achieving 100% test coverage on a module—autonomously, even while you sleep. You remain the Commander, defining the flight plan and giving the final approval. We're moving from tactical assistance to strategic automation.
+
+**Hatcher is the counter-narrative.** We believe the future doesn't belong to those who replace the artisan with an oracle, but to those who empower the artisan with a **Command Deck.**
+
+**Hatcher** is an open-source "**Constitutional IDE**" that puts the developer back in the Commander's chair. Our philosophy is Controlled Amplification: the artisan remains the strategic agent, using AI not as a replacement, but as a fleet of powerful, obedient, and auditable drones.
+
+## The Hatcher Arsenal
+
+Our philosophy is manifested in the systems that power the Command Deck.
+
+- **🚀 Autopilots & Playbooks:** While others chase the perfect prompt, we perfect the process. Hatcher gives you a fleet of Autopilots that execute complex missions by following Playbooks—the flight plans you design. It's your wisdom, codified into immortal automation.
+
+- **🗺️ Time Graph:** A single prompt has no history. A professional workflow has a rich one. The Hatcher Time Graph is your star chart, a quantum map of your mission's history. It is the architecture that makes our Persistent State Engine a reality, eliminating AI amnesia. Powered by our custom Git Engine and WebGL visualization, it provides interactive commit graphs, side-by-side diff comparison, and timeline playback—all rendered at 60 FPS for repositories of any size.
+
+- **🔧 The Universal Fabricator:** The "magic prompt" ignores your legacy. We honor it. The Fabricator runs polyglot "local lambdas" via WebAssembly, allowing you to integrate battle-tested components from Delphi, C++, Rust, and more into your modern starships.
+
+- **🛡️ The Shield Grid: "Magic AI"** "Magic AI" is often built on insecure foundations. Ours is a fortress. We forge Hatcher's core in Rust, build our own enterprise-grade infrastructure, and secure your work in a local-first, **end-to-end encrypted vault**.
+
+## One Command Deck, Two Mission Types
+
+Hatcher is a single, unified IDE that intelligently adapts to your project's needs, offering two distinct configurations:
+
+🏛️ **Hatcher Generative: The Explorer-Class Vessel**
+For missions of rapid innovation and prototyping. This configuration gives you the full power of your AI fleet with the absolute safety net of the Time Graph.
+
+🥚 **Hatcher EGGs: The Dreadnought-Class Vessel**
+For mission-critical systems. An EGG (**E**nforced **G**overnance **G**uardrails) transforms the command deck into a hyper-deterministic "War Room" for regulated and high-stakes deployments, built on the secure chassis of Tauri + Rust.
+
+## The Hatcher Arsenal: The Workshops and The Engine
+
+Hatcher's architecture is composed of two main layers: the HATs, which are the specialized workshops where you perform your craft, and the Automation Engine, which works for you in the background.
+
+### The Core HATs (The Workshops)
+
+A developer "wears different hats" throughout the day. Hatcher gives you a dedicated HAT, or workspace, for every job. These are our foundational HATs:
+
+- `</> The Code HAT:` A world-class code editor, powered by Monaco, for when you are in the flow of pure creation.
+
+- `✨ The Gen HAT:` The prompt engineering interface. Your direct line of communication to the AI fleet.
+
+- `🎨 The Visual HAT:` A workspace for designing and interacting with UI components, bridging the gap between design and code.
+
+- `⏱️ The Time Graph HAT:` The ultimate audit tool. A quantum graph of your project's history to visualize and understand every change.
+
+### The Automation Engine (Playbooks & Autopilot)
+
+This is the engine that powers the Autopilot. It operates across all HATs and is composed of two core features:
+
+Playbooks: The "flight plans" for your Autopilot. Codify your expert workflows into executable scripts that the AI can follow to perform complex, multi-step tasks.
+
+Hatcher Actions: The "quality gates." A hyper-local CI/CD pipeline that validates every change (from human or AI) against your project's constitution, ensuring nothing breaks.
+
+## ‍🔬 Enterprise-Grade Foundations: The Proof of Our Promise
+
+A vision this ambitious requires an unwavering commitment to engineering excellence. We don't just assemble off-the-shelf components; **we build our own world-class infrastructure** to guarantee a premium, reliable experience. This is our promise of quality, made tangible:
+
+- **A 10/10 Terminal**: Our GPU-accelerated terminal is engineered from the ground up for unmatched performance and reliability. Powered by our Shared Rendering Engine, it delivers 60 FPS rendering even with 10,000+ lines of output.
+
+- **A Custom Git Engine**: We built our own Git engine to enable the deep, granular control required by the Time Graph. Its WebGL-powered visualization (via Shared Rendering Engine) handles massive repositories with 1000+ commits using advanced LOD optimizations.
+
+- **A Secure Storage Engine**: Every piece of data is handled with security as a first principle, featuring AES-256-GCM encryption, Argon2id key derivation, and cross-platform keychain integration.
+
+- **A Shared Rendering Engine**: Our WebGL-accelerated rendering infrastructure (`@hatcherdx/shared-rendering`) powers both Terminal and Git visualization. Built on THREE.js, it leverages instanced rendering, texture atlases, and custom GLSL shaders to deliver desktop-class performance for text rendering, commit graphs, and side-by-side diff visualization.
+
+- **A Multi-Provider AI Engine**: Our custom AI integration layer (`@hatcherdx/ai-cli`) provides a unified interface for multiple AI providers (Claude Code, Gemini, GPT-5). Features include real-time streaming responses, automatic provider detection, CLI warm-up for reduced latency, and project-context awareness. The architecture is extensible and provider-agnostic, ensuring Hatcher remains future-proof as the AI landscape evolves.
+
+- **AI Conversation Storage System**: Enterprise-grade encrypted storage for all AI interactions using OS-native security (Keychain/DPAPI/libsecret). Tracks conversations, messages, and action executions across multiple providers with full provider+model distinction for accurate analytics. Features include automatic message content encryption via Electron safeStorage, real-time action logging for Decklog integration, and per-provider usage statistics with cost tracking.
+
+This "luxury scaffolding" is the foundation upon which every feature is built. It's how we ensure that Hatcher isn't just a powerful idea, but a rock-solid, enterprise-ready platform.
 
 ## 🏛️ Project Status: Alpha
 
-Hatcher is in active development, built on the principle of "luxury scaffolding." We have architected the full vision and are now implementing the core functionality, layer by layer.
+Hatcher is in active development. We have architected the full vision and are now implementing the core HATs.
 
-| Mode         | Status                        | Next Steps                                                                                                   |
-| :----------- | :---------------------------- | :----------------------------------------------------------------------------------------------------------- |
-| **Code**     | 🏗️ **Functional Foundations** | The file explorer and interactive terminal are fully functional. Next: integrating the Monaco code editor.   |
-| **Timeline** | 🏗️ **Functional Foundations** | The visualization layer is operative. Next: connecting write actions (`commit`, `push`) from our Git engine. |
-| **Visual**   | 🏛️ **Architectural Preview**  | The UI scaffolding is in place, ready for the Visual-to-Code bridge implementation.                          |
-| **Gen**      | 🏛️ **Architectural Preview**  | The UI is ready for the integration of the first AI model.                                                   |
+| Mode                   | Status                        | Next Steps                                                                                                                                                                             |
+| :--------------------- | :---------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **The Code HAT**       | 🏗️ **Functional Foundations** | The file explorer and interactive terminal are fully functional. Next: integrating the Monaco code editor.                                                                             |
+| **The Time Graph HAT** | 🏗️ **Functional Foundations** | The visualization layer is operative. Next: connecting write actions (`commit`, `push`) from our Git engine.                                                                           |
+| **The Visual HAT**     | 🏛️ **Architectural Preview**  | The UI scaffolding is in place, ready for the Visual-to-Code bridge implementation.                                                                                                    |
+| **The Gen HAT**        | 🚀 **AI Integration Active**  | Claude Code CLI fully integrated with real-time streaming, multi-provider architecture, and project context awareness. Next: system prompt configuration and first Playbook execution. |
 
 _For more details, see our full **[Project Roadmap](ROADMAP.md)**._
 
----
+## 🦀 Architectural Vision: The Path to Rust
+
+Our current architecture is built on **Electron**, a strategic choice that provides a robust, battle-tested foundation. It allows us to deliver a reliable cross-platform experience and rapidly innovate on Hatcher's core value proposition.
+
+This stable foundation is our launchpad.
+
+Our long-term vision is to forge Hatcher's core in **Rust**, leveraging its unparalleled performance and memory safety. The goal is to migrate the proven, battle-tested logic from our Electron prototype into a next-generation engine that is lighter, faster, and even more secure.
+
+**This is where you come in.** We are actively seeking contributors with experience in systems programming, performance optimization, and architectural design to help us chart this course. This is a unique opportunity to shape the future of a foundational development tool.
 
 ## Supported Platforms
 
-Hatcher is engineered for **uncompromising cross-platform reliability.** Our sophisticated hybrid testing strategy and multi-job CI/CD pipeline guarantee that every critical component is rigorously validated on **macOS, Linux, and Windows** with every commit. We don't just hope it works everywhere; **we prove it.**
+Hatcher is engineered for **uncompromising cross-platform reliability.** Our sophisticated hybrid testing strategy and multi-job CI/CD pipeline guarantee that every critical component is rigorously validated on **macOS, Linux, and Windows** with every commit.
 
 _We currently offer experimental **Nightly Builds** for all platforms. As we approach our v1.0, we will begin publishing official, stable releases._
 
 ## Our Open Core Pact
 
-Hatcher is and always will be an open-core project. **Our commitment is simple: the core IDE, for local, individual use, will always be free and MIT-licensed.**
+Hatcher is and always will be an open-core project. **The core IDE, for local, individual use, will always be free and MIT-licensed.**
 
-Our commercial strategy is focused on providing optional, premium cloud services for teams who need collaboration, governance, and security at scale. This model funds the continuous development of the free, world-class tool that everyone can use.
+Our commercial strategy is focused on providing optional, premium cloud services for teams and enabling the **EGG Enterprise** configuration for large-scale deployments.
 
-## Getting Started
+## Getting Involved
 
-The first alpha version of Hatcher is scheduled for release soon. The easiest way to get started will be to download the official release for your operating system from our **[GitHub Releases](https://github.com/HatcherDX/dx-engine/releases)** page. Stay tuned!
+Hatcher is being built in the open, and the best way to get started today is by becoming a contributor. We are actively seeking developers to help us forge our high-performance Rust core and shape the future of this platform.
+
+While an official alpha release for end-users is on the horizon, developers can clone the repository and run the latest nightly build today. Please read our **[CONTRIBUTING.md](CONTRIBUTING.md)** for guidelines and see the setup instructions below.
+
+<details>
+<summary><strong>Click here for Developer Setup Instructions</strong></summary>
 
 ### Prerequisites
 
@@ -152,18 +239,16 @@ pnpm pack:dev
 pnpm pack:prod
 ```
 
-## Contributing
+</details>
 
-We believe the future of development tools will be built by the community. If you are passionate about developer experience and the future of AI, we would love your help.
-
-Please read our **[CONTRIBUTING.md](CONTRIBUTING.md)** to learn how you can get involved, from reporting bugs to submitting your first pull request.
-
-## About the Author
+## About the Admiral
 
 Hatcher is created by **Chriss Mejía**, a Principal AI Systems Architect & Founder with over 22 years of experience building complex platforms for companies ranging from early-stage YC startups to large-scale enterprises.
 
 This project is the culmination of years of R&D, born from his deep belief that the future of software lies in amplifying, not replacing, human intuition.
 
-## License
+## Licensing
 
-Copyright (c) 2025 Chriss Mejía. This project is licensed under the **[MIT License](LICENSE.md)**.
+The source code for the Hatcher DX Engine is licensed under the **MIT License**. You can find the full license text in the **[MIT License](LICENSE.md)** file.
+
+Please note that the MIT License **does not** apply to the Hatcher brand assets. The Hatcher name and all related logos and icons are **All Rights Reserved**. For questions regarding the use of our brand, please contact us at chriss@hatche.rs.

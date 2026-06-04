@@ -649,4 +649,477 @@ describe('QueryBuilder', () => {
       expect(typeof complexity.score).toBe('number')
     })
   })
+
+  describe('uncovered branch coverage', () => {
+    it('should handle select with array argument', async () => {
+      const fields = ['name', 'age']
+      const result = await queryBuilder.select(fields).execute()
+
+      result.data.forEach((user) => {
+        expect(Object.keys(user)).toEqual(['name', 'age'])
+      })
+    })
+
+    it('should handle aggregate without alias', async () => {
+      const result = await queryBuilder
+        .select('department')
+        .groupBy('department')
+        .aggregate('count', '*')
+        .execute()
+
+      expect(result.data.length).toBeGreaterThan(0)
+    })
+
+    it('should throw error when executing without collection', async () => {
+      const emptyBuilder = new QueryBuilder(adapter)
+
+      await expect(emptyBuilder.execute()).rejects.toThrow(
+        'Collection must be specified'
+      )
+    })
+
+    it('should handle adapter without createIndex support', async () => {
+      const basicAdapter = {
+        ...adapter,
+        list: adapter.list.bind(adapter),
+        getMany: adapter.getMany.bind(adapter),
+      }
+
+      const basicBuilder = new QueryBuilder(
+        basicAdapter as unknown as IStorageAdapter,
+        'users'
+      )
+
+      await basicBuilder
+        .where('role', '=', 'admin')
+        .suggestIndex('role')
+        .execute()
+
+      // Should execute without error even without createIndex support
+      const result = await basicBuilder.where('active', '=', true).execute()
+      expect(result.data.length).toBeGreaterThan(0)
+    })
+
+    it('should handle adapter without executeQuery support', async () => {
+      const basicAdapter = {
+        ...adapter,
+        list: adapter.list.bind(adapter),
+        getMany: adapter.getMany.bind(adapter),
+      }
+
+      const basicBuilder = new QueryBuilder(
+        basicAdapter as unknown as IStorageAdapter,
+        'users'
+      )
+
+      const result = await basicBuilder.where('role', '=', 'admin').execute()
+
+      expect(result.data.length).toBeGreaterThan(0)
+      expect(result.metadata).toHaveProperty('executionTime')
+    })
+
+    it('should handle field selection with non-string fields', async () => {
+      await adapter.set('users:edge1', {
+        id: 'edge1',
+        [123]: 'numeric-key',
+        [Symbol('test')]: 'symbol-key',
+        normal: 'value',
+      })
+
+      const result = await queryBuilder
+        .select('normal', 123 as unknown as string)
+        .execute()
+
+      expect(result.data.length).toBeGreaterThan(0)
+    })
+
+    it('should handle compareValues with both null values', async () => {
+      await adapter.set('users:null1', {
+        id: 'null1',
+        name: 'Null User',
+        value1: null,
+        value2: null,
+      })
+
+      const result = await queryBuilder
+        .where('value1', '=', null)
+        .orderBy('value1', 'asc')
+        .execute()
+
+      expect(result.data.length).toBeGreaterThan(0)
+    })
+
+    it('should handle compareValues with first value null', async () => {
+      await adapter.set('users:null2', {
+        id: 'null2',
+        nullField: null,
+        normalField: 'value',
+      })
+
+      const result = await queryBuilder.orderBy('nullField', 'asc').execute()
+
+      // null values should sort first
+      expect(result.data.length).toBeGreaterThan(0)
+    })
+
+    it('should handle compareValues with second value null', async () => {
+      await adapter.set('users:null3', {
+        id: 'null3',
+        field1: 'value',
+        field2: null,
+      })
+
+      const result = await queryBuilder.orderBy('field2', 'desc').execute()
+
+      expect(result.data.length).toBeGreaterThan(0)
+    })
+
+    it('should estimate low complexity correctly', async () => {
+      const simpleBuilder = new QueryBuilder(adapter, 'users').where(
+        'role',
+        '=',
+        'admin'
+      )
+
+      const explanation = simpleBuilder.explain()
+
+      expect(explanation.estimatedComplexity).toBe('low')
+      expect(explanation.estimatedCost).toBeLessThanOrEqual(3)
+    })
+
+    it('should recommend indexes for non-JSON fields', async () => {
+      const indexBuilder = queryBuilder
+        .where('role', '=', 'admin')
+        .where('age', '>', 25)
+        .orderBy('salary', 'desc')
+
+      const explanation = indexBuilder.explain()
+
+      expect(explanation.recommendedIndexes).toContain('role')
+      expect(explanation.recommendedIndexes).toContain('age')
+      expect(explanation.recommendedIndexes).toContain('salary')
+    })
+
+    it('should clone builder without collection', () => {
+      const emptyBuilder = new QueryBuilder(adapter)
+
+      const cloned = emptyBuilder.clone()
+
+      expect(cloned).not.toBe(emptyBuilder)
+    })
+
+    it('should clone builder with original collection', () => {
+      const builderWithOriginal = new QueryBuilder(adapter, 'users')
+      builderWithOriginal.collection('other')
+
+      const cloned = builderWithOriginal.clone()
+
+      expect(cloned).not.toBe(builderWithOriginal)
+    })
+
+    it('should handle first() restoring original limit', async () => {
+      const builder = queryBuilder.limit(5)
+      const originalLimit = 5
+
+      const firstUser = await builder.first()
+
+      expect(firstUser).toBeDefined()
+
+      // Verify limit was restored after first()
+      const result = await builder.execute()
+      expect(result.data.length).toBeLessThanOrEqual(originalLimit)
+    })
+
+    it('should handle cache key generation with non-serializable queries', async () => {
+      const circularRef: Record<string, unknown> = { name: 'circular' }
+      circularRef.self = circularRef
+
+      const builder = queryBuilder.cache(true)
+
+      // Should handle non-serializable cache keys gracefully
+      const result = await builder.where('role', '=', 'admin').execute()
+
+      expect(result.data.length).toBeGreaterThan(0)
+    })
+
+    it('should handle estimateComplexity with medium score', async () => {
+      const mediumBuilder = new QueryBuilder(adapter, 'users')
+        .where('role', '=', 'admin')
+        .where('active', '=', true)
+        .where('age', '>', 25)
+        .where('department', '=', 'engineering')
+        .orderBy('salary', 'desc')
+
+      const explanation = mediumBuilder.explain()
+
+      expect(['medium', 'high']).toContain(explanation.estimatedComplexity)
+    })
+
+    it('should handle build() with undefined limit and offset', () => {
+      const simpleBuilder = new QueryBuilder(adapter, 'users').where(
+        'role',
+        '=',
+        'admin'
+      )
+
+      const query = simpleBuilder.build()
+
+      expect(query.limit).toBeUndefined()
+      expect(query.offset).toBeUndefined()
+    })
+  })
+
+  describe('additional branch coverage for 100%', () => {
+    it('should handle whereRaw without bindings parameter (default [])', () => {
+      // Test default parameter branch for bindings
+      const builder = queryBuilder.whereRaw('age > 25')
+      const query = builder.build()
+
+      // Verify the raw condition was added with empty bindings array
+      expect(query.conditions).toHaveLength(1)
+      expect(query.conditions[0].field).toBe('__raw__')
+      expect(query.conditions[0].operator).toBe('raw')
+      expect(query.conditions[0].value).toEqual({
+        expression: 'age > 25',
+        bindings: [],
+      })
+    })
+
+    it('should handle negation with "like" operator (default case)', async () => {
+      // Test the default case in negation switch statement (line 173-175)
+      const builder = queryBuilder.not().where('name', 'like', 'Alice')
+
+      const query = builder.build()
+
+      // Negation doesn't change the operator for "like", falls through to default case
+      expect(query.conditions[0].operator).toBe('like')
+      expect(query.conditions[0].value).toBe('Alice')
+
+      // Verify query executes without error
+      const result = await builder.execute()
+      expect(result.data).toBeDefined()
+    })
+
+    it('should handle negation with "in" operator (default case)', async () => {
+      // Test the default case in negation switch statement
+      const builder = queryBuilder.not().whereIn('role', ['admin', 'user'])
+
+      const query = builder.build()
+
+      // Negation doesn't change the operator for "in", handled in evaluation
+      expect(query.conditions[0].operator).toBe('in')
+    })
+
+    it('should handle first() when original limit is undefined', async () => {
+      // Test the else branch in first() at line 1032-1036
+      const builder = new QueryBuilder(adapter, 'users')
+      // Don't set any limit
+      const firstUser = await builder.where('role', '=', 'admin').first()
+
+      expect(firstUser).toBeDefined()
+      expect(firstUser?.role).toBe('admin')
+
+      // Verify _limitValue is undefined after first() completes
+      const subsequentResult = await builder.execute()
+      // Should return all matching results since limit was deleted
+      expect(subsequentResult.data.length).toBe(2) // All admins
+    })
+
+    it('should clone builder with suggestedIndexes', () => {
+      const builder = queryBuilder
+        .where('role', '=', 'admin')
+        .suggestIndex('role')
+        .suggestIndex('department')
+
+      const cloned = builder.clone()
+
+      expect(cloned).not.toBe(builder)
+      expect(cloned.build()).toEqual(builder.build())
+    })
+
+    it('should build query with joins', () => {
+      const result = queryBuilder
+        .join('departments', 'users.deptId', '=', 'departments.id')
+        .join('teams', 'users.teamId', '=', 'teams.id')
+        .where('active', '=', true)
+        .build()
+
+      expect(result.joins).toHaveLength(2)
+      expect(result.joins[0]).toEqual({
+        table: 'departments',
+        on: 'users.deptId = departments.id',
+      })
+      expect(result.joins[1]).toEqual({
+        table: 'teams',
+        on: 'users.teamId = teams.id',
+      })
+    })
+
+    it('should build query with offset but no limit', () => {
+      const result = queryBuilder.where('active', '=', true).offset(10).build()
+
+      expect(result.offset).toBe(10)
+      expect(result.limit).toBeUndefined()
+    })
+
+    it('should build query with both limit and offset', () => {
+      const result = queryBuilder
+        .where('active', '=', true)
+        .limit(5)
+        .offset(10)
+        .build()
+
+      expect(result.limit).toBe(5)
+      expect(result.offset).toBe(10)
+    })
+
+    it('should handle getComplexity with no factors', () => {
+      const emptyBuilder = new QueryBuilder(adapter, 'users')
+      const complexity = emptyBuilder.getComplexity()
+
+      expect(complexity.score).toBe(0)
+      expect(complexity.level).toBe('low')
+      expect(complexity.factors).toEqual([])
+    })
+
+    it('should handle getComplexity with score exactly 3 (low threshold)', () => {
+      // 3 conditions = score 3
+      const builder = new QueryBuilder(adapter, 'users')
+      builder
+        .where('field1', '=', 'value1')
+        .where('field2', '=', 'value2')
+        .where('field3', '=', 'value3')
+
+      const complexity = builder.getComplexity()
+
+      expect(complexity.score).toBe(3)
+      expect(complexity.level).toBe('low')
+    })
+
+    it('should handle getComplexity with score exactly 10 (medium threshold)', () => {
+      // 10 conditions = score 10
+      const builder = new QueryBuilder(adapter, 'users')
+      for (let i = 0; i < 10; i++) {
+        builder.where(`field${i}`, '=', `value${i}`)
+      }
+
+      const complexity = builder.getComplexity()
+
+      expect(complexity.score).toBe(10)
+      expect(complexity.level).toBe('medium')
+    })
+
+    it('should handle getComplexity with high score (> 10)', () => {
+      // 11 conditions = score 11 (high)
+      const builder = new QueryBuilder(adapter, 'users')
+      for (let i = 0; i < 11; i++) {
+        builder.where(`field${i}`, '=', `value${i}`)
+      }
+
+      const complexity = builder.getComplexity()
+
+      expect(complexity.score).toBe(11)
+      expect(complexity.level).toBe('high')
+    })
+
+    it('should clone builder with offsetValue set (line 1187)', () => {
+      // Test to cover line 1187 in clone() method
+      const builder = queryBuilder.where('role', '=', 'admin').offset(10)
+
+      const cloned = builder.clone()
+
+      expect(cloned).not.toBe(builder)
+      const clonedQuery = cloned.build()
+      expect(clonedQuery.offset).toBe(10)
+    })
+
+    it('should clone builder with nextLogicalOperator set (line 1192)', () => {
+      // Test to cover line 1192 in clone() method
+      // Set _nextLogicalOperator by calling .or() without following with .where()
+      const builder = queryBuilder.where('role', '=', 'admin').or()
+
+      const cloned = builder.clone()
+
+      expect(cloned).not.toBe(builder)
+      // The cloned builder should also have the OR operator pending
+      // We can verify by adding a where clause and checking the condition
+      cloned.where('active', '=', true)
+      const clonedQuery = cloned.build()
+      expect(clonedQuery.conditions).toHaveLength(2)
+      expect(clonedQuery.conditions[1].logicalOperator).toBe('OR')
+    })
+
+    it('should handle generateCacheKey fallback for non-serializable objects (line 1266)', async () => {
+      // Test to cover line 1266 - the catch block in generateCacheKey()
+      // We need to create a scenario where JSON.stringify fails
+      const originalStringify = JSON.stringify
+      let callCount = 0
+
+      // Mock JSON.stringify to throw on first call (inside generateCacheKey)
+      vi.spyOn(JSON, 'stringify').mockImplementation((...args) => {
+        callCount++
+        // Only throw on the first call to generateCacheKey
+        // Let subsequent calls (in test assertions) work normally
+        if (callCount === 1) {
+          throw new TypeError('Converting circular structure to JSON')
+        }
+        return originalStringify(...args)
+      })
+
+      const builder = queryBuilder.cache(true).where('role', '=', 'admin')
+
+      // This should trigger the catch block and use the fallback cache key
+      const result = await builder.execute()
+
+      // Should still execute successfully using fallback cache key
+      expect(result.data).toBeDefined()
+      expect(result.data.length).toBeGreaterThan(0)
+
+      // Restore original JSON.stringify
+      vi.restoreAllMocks()
+    })
+
+    it('should recommend indexes for join fields (line 926)', () => {
+      // Test to cover line 926 in recommendIndexes() method
+      const builder = queryBuilder
+        .where('role', '=', 'admin')
+        .join('departments', 'users.deptId', '=', 'departments.id')
+
+      const explanation = builder.explain()
+
+      // Should include join fields in recommended indexes
+      expect(explanation.recommendedIndexes).toContain('users.deptId')
+      expect(explanation.recommendedIndexes).toContain('departments.id')
+    })
+
+    it('should reset builder created without collection (line 1147)', () => {
+      // Test to cover line 1147 in reset() method
+      // Create builder without collection (no _originalCollection)
+      const emptyBuilder = new QueryBuilder(adapter)
+
+      // Add some conditions
+      emptyBuilder.where('role', '=', 'admin').limit(10).offset(5)
+
+      // Reset should delete _collection since _originalCollection is undefined
+      emptyBuilder.reset()
+
+      // Trying to execute should throw since collection is undefined
+      expect(() => emptyBuilder.build()).not.toThrow()
+      const builtQuery = emptyBuilder.build()
+      expect(builtQuery.collection).toBe('')
+      expect(builtQuery.conditions).toHaveLength(0)
+      expect(builtQuery.limit).toBeUndefined()
+    })
+
+    it('should clone builder with limitValue set (line 1184)', () => {
+      // Test to cover line 1184 in clone() method
+      const builder = queryBuilder.where('role', '=', 'admin').limit(50)
+
+      const cloned = builder.clone()
+
+      expect(cloned).not.toBe(builder)
+      const clonedQuery = cloned.build()
+      expect(clonedQuery.limit).toBe(50)
+    })
+  })
 })

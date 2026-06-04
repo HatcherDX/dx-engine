@@ -51,126 +51,147 @@
 -->
 <template>
   <div class="unified-frame" :class="frameClasses" :style="frameStyles">
-    <!-- Sidebar -->
-    <Sidebar
-      v-if="showSidebar"
-      :width="sidebarWidth"
-      :is-resizing="isResizing"
-      :resize-cursor="resizeCursor"
-      :platform="platform"
-      class="frame-sidebar"
-      :style="{ width: sidebarWidthPx }"
-      @start-resize="startResize"
-      @header-double-click="handleHeaderDoubleClick"
-    >
-      <template #sidebar-header>
-        <slot name="sidebar-header" />
-      </template>
-      <template #sidebar-content>
-        <slot name="sidebar-content" />
-      </template>
-      <template #sidebar-footer>
-        <slot name="sidebar-footer" />
-      </template>
-    </Sidebar>
+    <!-- Sidebar with transition -->
+    <Transition name="sidebar-slide" appear>
+      <Sidebar
+        v-if="showSidebar && !isGhostMode"
+        :width="sidebarWidth"
+        :is-resizing="isResizing"
+        :resize-cursor="resizeCursor"
+        :platform="platform"
+        class="frame-sidebar"
+        :style="{ width: sidebarWidthPx }"
+        @start-resize="startResize"
+        @header-double-click="handleHeaderDoubleClick"
+      >
+        <template #sidebar-header>
+          <slot name="sidebar-header" />
+        </template>
+        <template #sidebar-content>
+          <slot name="sidebar-content" />
+        </template>
+        <template #sidebar-footer>
+          <slot name="sidebar-footer" />
+        </template>
+      </Sidebar>
+    </Transition>
 
-    <!-- Header -->
-    <header class="frame-header" @dblclick="handleHeaderDoubleClick">
-      <div class="header-content">
-        <!-- Left section: Platform-specific content -->
-        <div class="header-left">
-          <!-- Mac: Logo -->
-          <template v-if="platform === 'macos'">
-            <BaseLogo size="sm" variant="egg-white" />
-          </template>
+    <!-- Header with transition -->
+    <Transition name="header-slide" appear>
+      <header
+        v-if="!isGhostMode"
+        class="frame-header"
+        @dblclick="handleHeaderDoubleClick"
+      >
+        <!-- First Line: Logo, Mode Navigation, Window Controls -->
+        <div class="header-top-line">
+          <div class="header-top-left">
+            <!-- macOS only: Project breadcrumb in main header -->
+            <ProjectBreadcrumb
+              v-if="platform === 'macos'"
+              :project-name="projectName"
+              :branch-name="branchName"
+              :project-path="projectPath"
+            />
 
-          <!-- PC: Mode Navigation -->
-          <template v-else>
-            <nav v-if="showModeNavigation" class="mode-navigation">
+            <!-- Windows/Linux: Mode Navigation on left -->
+            <nav
+              v-if="platform !== 'macos' && showModeNavigation"
+              class="mode-navigation mode-navigation-left"
+            >
               <slot name="navigation" />
             </nav>
-          </template>
-        </div>
+          </div>
 
-        <!-- Center section: Address Bar -->
-        <div class="header-center">
-          <slot name="address-bar" />
-        </div>
+          <div class="header-top-center">
+            <!-- Center area stays empty for cleaner layout -->
+          </div>
 
-        <!-- Right section: Platform-specific actions + Window Controls -->
-        <div class="header-right">
-          <!-- Mac: Mode Navigation -->
-          <template v-if="platform === 'macos'">
-            <nav v-if="showModeNavigation" class="mode-navigation">
+          <div class="header-top-right">
+            <!-- Mac: Mode Navigation on right -->
+            <nav
+              v-if="platform === 'macos' && showModeNavigation"
+              class="mode-navigation mode-navigation-right"
+            >
               <slot name="navigation" />
             </nav>
-          </template>
 
-          <!-- PC: Window Controls -->
-          <template v-else>
-            <!-- Window Controls -->
+            <!-- PC: Window Controls -->
             <WindowControls
+              v-if="platform !== 'macos'"
               :variant="variant === 'compact' ? 'compact' : 'default'"
             />
-          </template>
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
+    </Transition>
 
     <!-- Main Content Area -->
     <main
       class="frame-main"
       :class="{
-        'main-generative': isGenerativeMode,
-        'main-with-terminal': showTerminalPanel,
+        'main-generative': isGenerativeMode && !isGhostMode,
+        'main-ghost': isGhostMode,
       }"
     >
-      <!-- Main content area - Always rendered, hidden via CSS in generative mode -->
-      <div
-        class="main-content-area"
-        :class="{ 'content-hidden-generative': isGenerativeMode }"
-      >
-        <div class="content-slot">
-          <slot />
-        </div>
-
-        <!-- Terminal Panel - Always rendered, visibility controlled by CSS -->
+      <!-- Onboarding content when in ghost mode -->
+      <Transition name="content-fade" mode="out-in">
+        <OnboardingContainer
+          v-if="isGhostMode"
+          key="onboarding"
+          @complete="handleOnboardingComplete"
+        />
+        <!-- Normal content area when not in ghost mode -->
         <div
-          class="frame-terminal"
-          :class="{ 'terminal-hidden': !showTerminalPanel }"
-          :style="{ height: terminalHeight + 'px' }"
+          v-else
+          v-show="!isGenerativeMode"
+          key="content"
+          class="main-content-area"
         >
-          <div
-            class="terminal-resize-handle"
-            @mousedown="(event: MouseEvent) => startTerminalResize(event)"
-            @touchstart="(event: TouchEvent) => startTerminalResize(event)"
-          >
-            <div class="resize-handle-line"></div>
+          <div class="content-slot">
+            <slot />
           </div>
-          <slot name="terminal-panel" />
         </div>
-      </div>
+      </Transition>
     </main>
 
-    <!-- Chat Panel - Always rendered, positioned via CSS -->
-    <div class="frame-chat" :class="{ 'chat-generative': isGenerativeMode }">
-      <slot name="chat-panel" />
-    </div>
+    <!-- Terminal Panel - Only show when not in ghost mode -->
+    <Transition name="terminal-slide" appear>
+      <div
+        v-if="!isGhostMode"
+        class="frame-terminal"
+        :class="{ 'terminal-hidden': currentMode !== 'code' }"
+      >
+        <slot name="terminal-panel" />
+      </div>
+    </Transition>
+
+    <!-- Chat Panel - Only show when not in ghost mode -->
+    <Transition name="chat-slide" appear>
+      <div
+        v-if="!isGhostMode"
+        class="frame-chat"
+        :class="{ 'chat-generative': isGenerativeMode }"
+      >
+        <slot name="chat-panel" data-testid="chat-panel-content" />
+      </div>
+    </Transition>
 
     <!-- Optional Footer -->
-    <footer v-if="$slots.footer" class="frame-footer">
+    <footer v-if="$slots.footer || showThemeToggle" class="frame-footer">
       <div class="footer-content">
         <div class="footer-left">
           <slot name="footer" />
         </div>
-        <div class="footer-right">
+        <div v-if="showThemeToggle" class="footer-right">
           <BaseButton
+            data-testid="base-button"
             variant="ghost"
             size="sm"
-            :aria-label="`Switch to ${isDark ? 'light' : 'dark'} theme`"
-            @click="toggleTheme"
+            :aria-label="`Switch to ${theme.isDark.value ? 'light' : 'dark'} mode`"
+            @click="handleToggleTheme"
           >
-            <BaseIcon :name="isDark ? 'Sun' : 'Moon'" size="sm" />
+            {{ theme.isDark.value ? '☀️' : '🌙' }}
           </BaseButton>
         </div>
       </div>
@@ -188,16 +209,16 @@
  * and mode-specific layout switching between generative AI and code development modes.
  */
 
-import { computed, ref, onMounted, onUnmounted } from 'vue'
-import { useTheme } from '../../composables/useTheme'
+import { computed } from 'vue'
 import { useWindowControls } from '../../composables/useWindowControls'
 import { useSidebarResize } from '../../composables/useSidebarResize'
 import { useChatSidebar } from '../../composables/useChatSidebar'
-import BaseLogo from '../atoms/BaseLogo.vue'
-import BaseButton from '../atoms/BaseButton.vue'
-import BaseIcon from '../atoms/BaseIcon.vue'
+import { useOnboarding } from '../../composables/useOnboarding'
+import ProjectBreadcrumb from '../atoms/ProjectBreadcrumb.vue'
 import WindowControls from '../molecules/WindowControls.vue'
 import Sidebar from '../atoms/Sidebar.vue'
+import OnboardingContainer from './OnboardingContainer.vue'
+import BaseButton from '../atoms/BaseButton.vue'
 import type { ModeType } from '../molecules/ModeSelector.vue'
 
 /**
@@ -216,6 +237,16 @@ interface Props {
   currentMode?: ModeType
   /** Whether to show the sidebar (some modes like Timeline handle their own sidebar) */
   showSidebar?: boolean
+  /** Current project name for the breadcrumb display */
+  projectName?: string
+  /** Current Git branch name for the breadcrumb display */
+  branchName?: string
+  /** Full path to the project (shown as tooltip) */
+  projectPath?: string
+  /** Platform override for testing/development */
+  platform?: 'macos' | 'windows' | 'linux'
+  /** Whether to show the theme toggle button in the footer */
+  showThemeToggle?: boolean
 }
 
 /**
@@ -235,11 +266,32 @@ const props = withDefaults(defineProps<Props>(), {
   variant: 'default',
   currentMode: 'generative',
   showSidebar: true,
+  projectName: 'Project',
+  branchName: 'main',
+  projectPath: '',
+  platform: undefined,
+  showThemeToggle: false,
 })
 
 const emit = defineEmits<Emits>()
 
-const { isDark, toggleTheme, platform } = useTheme()
+// Import useTheme for platform detection fallback
+import { useTheme } from '../../composables/useTheme'
+const theme = useTheme()
+
+// Get platform from props or useTheme
+const platform = computed(() => {
+  const p = props.platform || theme.platform.value
+  console.log(
+    '[UnifiedFrame] Platform detected:',
+    p,
+    'from props:',
+    props.platform,
+    'from theme:',
+    theme.platform.value
+  )
+  return p
+})
 const { handleDoubleClick } = useWindowControls()
 const { sidebarWidth, sidebarWidthPx, isResizing, startResize, resizeCursor } =
   useSidebarResize()
@@ -247,8 +299,13 @@ const { sidebarWidth, sidebarWidthPx, isResizing, startResize, resizeCursor } =
 // Chat sidebar - get layout properties only
 const { isGenerativeMode, setMode } = useChatSidebar()
 
-// Terminal panel visibility
-const showTerminalPanel = computed(() => props.currentMode === 'code')
+// Onboarding - ghost mode control
+const { isOnboardingActive, completeOnboarding } = useOnboarding()
+
+// Ghost mode is active when onboarding is active
+const isGhostMode = computed(() => isOnboardingActive.value)
+
+// Terminal is now in global footer, not dependent on mode
 
 // Watch for mode changes and emit to parent
 import { watch } from 'vue'
@@ -263,6 +320,19 @@ watch(
   { immediate: true }
 )
 
+/**
+ * Handles theme toggle button click.
+ *
+ * @description
+ * Toggles between light and dark themes by calling the useTheme composable.
+ *
+ * @public
+ * @since 1.0.0
+ */
+const handleToggleTheme = () => {
+  theme.toggleTheme()
+}
+
 const frameClasses = computed(() => {
   const base = ['unified-frame']
 
@@ -272,14 +342,19 @@ const frameClasses = computed(() => {
   // Variant classes
   base.push(`variant-${props.variant}`)
 
-  // Mode-specific classes
-  if (isGenerativeMode.value) {
-    base.push('mode-generative')
-  }
+  // Ghost mode class
+  if (isGhostMode.value) {
+    base.push('ghost-mode')
+  } else {
+    // Mode-specific classes only when not in ghost mode
+    if (isGenerativeMode.value) {
+      base.push('mode-generative')
+    }
 
-  // Add mode-specific class for terminal layout
-  if (props.currentMode) {
-    base.push(`mode-${props.currentMode}`)
+    // Add mode-specific class for terminal layout
+    if (props.currentMode) {
+      base.push(`mode-${props.currentMode}`)
+    }
   }
 
   return base
@@ -294,84 +369,12 @@ const handleHeaderDoubleClick = () => {
   handleDoubleClick()
 }
 
-// Terminal resize functionality
-const terminalHeight = ref(250) // Reduced from 400 to 250px for more compact layout
-const isResizingTerminal = ref(false)
-const initialMouseY = ref(0)
-const initialTerminalHeight = ref(0)
-
-const MIN_TERMINAL_HEIGHT = 200 // Reduced minimum back to 200px
-const MAX_TERMINAL_HEIGHT_VH = 60 // Keep at 60% of viewport height
-
-const startTerminalResize = (event: MouseEvent | TouchEvent) => {
-  event.preventDefault()
-
-  isResizingTerminal.value = true
-  initialTerminalHeight.value = terminalHeight.value
-
-  if (event instanceof MouseEvent) {
-    initialMouseY.value = event.clientY
-  } else {
-    initialMouseY.value = event.touches[0].clientY
-  }
-
-  document.body.style.cursor = 'ns-resize'
-  document.body.style.userSelect = 'none'
-
-  document.addEventListener('mousemove', handleResize)
-  document.addEventListener('mouseup', stopResize)
-  document.addEventListener('touchmove', handleResize)
-  document.addEventListener('touchend', stopResize)
+const handleOnboardingComplete = () => {
+  completeOnboarding()
+  // The ghost mode will automatically transition out due to reactive state
 }
 
-const handleResize = (event: MouseEvent | TouchEvent) => {
-  if (!isResizingTerminal.value) return
-
-  let currentMouseY: number
-  if (event instanceof MouseEvent) {
-    currentMouseY = event.clientY
-  } else {
-    currentMouseY = event.touches[0].clientY
-  }
-
-  const deltaY = initialMouseY.value - currentMouseY // Inverted because we want to drag up to increase height
-  const newHeight = initialTerminalHeight.value + deltaY
-
-  // Apply constraints
-  const maxHeight = window.innerHeight * (MAX_TERMINAL_HEIGHT_VH / 100)
-  terminalHeight.value = Math.max(
-    MIN_TERMINAL_HEIGHT,
-    Math.min(newHeight, maxHeight)
-  )
-}
-
-const stopResize = () => {
-  isResizingTerminal.value = false
-  document.body.style.cursor = ''
-  document.body.style.userSelect = ''
-
-  document.removeEventListener('mousemove', handleResize)
-  document.removeEventListener('mouseup', stopResize)
-  document.removeEventListener('touchmove', handleResize)
-  document.removeEventListener('touchend', stopResize)
-}
-
-// Responsive terminal height
-const updateTerminalConstraints = () => {
-  const maxHeight = window.innerHeight * (MAX_TERMINAL_HEIGHT_VH / 100)
-  if (terminalHeight.value > maxHeight) {
-    terminalHeight.value = maxHeight
-  }
-}
-
-onMounted(() => {
-  window.addEventListener('resize', updateTerminalConstraints)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('resize', updateTerminalConstraints)
-  stopResize() // Clean up any ongoing resize
-})
+// Terminal resize functionality moved to GlobalTerminalFooter component
 </script>
 
 <style scoped>
@@ -383,10 +386,23 @@ onUnmounted(() => {
     'sidebar header header'
     'sidebar main chat'
     'sidebar footer footer';
-  width: 100vw;
-  height: 100vh;
-  background-color: var(--bg-primary);
+  width: 100%;
+  height: 100%;
+  flex: 1;
   overflow: hidden;
+  background-color: var(--bg-primary);
+  transition:
+    grid-template-columns 0.4s cubic-bezier(0.165, 0.84, 0.44, 1),
+    grid-template-rows 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+/* Ghost mode layout - simplified grid without sidebar/header space */
+.ghost-mode {
+  grid-template-columns: 1fr !important;
+  grid-template-rows: 1fr auto !important;
+  grid-template-areas:
+    'main'
+    'footer' !important;
 }
 
 /* Generative mode: chat overlays main area */
@@ -413,8 +429,9 @@ onUnmounted(() => {
 
 .frame-header {
   grid-area: header;
+  display: flex;
+  flex-direction: column;
   background-color: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-primary);
   backdrop-filter: blur(8px);
   z-index: 50;
   /* Enable window dragging */
@@ -428,11 +445,13 @@ onUnmounted(() => {
   overflow: hidden;
   background-color: var(--bg-primary);
   min-width: 200px; /* Safety zone for content */
+  /* No margin by default - let grid handle spacing */
 }
 
 /* In generative mode, remove safety zone */
 .mode-generative .frame-main {
   min-width: 0;
+  /* No margin needed here - chat-generative handles pipeline spacing */
 }
 
 .main-content-area {
@@ -450,6 +469,20 @@ onUnmounted(() => {
   min-width: 0;
   overflow: hidden;
   box-sizing: border-box;
+  justify-content: center;
+}
+
+/* Timeline mode: full width without centering */
+.mode-timeline .content-slot {
+  justify-content: flex-start;
+  width: 100% !important;
+}
+
+/* Ensure children in timeline mode take full width */
+.mode-timeline .content-slot > * {
+  width: 100% !important;
+  max-width: 100% !important;
+  flex: 1 !important;
 }
 
 .main-chat-panel {
@@ -462,6 +495,8 @@ onUnmounted(() => {
   overflow: hidden;
   position: relative;
   transition: all 0.2s ease;
+  /* Add safezone for collapsed pipeline (48px + some buffer) */
+  padding-right: 60px;
 }
 
 /* Removed background hover to prevent interference */
@@ -473,6 +508,8 @@ onUnmounted(() => {
   grid-area: main;
   width: 100%;
   height: 100%;
+  margin-right: 0; /* No margin needed */
+  padding-right: 240px; /* Exact padding for expanded pipeline (240px) */
 }
 
 .frame-footer {
@@ -498,7 +535,8 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  padding: 8px 16px;
+  padding: 6px 16px;
+  min-height: 28px;
 }
 
 .footer-right {
@@ -509,48 +547,75 @@ onUnmounted(() => {
   -webkit-app-region: no-drag;
 }
 
-.header-content {
+/* Header top line - Logo, Mode Selector, Window Controls */
+.header-top-line {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 100%;
+  height: var(--header-height);
   padding: 0;
-  gap: 16px;
 }
 
-.header-left {
+/* macOS: Only left padding for traffic lights, no right padding */
+.platform-macos .header-top-line {
+  padding-left: 16px;
+}
+
+.header-top-left {
   display: flex;
   align-items: center;
-  gap: 16px;
-  flex-shrink: 0;
+  gap: 8px;
+  flex: 0 0 auto; /* Take only needed space */
   /* Disable drag for interactive elements */
   -webkit-app-region: no-drag;
 }
 
-.header-center {
-  flex: 1;
-  max-width: 600px;
-  margin: 0 auto;
-  /* Disable drag for address bar */
+.header-top-center {
+  flex: 1; /* Take remaining space for dragging */
+  min-height: var(--header-height);
+  /* Explicitly allow dragging through center area */
+  -webkit-app-region: drag;
+}
+
+.header-top-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
+  flex: 0 0 auto; /* Take only needed space */
+  /* Disable drag for controls */
   -webkit-app-region: no-drag;
 }
 
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
+.mac-spacer {
+  width: 100px;
+  height: 100%;
 }
 
-/* Platform-specific header right spacing */
-.platform-macos .header-right {
-  gap: 16px;
+/* Platform-specific adjustments */
+.platform-macos .header-top-left {
+  justify-content: flex-start;
+  flex: 0 0 auto; /* Override any flex changes */
 }
 
-.platform-windows .header-right,
-.platform-linux .header-right {
-  gap: 8px;
-  margin-right: 16px;
+.platform-macos .header-top-right {
+  justify-content: flex-end;
+  flex: 0 0 auto; /* Override any flex changes */
+}
+
+.platform-windows .header-top-left,
+.platform-linux .header-top-left {
+  justify-content: flex-start;
+  gap: 4px; /* Tighter spacing for Windows/Linux */
+  flex: 0 0 auto; /* Override any flex changes */
+}
+
+.platform-windows .header-top-right,
+.platform-linux .header-top-right {
+  justify-content: flex-end;
+  padding-right: 4px; /* Less padding on right */
+  gap: 8px; /* Tighter gap between window controls */
+  flex: 0 0 auto; /* Override any flex changes */
 }
 
 .header-actions {
@@ -567,31 +632,19 @@ onUnmounted(() => {
   gap: 4px;
 }
 
-/* Header content styling */
-.header-content {
-  height: var(--header-height);
+/* Platform-specific mode navigation positioning */
+.mode-navigation-left {
+  margin-left: 0;
 }
 
-/* Platform-specific adjustments */
-.platform-macos .header-content {
-  /* No padding for macOS */
-  padding: 0;
-}
-
-.platform-windows .header-content,
-.platform-linux .header-content {
-  /* No padding for Windows/Linux */
-  padding: 0;
+.mode-navigation-right {
+  margin-right: 0;
 }
 
 /* Variant adjustments */
-.variant-compact .header-content {
-  padding: 0;
-  gap: 12px;
-}
-
-.variant-compact .header-left {
-  gap: 12px;
+.variant-compact .header-top-line {
+  padding: 0 12px;
+  height: calc(var(--header-height) * 0.9);
 }
 
 .variant-fullscreen .frame-header {
@@ -604,28 +657,19 @@ onUnmounted(() => {
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-  .header-content {
-    padding: 0;
-    gap: 12px;
-  }
-
-  .mode-navigation {
-    display: none;
-  }
-
-  .header-center {
-    max-width: none;
+  .header-top-line {
+    padding: 0 12px;
   }
 }
 
 @media (max-width: 480px) {
-  .header-content {
-    padding: 0;
-    gap: 8px;
+  .mode-navigation {
+    display: none;
   }
 
-  .header-right {
-    gap: 4px;
+  .header-top-left,
+  .header-top-right {
+    flex: 0 0 auto; /* Keep consistent sizing in compact mode */
   }
 }
 
@@ -644,7 +688,7 @@ footer .footer-content .footer-right button.bg-transparent {
   /* Make button square and full height */
   height: 100% !important;
   aspect-ratio: 1 !important;
-  min-height: 32px !important;
+  min-height: 28px !important;
   width: auto !important;
   padding: 0 !important;
   margin: 0 !important;
@@ -723,47 +767,17 @@ footer .footer-content .footer-right button.bg-transparent:focus-visible {
 }
 
 /* Hide main content area in generative mode without destroying DOM elements */
+.mode-generative .main-content-area.content-hidden-generative,
 .main-content-area.content-hidden-generative {
   display: none !important;
   pointer-events: none;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
 }
 
-/* Terminal Resize Handle */
-.terminal-resize-handle {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 6px;
-  cursor: ns-resize;
-  background: transparent;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.terminal-resize-handle:hover {
-  background: rgba(59, 130, 246, 0.1);
-}
-
-.resize-handle-line {
-  width: 40px;
-  height: 2px;
-  background: var(--border-primary);
-  border-radius: 1px;
-  transition: all 0.2s ease;
-}
-
-.terminal-resize-handle:hover .resize-handle-line {
-  background: var(--accent-primary);
-  width: 60px;
-}
-
-/* Code mode with terminal: no changes to grid, terminal is inside main */
-.main-with-terminal .content-slot {
-  min-height: 300px;
-}
+/* Terminal resize handle moved to GlobalTerminalFooter */
 
 /* Responsive terminal panel */
 @media (max-height: 600px) {
@@ -771,9 +785,89 @@ footer .footer-content .footer-right button.bg-transparent:focus-visible {
     min-height: 150px;
     max-height: 40vh;
   }
+}
 
-  .main-with-terminal .content-slot {
-    min-height: 200px;
-  }
+/* Ghost mode main area styling */
+.main-ghost {
+  grid-area: main;
+  display: flex;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Ensure OnboardingContainer takes full space in ghost mode */
+.main-ghost > * {
+  width: 100%;
+  height: 100%;
+}
+
+/* Transition Animations */
+
+/* Sidebar slide animation */
+.sidebar-slide-enter-active,
+.sidebar-slide-leave-active {
+  transition: all 0.5s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.sidebar-slide-enter-from {
+  transform: translateX(-100%);
+  opacity: 0;
+}
+
+.sidebar-slide-leave-to {
+  transform: translateX(-100%);
+  opacity: 0;
+}
+
+/* Header slide animation */
+.header-slide-enter-active,
+.header-slide-leave-active {
+  transition: all 0.5s cubic-bezier(0.165, 0.84, 0.44, 1);
+  transition-delay: 0.1s; /* Slight delay after sidebar */
+}
+
+.header-slide-enter-from {
+  transform: translateY(-100%);
+  opacity: 0;
+}
+
+.header-slide-leave-to {
+  transform: translateY(-100%);
+  opacity: 0;
+}
+
+/* Chat panel slide animation */
+.chat-slide-enter-active,
+.chat-slide-leave-active {
+  transition: all 0.5s cubic-bezier(0.165, 0.84, 0.44, 1);
+  transition-delay: 0.2s; /* Slight delay after header */
+}
+
+.chat-slide-enter-from {
+  transform: translateX(100%);
+  opacity: 0;
+}
+
+.chat-slide-leave-to {
+  transform: translateX(100%);
+  opacity: 0;
+}
+
+/* Content fade animation for switching between onboarding and main content */
+/* Luxurious opacity-only transition without movement */
+.content-fade-enter-active,
+.content-fade-leave-active {
+  transition: opacity 0.5s ease-out;
+  width: 100%;
+  height: 100%;
+}
+
+.content-fade-enter-from {
+  opacity: 0;
+}
+
+.content-fade-leave-to {
+  opacity: 0;
 }
 </style>

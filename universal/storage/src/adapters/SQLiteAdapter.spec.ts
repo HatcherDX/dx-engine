@@ -18,8 +18,10 @@ import type { StorageConfig } from '../types/storage'
 import { existsSync, unlinkSync } from 'fs'
 import { join } from 'path'
 
-// Skip all tests in CI - SQLite native bindings not available
+// Skip all tests in CI OR when VITEST_MOCK_SQLITE is set - SQLite native bindings not available
 const isCI = process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true'
+const useMockSQLite = process.env.VITEST_MOCK_SQLITE === 'true'
+const shouldSkipSQLiteTests = isCI || useMockSQLite
 
 // Import test utilities for real SQLite (not mocks)
 import '../test-setup-real'
@@ -32,7 +34,7 @@ declare global {
   ) => StorageConfig
 }
 
-describe.skipIf(isCI)('SQLiteAdapter', () => {
+describe.skipIf(shouldSkipSQLiteTests)('SQLiteAdapter', () => {
   let adapter: SQLiteAdapter
   let config: StorageConfig
   let testDbPath: string

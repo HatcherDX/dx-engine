@@ -1,12 +1,9 @@
 <template>
   <div class="adaptive-breadcrumb">
-    <!-- Modo Generativo: Filesystem path -->
+    <!-- Modo Generativo: Hatcher namespace style -->
     <template v-if="currentMode === 'generative'">
-      <div class="breadcrumb-segment filesystem">
-        <BaseIcon name="Menu" size="sm" class="breadcrumb-icon" />
-        <span class="breadcrumb-path">{{
-          projectPath || '/home/usuario/mi-proyecto/'
-        }}</span>
+      <div class="breadcrumb-segment hatcher-namespace">
+        <span class="title-text">hatcher::decklog</span>
       </div>
     </template>
 
@@ -20,12 +17,9 @@
       </div>
     </template>
 
-    <!-- Modo Code: Project name + file path -->
+    <!-- Modo Code: File path only -->
     <template v-else-if="currentMode === 'code'">
       <div class="breadcrumb-segment project-file">
-        <div class="project-badge">
-          {{ projectName || 'mi-proyecto' }}
-        </div>
         <div v-if="filePath" class="file-path">
           <span
             v-for="(segment, index) in pathSegments"
@@ -41,12 +35,9 @@
       </div>
     </template>
 
-    <!-- Modo Git: Project name + branch -->
+    <!-- Modo Timegraph: Branch only -->
     <template v-else>
       <div class="breadcrumb-segment project-git">
-        <div class="project-badge">
-          {{ projectName || 'mi-proyecto' }}
-        </div>
         <div class="git-branch">
           <BaseIcon name="GitBranch" size="xs" class="branch-icon" />
           <span class="branch-text">{{ gitBranch || 'main' }}</span>
@@ -104,15 +95,19 @@ const pathSegments = computed(() => {
   flex-shrink: 0;
 }
 
-/* Filesystem mode styles */
-.filesystem .breadcrumb-path {
-  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
-  font-size: 13px;
-  color: var(--text-secondary);
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+/* Hatcher namespace style (matching hatcher::actions exactly) */
+.hatcher-namespace {
+  cursor: default;
+  gap: 0;
+}
+
+.hatcher-namespace .title-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: 0.3px;
+  font-family: var(--font-mono);
+  opacity: 0.4;
 }
 
 /* URL mode styles */
@@ -232,9 +227,6 @@ const pathSegments = computed(() => {
 }
 
 /* Light mode adjustments - make breadcrumb text lighter and more readable */
-:not(.dark) .filesystem .breadcrumb-path {
-  color: var(--text-tertiary); /* Use tertiary text color for better contrast */
-}
 
 :not(.dark) .url .breadcrumb-url {
   color: var(--text-tertiary); /* Use tertiary text color for better contrast */
@@ -255,5 +247,15 @@ const pathSegments = computed(() => {
 /* Make breadcrumb icon more visible in light mode */
 :not(.dark) .breadcrumb-icon {
   color: var(--text-primary); /* Use primary text color for better visibility */
+}
+
+/* Keep hatcher namespace style consistent in both dark and light modes */
+.hatcher-namespace .title-text {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  color: var(--text-primary) !important;
+  letter-spacing: 0.3px !important;
+  font-family: var(--font-mono) !important;
+  opacity: 0.4 !important;
 }
 </style>

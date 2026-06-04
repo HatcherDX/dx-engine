@@ -1,11 +1,12 @@
-import { ref, computed, watchEffect } from 'vue'
-import { usePreferredDark, useStorage } from '@vueuse/core'
+import { ref, computed, watchEffect, onMounted } from 'vue'
+import { usePreferredDark } from '@vueuse/core'
 
 export type ThemeMode = 'light' | 'dark' | 'auto'
 
-// Global theme state
-const themeMode = useStorage<ThemeMode>('theme-mode', 'auto')
+// Global theme state (now using ref instead of useStorage)
+const themeMode = ref<ThemeMode>('auto')
 const preferredDark = usePreferredDark()
+const isInitialized = ref(false)
 
 // Computed current theme
 const isDark = computed(() => {
@@ -31,11 +32,26 @@ const platform = ref<'macos' | 'windows' | 'linux'>('linux')
 // Detect platform on initialization
 if (typeof window !== 'undefined') {
   const userAgent = window.navigator.userAgent.toLowerCase()
-  if (userAgent.includes('mac')) {
+  const appPlatform = window.navigator.platform?.toLowerCase() || ''
+
+  console.log('[useTheme] Platform detection:', {
+    userAgent,
+    platform: window.navigator.platform,
+    appPlatform,
+  })
+
+  // Check both userAgent and platform for better detection
+  if (
+    userAgent.includes('mac') ||
+    appPlatform.includes('mac') ||
+    userAgent.includes('darwin')
+  ) {
     platform.value = 'macos'
-  } else if (userAgent.includes('win')) {
+  } else if (userAgent.includes('win') || appPlatform.includes('win')) {
     platform.value = 'windows'
   }
+
+  console.log('[useTheme] Detected platform:', platform.value)
 
   // Apply platform class to document
   document.documentElement.classList.add(`platform-${platform.value}`)
@@ -45,7 +61,6 @@ if (typeof window !== 'undefined') {
     window.electronAPI.on('simulate-platform', ((
       newPlatform: 'macos' | 'windows' | 'linux'
     ) => {
-      console.log('Platform simulation received:', newPlatform)
       // Remove old platform class
       document.documentElement.classList.remove(`platform-${platform.value}`)
       // Set new platform
@@ -56,16 +71,54 @@ if (typeof window !== 'undefined') {
   }
 }
 
+// Load theme from storage API on initialization
+async function loadThemeFromStorage() {
+  if (!isInitialized.value && window.storageAPI) {
+    try {
+      const config = await window.storageAPI.getIDEConfig()
+      if (config?.ui?.theme) {
+        themeMode.value = config.ui.theme
+      }
+      isInitialized.value = true
+    } catch (error) {
+      console.warn('[useTheme] Failed to load theme from storage:', error)
+      // Fallback to default
+      themeMode.value = 'auto'
+      isInitialized.value = true
+    }
+  }
+}
+
+// Save theme to storage API
+async function saveThemeToStorage(mode: ThemeMode) {
+  if (window.storageAPI) {
+    try {
+      await window.storageAPI.updateIDEConfig({
+        ui: { theme: mode },
+      } as Parameters<typeof window.storageAPI.updateIDEConfig>[0])
+    } catch (error) {
+      console.error('[useTheme] Failed to save theme to storage:', error)
+    }
+  }
+}
+
 export function useTheme() {
-  const setTheme = (mode: ThemeMode) => {
+  // Load theme on first use
+  onMounted(() => {
+    loadThemeFromStorage()
+  })
+
+  const setTheme = async (mode: ThemeMode) => {
     themeMode.value = mode
+    // Save to storage API
+    await saveThemeToStorage(mode)
   }
 
-  const toggleTheme = () => {
+  const toggleTheme = async () => {
     if (themeMode.value === 'auto') {
-      setTheme(preferredDark.value ? 'light' : 'dark')
+      await setTheme(preferredDark.value ? 'light' : 'dark')
     } else {
-      setTheme(themeMode.value === 'light' ? 'dark' : 'light')
+      await setTheme(themeMode.value === 'light' ? 'dark' : 'light')
     }
   }
 
@@ -88,8 +141,15 @@ export function useTheme() {
 
   // Watch for theme changes and sync with Electron
   watchEffect(() => {
-    syncThemeWithElectron()
+    if (isInitialized.value) {
+      syncThemeWithElectron()
+    }
   })
+
+  // Initial load
+  if (!isInitialized.value) {
+    loadThemeFromStorage()
+  }
 
   return {
     themeMode: computed(() => themeMode.value),

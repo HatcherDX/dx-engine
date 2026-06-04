@@ -6,14 +6,7 @@ import UnifiedFrame from './UnifiedFrame.vue'
 interface UnifiedFrameComponent {
   handleHeaderDoubleClick?: () => Promise<void>
   toggleTheme?: () => Promise<void>
-  handleResize?: (event: MouseEvent | TouchEvent) => void
-  startTerminalResize?: (event: MouseEvent | TouchEvent) => void
-  stopResize?: () => void
-  updateTerminalConstraints?: () => void
-  isResizingTerminal?: boolean
-  terminalHeight?: number
-  initialTerminalHeight?: number
-  initialMouseY?: number
+  // Terminal resize methods removed - functionality no longer exists in component
 }
 
 // Mock child components
@@ -54,7 +47,26 @@ vi.mock('../atoms/Sidebar.vue', () => ({
   default: {
     name: 'Sidebar',
     props: ['width', 'isResizing', 'resizeCursor', 'platform'],
-    template: '<div data-testid="sidebar"><slot /></div>',
+    emits: ['start-resize', 'header-double-click'],
+    template:
+      '<div data-testid="sidebar"><slot name="sidebar-header" /><slot name="sidebar-content" /><slot name="sidebar-footer" /></div>',
+  },
+}))
+
+vi.mock('../atoms/ProjectBreadcrumb.vue', () => ({
+  default: {
+    name: 'ProjectBreadcrumb',
+    props: ['projectName', 'branchName'],
+    template:
+      '<div data-testid="project-breadcrumb">{{ projectName }} / {{ branchName }}</div>',
+  },
+}))
+
+vi.mock('./OnboardingContainer.vue', () => ({
+  default: {
+    name: 'OnboardingContainer',
+    emits: ['complete'],
+    template: '<div data-testid="onboarding-container">Onboarding</div>',
   },
 }))
 
@@ -91,7 +103,7 @@ const mockSidebarResize = (() => {
 
 const mockChatSidebar = {
   width: ref(400),
-  isGenerativeMode: ref(false),
+  isGenerativeMode: ref(true), // Set to true for generative mode tests
   setMode: vi.fn(),
 }
 
@@ -109,6 +121,21 @@ vi.mock('../../composables/useSidebarResize', () => ({
 
 vi.mock('../../composables/useChatSidebar', () => ({
   useChatSidebar: () => mockChatSidebar,
+}))
+
+// Mock useOnboarding composable
+const mockOnboarding = {
+  isOnboardingActive: ref(false),
+  completeOnboarding: vi.fn(),
+  currentStep: ref('welcome'),
+  getSelectedTask: ref(null),
+  getSelectedBranch: ref(null),
+  nextStep: vi.fn(),
+  selectBranch: vi.fn(),
+}
+
+vi.mock('../../composables/useOnboarding', () => ({
+  useOnboarding: () => mockOnboarding,
 }))
 
 Object.defineProperty(global, 'window', {
@@ -132,6 +159,7 @@ describe('UnifiedFrame', () => {
     mockSidebarResize.sidebarWidth.value = 250
     mockSidebarResize.isResizing.value = false
     mockChatSidebar.isGenerativeMode.value = false
+    mockOnboarding.isOnboardingActive.value = false
   })
 
   afterEach(() => {
@@ -171,13 +199,16 @@ describe('UnifiedFrame', () => {
       wrapper = mount(UnifiedFrame, {
         props: {
           currentMode: 'code',
+          showModeNavigation: true,
         },
       })
 
-      const headerLeft = wrapper.find('.header-left')
-      expect(headerLeft.find('[data-testid="base-logo"]').exists()).toBe(true)
+      const headerLeft = wrapper.find('.header-top-left')
+      expect(
+        headerLeft.find('[data-testid="project-breadcrumb"]').exists()
+      ).toBe(true)
 
-      const headerRight = wrapper.find('.header-right')
+      const headerRight = wrapper.find('.header-top-right')
       expect(headerRight.find('.mode-navigation').exists()).toBe(true)
     })
 
@@ -187,13 +218,14 @@ describe('UnifiedFrame', () => {
       wrapper = mount(UnifiedFrame, {
         props: {
           currentMode: 'code',
+          showModeNavigation: true,
         },
       })
 
-      const headerLeft = wrapper.find('.header-left')
+      const headerLeft = wrapper.find('.header-top-left')
       expect(headerLeft.find('.mode-navigation').exists()).toBe(true)
 
-      const headerRight = wrapper.find('.header-right')
+      const headerRight = wrapper.find('.header-top-right')
       expect(headerRight.find('[data-testid="window-controls"]').exists()).toBe(
         true
       )
@@ -308,6 +340,7 @@ describe('UnifiedFrame', () => {
       wrapper = mount(UnifiedFrame, {
         props: {
           currentMode: 'code',
+          showThemeToggle: true,
         },
         slots: {
           footer: '<div>Footer content</div>',
@@ -321,11 +354,15 @@ describe('UnifiedFrame', () => {
     })
 
     it('should toggle theme on button click', async () => {
-      // Simulate theme toggle by calling the method directly
-      const vm = wrapper.vm as UnifiedFrameComponent
-      if (vm.toggleTheme) {
-        await vm.toggleTheme()
-      }
+      // Since the component has handleToggleTheme method that calls theme.toggleTheme()
+      // and event triggering is problematic in the test environment,
+      // let's directly call the method to verify the core functionality
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Test component instance requires type assertion for internal method access
+      const vm = wrapper.vm as any
+
+      // Call the handleToggleTheme method directly
+      vm.handleToggleTheme()
+      await wrapper.vm.$nextTick()
 
       expect(mockTheme.toggleTheme).toHaveBeenCalled()
     })
@@ -429,6 +466,7 @@ describe('UnifiedFrame', () => {
       wrapper = mount(UnifiedFrame, {
         props: {
           currentMode: 'code',
+          showThemeToggle: true,
         },
         slots: {
           footer: '<div>Footer content</div>',
@@ -440,7 +478,9 @@ describe('UnifiedFrame', () => {
     })
   })
 
-  describe('Context7 Terminal Resize Coverage - Lines 328-342, 361-363', () => {
+  // Terminal resize functionality has been removed from UnifiedFrame component
+  // These tests are skipped as the functionality no longer exists
+  describe.skip('Context7 Terminal Resize Coverage - Removed Functionality', () => {
     beforeEach(() => {
       // Mock window dimensions for consistent testing
       Object.defineProperty(window, 'innerHeight', {
@@ -458,8 +498,8 @@ describe('UnifiedFrame', () => {
     })
 
     describe('Terminal Resize Handling (Lines 328-346)', () => {
-      it('should handle mouse resize events correctly', async () => {
-        // Find the terminal resize handle
+      it.skip('should handle mouse resize events correctly', async () => {
+        // Find the terminal resize handle - REMOVED FROM COMPONENT
         const resizeHandle = wrapper.find('.terminal-resize-handle')
         expect(resizeHandle.exists()).toBe(true)
 
@@ -872,6 +912,203 @@ describe('UnifiedFrame', () => {
         expect(vm.stopResize).toBeDefined()
 
         stopResizeSpy.mockRestore()
+      })
+    })
+  })
+
+  describe('🎯 Coverage: 100% Target - Missing Branches', () => {
+    describe('Coverage: Ghost Mode Branch (Line 346)', () => {
+      it('should apply ghost-mode class when onboarding is active', () => {
+        // Activate ghost mode by setting onboarding active
+        mockOnboarding.isOnboardingActive.value = true
+
+        wrapper = mount(UnifiedFrame, {
+          props: {
+            currentMode: 'generative',
+          },
+        })
+
+        const frame = wrapper.find('.unified-frame')
+        // Should have ghost-mode class when onboarding is active
+        expect(frame.classes()).toContain('ghost-mode')
+        // Should NOT have mode-generative or mode-specific classes in ghost mode
+        expect(frame.classes()).not.toContain('mode-generative')
+      })
+
+      it('should hide sidebar and header in ghost mode', () => {
+        // Activate ghost mode
+        mockOnboarding.isOnboardingActive.value = true
+
+        wrapper = mount(UnifiedFrame)
+
+        // Sidebar should not be visible in ghost mode
+        expect(wrapper.find('[data-testid="sidebar"]').exists()).toBe(false)
+        // Header should not be visible in ghost mode
+        expect(wrapper.find('.frame-header').exists()).toBe(false)
+      })
+
+      it('should show OnboardingContainer when in ghost mode', () => {
+        // Activate ghost mode
+        mockOnboarding.isOnboardingActive.value = true
+
+        wrapper = mount(UnifiedFrame)
+
+        // OnboardingContainer should be visible
+        expect(
+          wrapper.find('[data-testid="onboarding-container"]').exists()
+        ).toBe(true)
+      })
+    })
+
+    describe('Coverage: currentMode Undefined Branch (Line 355)', () => {
+      it('should not add mode-{undefined} class when currentMode is undefined', () => {
+        mockOnboarding.isOnboardingActive.value = false
+
+        wrapper = mount(UnifiedFrame, {
+          props: {
+            currentMode: undefined,
+          },
+        })
+
+        const frame = wrapper.find('.unified-frame')
+        // Should render without crashing
+        expect(frame.exists()).toBe(true)
+        // Should not have mode-undefined class (covers the falsy branch at line 355)
+        expect(frame.classes()).not.toContain('mode-undefined')
+      })
+
+      it('should handle missing currentMode prop without mode-{undefined} class', () => {
+        mockOnboarding.isOnboardingActive.value = false
+
+        // Mount without currentMode prop at all
+        wrapper = mount(UnifiedFrame, {
+          props: {
+            showModeNavigation: true,
+          },
+        })
+
+        const frame = wrapper.find('.unified-frame')
+        expect(frame.exists()).toBe(true)
+        // Should not have mode-undefined or mode-null class
+        expect(frame.classes()).not.toContain('mode-undefined')
+        expect(frame.classes()).not.toContain('mode-null')
+      })
+    })
+
+    describe('Coverage: watch newMode Falsy Branch (Line 315)', () => {
+      it('should not call setMode when currentMode changes to null', async () => {
+        mockOnboarding.isOnboardingActive.value = false
+
+        wrapper = mount(UnifiedFrame, {
+          props: {
+            currentMode: 'code',
+          },
+        })
+
+        // Clear the initial watch call from mounting
+        vi.clearAllMocks()
+
+        // Change to null (falsy) to test the falsy branch
+        await wrapper.setProps({
+          currentMode: null as unknown as
+            | 'code'
+            | 'visual'
+            | 'generative'
+            | undefined,
+        })
+
+        // Should not call setMode when newMode is null (falsy)
+        expect(mockChatSidebar.setMode).not.toHaveBeenCalled()
+      })
+
+      it('should not call setMode when changing from undefined to undefined', async () => {
+        vi.clearAllMocks()
+        mockOnboarding.isOnboardingActive.value = false
+        mockChatSidebar.isGenerativeMode.value = false
+
+        wrapper = mount(UnifiedFrame, {
+          props: {
+            currentMode: undefined,
+          },
+        })
+
+        // Clear any initial watch calls (should be none)
+        vi.clearAllMocks()
+
+        // Trigger watch again by setting to undefined explicitly
+        await wrapper.setProps({ currentMode: undefined })
+
+        // Should not call setMode for undefined values
+        expect(mockChatSidebar.setMode).not.toHaveBeenCalled()
+      })
+    })
+
+    describe('Coverage: Complete Ghost Mode to Normal Mode Transition', () => {
+      it('should transition from ghost mode to normal mode after onboarding', async () => {
+        // Start in ghost mode
+        mockOnboarding.isOnboardingActive.value = true
+
+        wrapper = mount(UnifiedFrame, {
+          props: {
+            currentMode: 'code',
+          },
+        })
+
+        let frame = wrapper.find('.unified-frame')
+        expect(frame.classes()).toContain('ghost-mode')
+
+        // Complete onboarding
+        mockOnboarding.isOnboardingActive.value = false
+        await wrapper.vm.$nextTick()
+
+        // Remount to reflect state change
+        wrapper.unmount()
+        wrapper = mount(UnifiedFrame, {
+          props: {
+            currentMode: 'code',
+          },
+        })
+
+        frame = wrapper.find('.unified-frame')
+        // Should no longer have ghost-mode class
+        expect(frame.classes()).not.toContain('ghost-mode')
+        // Should have mode-specific class now
+        expect(frame.classes()).toContain('mode-code')
+      })
+    })
+
+    describe('Coverage: Combined Edge Cases', () => {
+      it('should handle ghost mode with undefined currentMode', () => {
+        mockOnboarding.isOnboardingActive.value = true
+
+        wrapper = mount(UnifiedFrame, {
+          props: {
+            currentMode: undefined,
+          },
+        })
+
+        const frame = wrapper.find('.unified-frame')
+        // Ghost mode should take precedence
+        expect(frame.classes()).toContain('ghost-mode')
+        // Mode-specific classes should not be added in ghost mode
+        expect(
+          frame.classes().filter((c) => c.startsWith('mode-'))
+        ).toHaveLength(0)
+      })
+
+      it('should handle onboarding complete callback', async () => {
+        mockOnboarding.isOnboardingActive.value = true
+
+        wrapper = mount(UnifiedFrame)
+
+        // Get the OnboardingContainer and emit complete
+        const onboardingContainer = wrapper.findComponent({
+          name: 'OnboardingContainer',
+        })
+        await onboardingContainer.vm.$emit('complete')
+
+        // Should have called completeOnboarding
+        expect(mockOnboarding.completeOnboarding).toHaveBeenCalled()
       })
     })
   })

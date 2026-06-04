@@ -511,10 +511,9 @@ export abstract class BaseStorageAdapter implements IStorageAdapter {
   /**
    * Update access metadata for LRU tracking
    *
-   * @param key - Storage key
+   * @param _ - Storage key
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  protected async updateAccessMetadata(_key: string): Promise<void> {
+  protected async updateAccessMetadata(_: string): Promise<void> {
     // This is optional - concrete adapters can implement if they support metadata updates
   }
 

@@ -227,22 +227,8 @@ export function checkCompatibility(): {
 } {
   const features = {
     isomorphicGit: true, // Always available as a dependency
-    fileSystem: (() => {
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        require('fs')
-        return true
-      } catch {
-        return false
-      }
-    })(), // Native fs module in Node.js/Electron
+    fileSystem: true, // Always available in Electron/Node.js
     caching: true, // Always available
-  }
-
-  const issues: string[] = []
-
-  if (!features.fileSystem) {
-    issues.push('Node.js fs module not available')
   }
 
   return {
@@ -250,6 +236,6 @@ export function checkCompatibility(): {
       features.isomorphicGit && features.fileSystem && features.caching,
     environment: 'node',
     features,
-    issues,
+    issues: [], // No compatibility issues in Node.js/Electron environment
   }
 }

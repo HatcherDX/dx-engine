@@ -179,8 +179,7 @@ export class TerminalUI extends EventEmitter<TerminalUIEvents> {
     }
 
     // Create new terminal with same config
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { id, ...configWithoutId } = sourceInstance.config
+    const { id: _, ...configWithoutId } = sourceInstance.config
     const newConfig = {
       ...configWithoutId,
       name: `${sourceInstance.title} (Split)`,
@@ -214,8 +213,7 @@ export class TerminalUI extends EventEmitter<TerminalUIEvents> {
     }
 
     // Create new terminal with same config
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { id, ...configWithoutId } = sourceInstance.config
+    const { id: _, ...configWithoutId } = sourceInstance.config
     const newConfig = {
       ...configWithoutId,
       name: `${sourceInstance.title} (Split)`,

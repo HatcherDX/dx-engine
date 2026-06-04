@@ -636,6 +636,151 @@ describe('🖥️ WebGL Terminal Adapter', () => {
     })
   })
 
+  describe('🔍 WebGL Context Info', () => {
+    let originalGetContext: typeof HTMLCanvasElement.prototype.getContext
+
+    beforeEach(() => {
+      originalGetContext = HTMLCanvasElement.prototype.getContext
+    })
+
+    afterEach(() => {
+      HTMLCanvasElement.prototype.getContext = originalGetContext
+    })
+
+    it('should return null when not initialized', () => {
+      const info = adapter.getContextInfo()
+      expect(info).toBeNull()
+    })
+
+    it('should return WebGL2 context info with debug extension', async () => {
+      await adapter.initialize(mockConfig)
+
+      const mockDebugInfo = {
+        UNMASKED_VENDOR_WEBGL: 0x9245,
+        UNMASKED_RENDERER_WEBGL: 0x9246,
+      }
+
+      const mockGL = {
+        VENDOR: 37445,
+        RENDERER: 37446,
+        VERSION: 37447,
+        getParameter: vi.fn((pname: number) => {
+          if (pname === mockDebugInfo.UNMASKED_VENDOR_WEBGL)
+            return 'NVIDIA Corporation'
+          if (pname === mockDebugInfo.UNMASKED_RENDERER_WEBGL)
+            return 'GeForce RTX 3080'
+          if (pname === 37447) return 'WebGL 2.0'
+          return ''
+        }),
+        getExtension: vi.fn((name: string) => {
+          if (name === 'WEBGL_debug_renderer_info') return mockDebugInfo
+          return null
+        }),
+      }
+
+      HTMLCanvasElement.prototype.getContext = vi.fn(
+        () => mockGL
+      ) as unknown as typeof HTMLCanvasElement.prototype.getContext
+
+      const info = adapter.getContextInfo()
+
+      expect(info).toEqual({
+        vendor: 'NVIDIA Corporation',
+        renderer: 'GeForce RTX 3080',
+        version: 'WebGL 2.0',
+      })
+    })
+
+    it('should return WebGL context info without debug extension', async () => {
+      await adapter.initialize(mockConfig)
+
+      const mockGL = {
+        VENDOR: 37445,
+        RENDERER: 37446,
+        VERSION: 37447,
+        getParameter: vi.fn((pname: number) => {
+          if (pname === 37445) return 'Vendor Name'
+          if (pname === 37446) return 'Renderer Name'
+          if (pname === 37447) return 'WebGL 1.0'
+          return ''
+        }),
+        getExtension: vi.fn(() => null),
+      }
+
+      HTMLCanvasElement.prototype.getContext = vi.fn(
+        () => mockGL
+      ) as unknown as typeof HTMLCanvasElement.prototype.getContext
+
+      const info = adapter.getContextInfo()
+
+      expect(info).toEqual({
+        vendor: 'Vendor Name',
+        renderer: 'Renderer Name',
+        version: 'WebGL 1.0',
+      })
+    })
+
+    it('should return null when no WebGL context available', async () => {
+      await adapter.initialize(mockConfig)
+
+      HTMLCanvasElement.prototype.getContext = vi.fn(
+        () => null
+      ) as unknown as typeof HTMLCanvasElement.prototype.getContext
+
+      const info = adapter.getContextInfo()
+
+      expect(info).toBeNull()
+    })
+
+    it('should handle getContext errors gracefully', async () => {
+      await adapter.initialize(mockConfig)
+
+      HTMLCanvasElement.prototype.getContext = vi.fn(() => {
+        throw new Error('Context creation failed')
+      }) as unknown as typeof HTMLCanvasElement.prototype.getContext
+
+      const info = adapter.getContextInfo()
+
+      expect(info).toBeNull()
+    })
+
+    it('should try webgl2 first then webgl fallback', async () => {
+      await adapter.initialize(mockConfig)
+
+      const mockGL = {
+        VENDOR: 37445,
+        RENDERER: 37446,
+        VERSION: 37447,
+        getParameter: vi.fn((pname: number) => {
+          if (pname === 37445) return 'Fallback Vendor'
+          if (pname === 37446) return 'Fallback Renderer'
+          if (pname === 37447) return 'WebGL 1.0'
+          return ''
+        }),
+        getExtension: vi.fn(() => null),
+      }
+
+      const getContextSpy = vi.fn((contextId: string) => {
+        if (contextId === 'webgl2') return null
+        if (contextId === 'webgl') return mockGL
+        return null
+      })
+
+      HTMLCanvasElement.prototype.getContext =
+        getContextSpy as unknown as typeof HTMLCanvasElement.prototype.getContext
+
+      const info = adapter.getContextInfo()
+
+      expect(getContextSpy).toHaveBeenCalledWith('webgl2')
+      expect(getContextSpy).toHaveBeenCalledWith('webgl')
+      expect(info).toEqual({
+        vendor: 'Fallback Vendor',
+        renderer: 'Fallback Renderer',
+        version: 'WebGL 1.0',
+      })
+    })
+  })
+
   describe('🏗️ Integration Testing', () => {
     it('should work end-to-end: initialize, render, resize, dispose', async () => {
       // Initialize

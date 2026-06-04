@@ -486,7 +486,7 @@ describe('Menu Module', () => {
           (item as Record<string, unknown>).label === 'Settings...'
       )
       expect(settingsItem).toBeDefined()
-      expect((settingsItem as Record<string, unknown>).enabled).toBe(false)
+      expect((settingsItem as Record<string, unknown>).enabled).toBe(true)
       expect((settingsItem as Record<string, unknown>).accelerator).toBe(
         'Cmd+,'
       )
@@ -1274,6 +1274,372 @@ describe('Menu Module', () => {
       // Verify menu was created successfully
       expect(mockMenu.buildFromTemplate).toHaveBeenCalled()
       expect(mockMenu.setApplicationMenu).toHaveBeenCalled()
+    })
+  })
+
+  describe('Complete Coverage - Missing Function Executions', () => {
+    const { mockBrowserWindow } = vi.hoisted(() => ({
+      mockBrowserWindow: {
+        getFocusedWindow: vi.fn(),
+        webContents: {
+          send: vi.fn(),
+        },
+        isDestroyed: vi.fn(() => false),
+      },
+    }))
+
+    beforeEach(() => {
+      vi.doMock('electron', () => ({
+        Menu: mockMenu,
+        shell: mockShell,
+        BrowserWindow: mockBrowserWindow,
+        app: {
+          getName: vi.fn(() => 'Hatcher'),
+          getVersion: vi.fn(() => '1.0.0'),
+        },
+      }))
+    })
+
+    it('should test openSettings function with valid window', async () => {
+      vi.resetModules()
+
+      // Set platform BEFORE importing and calling setupApplicationMenu
+      Object.defineProperty(process, 'platform', {
+        value: 'darwin',
+        writable: true,
+      })
+
+      const mockWindow = {
+        webContents: { send: vi.fn() },
+        isDestroyed: vi.fn(() => false),
+      }
+
+      const { setupApplicationMenu } = await import('./menu')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Test requires flexible typing for validation testing
+      setupApplicationMenu(mockWindow as any)
+
+      const menuTemplate = mockMenu.buildFromTemplate.mock.calls[0][0]
+
+      // Find Settings menu item (macOS)
+      const appMenu = menuTemplate.find(
+        (item: Record<string, unknown>) => item.label === 'Hatcher'
+      )
+      const settingsItem = (
+        appMenu as { submenu: Array<Record<string, unknown>> }
+      ).submenu.find(
+        (item: Record<string, unknown>) => item.label === 'Settings...'
+      )
+
+      // Execute openSettings through click handler
+      await settingsItem?.click?.()
+
+      expect(mockWindow.webContents.send).toHaveBeenCalledWith('open-settings')
+    })
+
+    it('should test openSettings function with destroyed window', async () => {
+      vi.resetModules()
+
+      // Set platform BEFORE importing and calling setupApplicationMenu
+      Object.defineProperty(process, 'platform', {
+        value: 'darwin',
+        writable: true,
+      })
+
+      const mockWindow = {
+        webContents: { send: vi.fn() },
+        isDestroyed: vi.fn(() => true), // Window is destroyed
+      }
+
+      const { setupApplicationMenu } = await import('./menu')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Test requires flexible typing for validation testing
+      setupApplicationMenu(mockWindow as any)
+
+      const menuTemplate = mockMenu.buildFromTemplate.mock.calls[0][0]
+
+      const appMenu = menuTemplate.find(
+        (item: Record<string, unknown>) => item.label === 'Hatcher'
+      )
+      const settingsItem = (
+        appMenu as { submenu: Array<Record<string, unknown>> }
+      ).submenu.find(
+        (item: Record<string, unknown>) => item.label === 'Settings...'
+      )
+
+      // Execute openSettings through click handler - should warn about unavailable window
+      await settingsItem?.click?.()
+
+      expect(mockWindow.webContents.send).not.toHaveBeenCalled()
+    })
+
+    it('should test openSettings function with no window reference', async () => {
+      vi.resetModules()
+
+      // Set platform BEFORE importing and calling setupApplicationMenu
+      Object.defineProperty(process, 'platform', {
+        value: 'darwin',
+        writable: true,
+      })
+
+      const { setupApplicationMenu } = await import('./menu')
+      setupApplicationMenu() // No window provided
+
+      const menuTemplate = mockMenu.buildFromTemplate.mock.calls[0][0]
+
+      const appMenu = menuTemplate.find(
+        (item: Record<string, unknown>) => item.label === 'Hatcher'
+      )
+      const settingsItem = (
+        appMenu as { submenu: Array<Record<string, unknown>> }
+      ).submenu.find(
+        (item: Record<string, unknown>) => item.label === 'Settings...'
+      )
+
+      // Execute openSettings through click handler - should warn about unavailable window
+      await settingsItem?.click?.()
+
+      // No window reference, so no send call should be made
+    })
+
+    it('should test closeTask function with valid window', async () => {
+      vi.resetModules()
+
+      // Set platform BEFORE importing and calling setupApplicationMenu
+      Object.defineProperty(process, 'platform', {
+        value: 'darwin',
+        writable: true,
+      })
+
+      const mockWindow = {
+        webContents: { send: vi.fn() },
+        isDestroyed: vi.fn(() => false),
+      }
+
+      const { setupApplicationMenu } = await import('./menu')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Test requires flexible typing for validation testing
+      setupApplicationMenu(mockWindow as any)
+
+      const menuTemplate = mockMenu.buildFromTemplate.mock.calls[0][0]
+
+      const appMenu = menuTemplate.find(
+        (item: Record<string, unknown>) => item.label === 'Hatcher'
+      )
+      const closeTaskItem = (
+        appMenu as { submenu: Array<Record<string, unknown>> }
+      ).submenu.find(
+        (item: Record<string, unknown>) => item.label === 'Close Task'
+      )
+
+      // Execute closeTask through click handler
+      await closeTaskItem?.click?.()
+
+      expect(mockWindow.webContents.send).toHaveBeenCalledWith('close-task')
+    })
+
+    it('should test closeTask function with fallback to focused window', async () => {
+      vi.resetModules()
+
+      // Set platform BEFORE importing and calling setupApplicationMenu
+      Object.defineProperty(process, 'platform', {
+        value: 'darwin',
+        writable: true,
+      })
+
+      const mockFocusedWindow = {
+        webContents: { send: vi.fn() },
+        isDestroyed: vi.fn(() => false),
+      }
+
+      mockBrowserWindow.getFocusedWindow.mockReturnValue(mockFocusedWindow)
+
+      const { setupApplicationMenu } = await import('./menu')
+      setupApplicationMenu() // No window provided, should use focused window
+
+      const menuTemplate = mockMenu.buildFromTemplate.mock.calls[0][0]
+
+      const appMenu = menuTemplate.find(
+        (item: Record<string, unknown>) => item.label === 'Hatcher'
+      )
+      const closeTaskItem = (
+        appMenu as { submenu: Array<Record<string, unknown>> }
+      ).submenu.find(
+        (item: Record<string, unknown>) => item.label === 'Close Task'
+      )
+
+      // Execute closeTask through click handler
+      await closeTaskItem?.click?.()
+
+      expect(mockFocusedWindow.webContents.send).toHaveBeenCalledWith(
+        'close-task'
+      )
+    })
+
+    it('should test closeTask function with no valid window', async () => {
+      vi.resetModules()
+
+      // Set platform BEFORE importing and calling setupApplicationMenu
+      Object.defineProperty(process, 'platform', {
+        value: 'darwin',
+        writable: true,
+      })
+
+      mockBrowserWindow.getFocusedWindow.mockReturnValue(null)
+
+      const { setupApplicationMenu } = await import('./menu')
+      setupApplicationMenu() // No window provided
+
+      const menuTemplate = mockMenu.buildFromTemplate.mock.calls[0][0]
+
+      const appMenu = menuTemplate.find(
+        (item: Record<string, unknown>) => item.label === 'Hatcher'
+      )
+      const closeTaskItem = (
+        appMenu as { submenu: Array<Record<string, unknown>> }
+      ).submenu.find(
+        (item: Record<string, unknown>) => item.label === 'Close Task'
+      )
+
+      // Execute closeTask through click handler - should warn about no valid window
+      await closeTaskItem?.click?.()
+
+      // No valid window, so no send call should be made
+    })
+
+    it('should test resetToNativePlatform function with actual IPC calls', async () => {
+      vi.resetModules()
+
+      vi.doMock('./utils', () => ({
+        isDev: true,
+      }))
+
+      // Test each platform's reset behavior
+      const platforms = [
+        { node: 'darwin', expected: 'macos' },
+        { node: 'win32', expected: 'windows' },
+        { node: 'linux', expected: 'linux' },
+      ]
+
+      for (const { node, expected } of platforms) {
+        Object.defineProperty(process, 'platform', {
+          value: node,
+          writable: true,
+        })
+
+        vi.resetModules()
+        mockIpcMain.send.mockClear()
+
+        const { setupApplicationMenu } = await import('./menu')
+        setupApplicationMenu()
+
+        const menuTemplate = mockMenu.buildFromTemplate.mock.calls[0][0]
+        const devMenu = menuTemplate.find(
+          (item: Record<string, unknown>) => item.label === 'Development'
+        )
+        const resetItem = (
+          devMenu as { submenu: Array<Record<string, unknown>> }
+        ).submenu.find(
+          (item: Record<string, unknown>) =>
+            item.label === 'Reset to Native Platform'
+        )
+
+        // Execute resetToNativePlatform through click handler
+        await resetItem?.click?.()
+
+        expect(mockIpcMain.send).toHaveBeenCalledWith(
+          'simulate-platform',
+          expected
+        )
+      }
+    })
+
+    it('should test simulatePlatform function calls', async () => {
+      vi.resetModules()
+
+      vi.doMock('./utils', () => ({
+        isDev: true,
+      }))
+
+      const { setupApplicationMenu } = await import('./menu')
+      setupApplicationMenu()
+
+      const menuTemplate = mockMenu.buildFromTemplate.mock.calls[0][0]
+      const devMenu = menuTemplate.find(
+        (item: Record<string, unknown>) => item.label === 'Development'
+      )
+      const simulateMenu = (
+        devMenu as { submenu: Array<Record<string, unknown>> }
+      ).submenu.find(
+        (item: Record<string, unknown>) => item.label === 'Simulate Platform'
+      )
+
+      const platforms = [
+        { label: 'macOS', expected: 'macos' },
+        { label: 'Windows', expected: 'windows' },
+        { label: 'Linux', expected: 'linux' },
+      ]
+
+      for (const { label, expected } of platforms) {
+        const platformItem = (
+          simulateMenu as { submenu: Array<Record<string, unknown>> }
+        ).submenu.find((item: Record<string, unknown>) => item.label === label)
+
+        mockIpcMain.send.mockClear()
+
+        // Execute simulatePlatform through click handler
+        await platformItem?.click?.()
+
+        expect(mockIpcMain.send).toHaveBeenCalledWith(
+          'simulate-platform',
+          expected
+        )
+      }
+    })
+
+    it('should test Windows/Linux File menu click handlers', async () => {
+      vi.resetModules()
+
+      Object.defineProperty(process, 'platform', {
+        value: 'win32',
+        writable: true,
+      })
+
+      const mockWindow = {
+        webContents: { send: vi.fn() },
+        isDestroyed: vi.fn(() => false),
+      }
+
+      const { setupApplicationMenu } = await import('./menu')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Test requires flexible typing for validation testing
+      setupApplicationMenu(mockWindow as any)
+
+      const menuTemplate = mockMenu.buildFromTemplate.mock.calls[0][0]
+
+      // Find File menu (Windows/Linux)
+      const fileMenu = menuTemplate.find(
+        (item: Record<string, unknown>) => item.label === 'File'
+      )
+
+      // Test Close Task in File menu (lines 75-76)
+      const closeTaskItem = (
+        fileMenu as { submenu: Array<Record<string, unknown>> }
+      ).submenu.find(
+        (item: Record<string, unknown>) => item.label === 'Close Task'
+      )
+
+      await closeTaskItem?.click?.()
+      expect(mockWindow.webContents.send).toHaveBeenCalledWith('close-task')
+
+      // Reset mock for next test
+      mockWindow.webContents.send.mockClear()
+
+      // Test Settings in File menu (lines 84-85)
+      const settingsItem = (
+        fileMenu as { submenu: Array<Record<string, unknown>> }
+      ).submenu.find(
+        (item: Record<string, unknown>) => item.label === 'Settings...'
+      )
+
+      await settingsItem?.click?.()
+      expect(mockWindow.webContents.send).toHaveBeenCalledWith('open-settings')
     })
   })
 })

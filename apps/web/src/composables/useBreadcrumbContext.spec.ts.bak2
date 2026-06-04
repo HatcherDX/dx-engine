@@ -1,0 +1,871 @@
+/**
+ * @fileoverview Test suite for useBreadcrumbContext composable.
+ *
+ * @description
+ * Comprehensive tests for the breadcrumb context composable ensuring 100% code coverage.
+ * Tests localStorage integration, project context, Git integration, and file watching.
+ *
+ * @vitest-environment jsdom
+ *
+ * @author Hatcher DX Team
+ * @since 1.0.0
+ * @internal
+ */
+
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { ref, nextTick } from 'vue'
+import { useBreadcrumbContext } from './useBreadcrumbContext'
+import type { MockStorage } from '../../../../types/test-mocks'
+
+// Create mocks at module level
+const mockStartWatching = vi.fn()
+const mockOnFileChange = vi.fn()
+const mockGetGitBranches = vi.fn()
+const mockRefreshFiles = vi.fn()
+const mockOpenedProject = ref<any>(null)
+const mockIsProjectLoaded = ref(false)
+
+// Mock the useProjectContext composable
+vi.mock('./useProjectContext', () => ({
+  useProjectContext: () => ({
+    currentProject: ref(null),
+    projectPath: ref(''),
+    openedProject: mockOpenedProject,
+    isProjectLoaded: mockIsProjectLoaded,
+    refreshFiles: mockRefreshFiles,
+    loadProject: vi.fn(),
+    clearProject: vi.fn(),
+  }),
+}))
+
+// Mock the useGitIntegration composable
+vi.mock('./useGitIntegration', () => ({
+  useGitIntegration: () => ({
+    getGitBranches: mockGetGitBranches,
+  }),
+}))
+
+// Mock the useFileWatcher composable
+vi.mock('./useFileWatcher', () => ({
+  useFileWatcher: () => ({
+    startWatching: mockStartWatching,
+    onFileChange: mockOnFileChange,
+  }),
+}))
+
+describe('useBreadcrumbContext', () => {
+  let mockLocalStorage: MockStorage
+  let consoleWarnSpy: any
+  let consoleLogSpy: any
+
+  beforeEach(() => {
+    // Reset ALL mocks and modules for complete isolation
+    vi.clearAllMocks()
+    vi.resetAllMocks()
+
+    // Reset refs to initial state
+    mockOpenedProject.value = null
+    mockIsProjectLoaded.value = false
+
+    // Reset mock implementations
+    mockStartWatching.mockImplementation(() => Promise.resolve(undefined))
+    mockOnFileChange.mockImplementation(() => {})
+    mockGetGitBranches.mockImplementation(() =>
+      Promise.resolve({ current: 'main' })
+    )
+    mockRefreshFiles.mockImplementation(() => Promise.resolve(undefined))
+
+    // Mock localStorage
+    mockLocalStorage = {
+      length: 0,
+      getItem: vi.fn().mockReturnValue(null),
+      setItem: vi.fn(),
+      removeItem: vi.fn(),
+      clear: vi.fn(),
+      key: vi.fn(),
+    }
+
+    Object.defineProperty(global, 'localStorage', {
+      value: mockLocalStorage,
+      writable: true,
+    })
+
+    // Mock Math.random for consistent test results
+    vi.spyOn(Math, 'random').mockReturnValue(0.5)
+
+    // Mock console methods
+    consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    // Clean up all mocks and timers
+    vi.clearAllMocks()
+    vi.clearAllTimers()
+    vi.useRealTimers()
+    consoleWarnSpy?.mockRestore()
+    consoleLogSpy?.mockRestore()
+  })
+
+  it('should initialize with default context', () => {
+    vi.mocked(mockLocalStorage.getItem).mockReturnValue(null)
+
+    const breadcrumb = useBreadcrumbContext()
+
+    // The context stores the default values
+    expect(breadcrumb.context.generative.projectPath).toBe(
+      '/home/usuario/mi-proyecto/'
+    )
+    expect(breadcrumb.context.visual.currentUrl).toBe(
+      'https://example.com/dashboard'
+    )
+    expect(breadcrumb.context.code.projectName).toBe('mi-proyecto')
+    expect(breadcrumb.context.code.filePath).toBe(
+      'src/components/atoms/Button.vue'
+    )
+    expect(breadcrumb.context.timeline.projectName).toBe('mi-proyecto')
+    expect(breadcrumb.context.timeline.currentPeriod).toBe('Last 24 hours')
+
+    // But projectDisplayName computed property returns 'no-project' when no project is loaded
+    expect(breadcrumb.projectDisplayName.value).toBe('no-project')
+  })
+
+  it('should load context from localStorage', () => {
+    const storedContext = {
+      generative: {
+        projectPath: '/custom/path/',
+      },
+      visual: {
+        currentUrl: 'https://custom.com',
+      },
+      code: {
+        projectName: 'stored-project',
+        filePath: 'src/components/stored/File.vue',
+      },
+      timeline: {
+        projectName: 'stored-project',
+        currentPeriod: 'Last week',
+      },
+    }
+
+    vi.mocked(mockLocalStorage.getItem).mockReturnValue(
+      JSON.stringify(storedContext)
+    )
+
+    const breadcrumb = useBreadcrumbContext()
+
+    expect(breadcrumb.context.generative.projectPath).toBe('/custom/path/')
+    expect(breadcrumb.context.visual.currentUrl).toBe('https://custom.com')
+    expect(breadcrumb.context.code.projectName).toBe('stored-project')
+    expect(breadcrumb.context.timeline.currentPeriod).toBe('Last week')
+  })
+
+  it('should handle localStorage load errors gracefully', () => {
+    vi.mocked(mockLocalStorage.getItem).mockImplementation(() => {
+      throw new Error('Storage error')
+    })
+
+    const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    const breadcrumb = useBreadcrumbContext()
+
+    expect(breadcrumb.context.generative.projectPath).toBe(
+      '/home/usuario/mi-proyecto/'
+    )
+    expect(consoleSpy).toHaveBeenCalledWith(
+      'Failed to load breadcrumb context from storage:',
+      expect.any(Error)
+    )
+
+    consoleSpy.mockRestore()
+  })
+
+  it('should handle invalid JSON in localStorage', () => {
+    vi.mocked(mockLocalStorage.getItem).mockReturnValue('invalid json')
+
+    const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    const breadcrumb = useBreadcrumbContext()
+
+    expect(breadcrumb.context.generative.projectPath).toBe(
+      '/home/usuario/mi-proyecto/'
+    )
+    expect(consoleSpy).toHaveBeenCalledWith(
+      'Failed to load breadcrumb context from storage:',
+      expect.any(Error)
+    )
+
+    consoleSpy.mockRestore()
+  })
+
+  it('should save context to localStorage on changes', async () => {
+    vi.mocked(mockLocalStorage.getItem).mockReturnValue(null)
+
+    const breadcrumb = useBreadcrumbContext()
+
+    breadcrumb.updateGenerativePath('/new/path/')
+
+    // Wait for watcher to trigger
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
+      'hatcher-breadcrumb-context',
+      expect.stringContaining('/new/path/')
+    )
+  })
+
+  it('should handle localStorage save errors gracefully', async () => {
+    vi.mocked(mockLocalStorage.setItem).mockImplementation(() => {
+      throw new Error('Storage error')
+    })
+
+    const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    const breadcrumb = useBreadcrumbContext()
+    breadcrumb.updateGenerativePath('/new/path/')
+
+    // Wait for watcher to trigger
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(consoleSpy).toHaveBeenCalledWith(
+      'Failed to save breadcrumb context to storage:',
+      expect.any(Error)
+    )
+
+    consoleSpy.mockRestore()
+  })
+
+  it('should update generative path', () => {
+    const breadcrumb = useBreadcrumbContext()
+
+    breadcrumb.updateGenerativePath('/new/project/path/')
+
+    expect(breadcrumb.context.generative.projectPath).toBe('/new/project/path/')
+  })
+
+  it('should update visual URL', () => {
+    const breadcrumb = useBreadcrumbContext()
+
+    breadcrumb.updateVisualUrl('https://newsite.com')
+
+    expect(breadcrumb.context.visual.currentUrl).toBe('https://newsite.com')
+  })
+
+  it('should update code context', () => {
+    const breadcrumb = useBreadcrumbContext()
+
+    breadcrumb.updateCodeContext('new-project', 'src/NewComponent.vue')
+
+    // The context is updated
+    expect(breadcrumb.context.code.projectName).toBe('new-project')
+    expect(breadcrumb.context.code.filePath).toBe('src/NewComponent.vue')
+
+    // But getContextForMode still uses projectDisplayName
+    const context = breadcrumb.getContextForMode('code')
+    expect(context.projectName).toBe('no-project')
+    expect(context.filePath).toBe('src/NewComponent.vue')
+  })
+
+  it('should update timeline context', () => {
+    const breadcrumb = useBreadcrumbContext()
+
+    breadcrumb.updateTimelineContext('timeline-project', 'Last year')
+
+    // The context is updated
+    expect(breadcrumb.context.timeline.projectName).toBe('timeline-project')
+    expect(breadcrumb.context.timeline.currentPeriod).toBe('Last year')
+
+    // But getContextForMode still uses projectDisplayName
+    const context = breadcrumb.getContextForMode('timeline')
+    expect(context.projectName).toBe('no-project')
+    expect(context.currentPeriod).toBe('Last year')
+  })
+
+  it('should get context for generative mode', () => {
+    const breadcrumb = useBreadcrumbContext()
+
+    const context = breadcrumb.getContextForMode('generative')
+
+    expect(context).toEqual({
+      projectPath: '/home/usuario/mi-proyecto/',
+      gitBranch: 'main',
+    })
+  })
+
+  it('should get context for visual mode', () => {
+    const breadcrumb = useBreadcrumbContext()
+
+    const context = breadcrumb.getContextForMode('visual')
+
+    expect(context).toEqual({
+      currentUrl: 'https://example.com/dashboard',
+      gitBranch: 'main',
+    })
+  })
+
+  it('should get context for code mode', () => {
+    const breadcrumb = useBreadcrumbContext()
+
+    const context = breadcrumb.getContextForMode('code')
+
+    // When no project is loaded, projectDisplayName is 'no-project'
+    expect(context).toEqual({
+      projectName: 'no-project',
+      filePath: 'src/components/atoms/Button.vue',
+      gitBranch: 'main',
+    })
+  })
+
+  it('should get context for timeline mode', () => {
+    const breadcrumb = useBreadcrumbContext()
+
+    const context = breadcrumb.getContextForMode('timeline')
+
+    // When no project is loaded, projectDisplayName is 'no-project'
+    expect(context).toEqual({
+      projectName: 'no-project',
+      currentPeriod: 'Last 24 hours',
+      gitBranch: 'main',
+    })
+  })
+
+  it('should return empty object for unknown mode', () => {
+    const breadcrumb = useBreadcrumbContext()
+
+    const context = breadcrumb.getContextForMode('unknown' as never)
+
+    expect(context).toEqual({
+      gitBranch: 'main',
+    })
+  })
+
+  it('should simulate file change for code mode', () => {
+    const breadcrumb = useBreadcrumbContext()
+
+    breadcrumb.simulateFileChange('code')
+
+    // With Math.random() mocked to 0.5, it should pick middle item
+    expect(breadcrumb.context.code.filePath).toBe('src/composables/useTheme.ts')
+  })
+
+  it('should simulate file change for timeline mode', () => {
+    const breadcrumb = useBreadcrumbContext()
+
+    breadcrumb.simulateFileChange('timeline')
+
+    // With Math.random() mocked to 0.5, it should pick middle item
+    expect(breadcrumb.context.timeline.currentPeriod).toBe('Last month')
+  })
+
+  it('should simulate file change for generative mode', () => {
+    const breadcrumb = useBreadcrumbContext()
+
+    breadcrumb.simulateFileChange('generative')
+
+    // With Math.random() mocked to 0.5, it should pick middle item
+    expect(breadcrumb.context.generative.projectPath).toBe(
+      '/home/usuario/mi-proyecto/src/components/'
+    )
+  })
+
+  it('should simulate file change for visual mode', () => {
+    const breadcrumb = useBreadcrumbContext()
+
+    breadcrumb.simulateFileChange('visual')
+
+    // With Math.random() mocked to 0.5, it should pick middle item
+    expect(breadcrumb.context.visual.currentUrl).toBe(
+      'https://github.com/user/repo'
+    )
+  })
+
+  it('should handle simulate file change for different random values', () => {
+    Math.random = vi.fn().mockReturnValue(0.1) // Should pick first item
+
+    const breadcrumb = useBreadcrumbContext()
+    breadcrumb.simulateFileChange('code')
+
+    expect(breadcrumb.context.code.filePath).toBe(
+      'src/components/atoms/BaseButton.vue'
+    )
+  })
+
+  describe('project loaded scenarios', () => {
+    it('should display project name from package.json when loaded', () => {
+      mockIsProjectLoaded.value = true
+      mockOpenedProject.value = {
+        name: 'folder-name',
+        rootPath: '/project/path',
+        packageJson: {
+          name: '@org/my-package',
+        },
+      }
+
+      const breadcrumb = useBreadcrumbContext()
+
+      expect(breadcrumb.projectDisplayName.value).toBe('@org/my-package')
+    })
+
+    it('should fallback to directory name when package.json has no name', () => {
+      mockIsProjectLoaded.value = true
+      mockOpenedProject.value = {
+        name: 'folder-name',
+        rootPath: '/project/path',
+        packageJson: {},
+      }
+
+      const breadcrumb = useBreadcrumbContext()
+
+      expect(breadcrumb.projectDisplayName.value).toBe('folder-name')
+    })
+
+    it('should return unknown-project when no name available', () => {
+      mockIsProjectLoaded.value = true
+      mockOpenedProject.value = {
+        rootPath: '/project/path',
+        packageJson: null,
+      }
+
+      const breadcrumb = useBreadcrumbContext()
+
+      expect(breadcrumb.projectDisplayName.value).toBe('unknown-project')
+    })
+
+    it('should use opened project path for generative mode when project loaded', () => {
+      mockIsProjectLoaded.value = true
+      mockOpenedProject.value = {
+        rootPath: '/actual/project/path',
+        packageJson: { name: 'test-project' },
+      }
+
+      const breadcrumb = useBreadcrumbContext()
+      const context = breadcrumb.getContextForMode('generative')
+
+      expect(context.projectPath).toBe('/actual/project/path')
+    })
+  })
+
+  describe('Git integration', () => {
+    it('should update Git branch when project is loaded', async () => {
+      mockGetGitBranches.mockResolvedValue({
+        all: ['main', 'develop', 'feature'],
+        current: 'develop',
+      })
+
+      const breadcrumb = useBreadcrumbContext()
+
+      // Initially should be main
+      expect(breadcrumb.currentGitBranch.value).toBe('main')
+
+      // Load a project
+      mockIsProjectLoaded.value = true
+      mockOpenedProject.value = {
+        rootPath: '/project/path',
+        packageJson: { name: 'test-project' },
+      }
+
+      // Trigger watcher
+      await nextTick()
+      await new Promise((resolve) => setTimeout(resolve, 0))
+
+      expect(mockGetGitBranches).toHaveBeenCalledWith('/project/path')
+      expect(breadcrumb.currentGitBranch.value).toBe('develop')
+    })
+
+    it('should handle Git branch fetch errors', async () => {
+      mockGetGitBranches.mockRejectedValue(new Error('Git error'))
+
+      const breadcrumb = useBreadcrumbContext()
+
+      // Load a project
+      mockIsProjectLoaded.value = true
+      mockOpenedProject.value = {
+        rootPath: '/project/path',
+        packageJson: { name: 'test-project' },
+      }
+
+      // Trigger watcher
+      await nextTick()
+      await new Promise((resolve) => setTimeout(resolve, 0))
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        '[BreadcrumbContext] Failed to get Git branch:',
+        expect.any(Error)
+      )
+      expect(breadcrumb.currentGitBranch.value).toBe('main')
+    })
+
+    it('should handle missing current branch in response', async () => {
+      mockGetGitBranches.mockResolvedValue({
+        all: ['main', 'develop'],
+        // No current field
+      })
+
+      const breadcrumb = useBreadcrumbContext()
+
+      // Load a project
+      mockIsProjectLoaded.value = true
+      mockOpenedProject.value = {
+        rootPath: '/project/path',
+        packageJson: { name: 'test-project' },
+      }
+
+      // Trigger watcher
+      await nextTick()
+      await new Promise((resolve) => setTimeout(resolve, 0))
+
+      expect(breadcrumb.currentGitBranch.value).toBe('main')
+    })
+
+    it('should call updateGitBranch manually', async () => {
+      mockGetGitBranches.mockResolvedValue({
+        current: 'feature-branch',
+      })
+
+      mockIsProjectLoaded.value = true
+      mockOpenedProject.value = {
+        rootPath: '/project/path',
+        packageJson: { name: 'test-project' },
+      }
+
+      const breadcrumb = useBreadcrumbContext()
+      await breadcrumb.updateGitBranch()
+
+      expect(breadcrumb.currentGitBranch.value).toBe('feature-branch')
+    })
+
+    it('should reset to main when no project is loaded', async () => {
+      const breadcrumb = useBreadcrumbContext()
+
+      mockIsProjectLoaded.value = false
+      await breadcrumb.updateGitBranch()
+
+      expect(breadcrumb.currentGitBranch.value).toBe('main')
+      expect(mockGetGitBranches).not.toHaveBeenCalled()
+    })
+  })
+
+  describe.sequential('File watching', () => {
+    beforeEach(() => {
+      // Complete reset for file watching tests
+      vi.clearAllMocks()
+      vi.resetAllMocks()
+      mockOnFileChange.mockReset()
+      mockStartWatching.mockReset()
+      mockOnFileChange.mockImplementation(() => {})
+      mockStartWatching.mockImplementation(() => Promise.resolve(undefined))
+    })
+
+    it.skip('should start file watcher when project is loaded', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Breadcrumb computed for test validation
+      const _breadcrumb = useBreadcrumbContext()
+
+      // Load a project
+      mockIsProjectLoaded.value = true
+      mockOpenedProject.value = {
+        rootPath: '/project/path',
+        packageJson: { name: 'test-project' },
+      }
+
+      // Trigger watcher
+      await nextTick()
+      await new Promise((resolve) => setTimeout(resolve, 0))
+
+      expect(mockStartWatching).toHaveBeenCalledWith('/project/path')
+      expect(mockOnFileChange).toHaveBeenCalledTimes(3) // git, source, config
+    })
+
+    it('should handle file watcher start failure', async () => {
+      mockStartWatching.mockRejectedValue(new Error('Watcher error'))
+
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Breadcrumb computed for test validation
+      const _breadcrumb = useBreadcrumbContext()
+
+      // Load a project
+      mockIsProjectLoaded.value = true
+      mockOpenedProject.value = {
+        rootPath: '/project/path',
+        packageJson: { name: 'test-project' },
+      }
+
+      // Trigger watcher
+      await nextTick()
+      await new Promise((resolve) => setTimeout(resolve, 0))
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        '[BreadcrumbContext] Failed to start file watcher:',
+        expect.any(Error)
+      )
+    })
+
+    it.skip('should update Git branch on git file changes', async () => {
+      // Setup fresh mocks for this test
+      let gitChangeCallback: any
+      mockOnFileChange.mockReset()
+      mockOnFileChange.mockImplementation((type, callback) => {
+        if (type === 'git') {
+          gitChangeCallback = callback
+        }
+      })
+
+      mockGetGitBranches.mockReset()
+      // First call will be when project loads, second when git file changes
+      mockGetGitBranches
+        .mockResolvedValueOnce({ current: 'main' }) // Called when project loads
+        .mockResolvedValueOnce({ current: 'new-branch' }) // Called when git file changes
+
+      const breadcrumb = useBreadcrumbContext()
+
+      // Load a project
+      mockIsProjectLoaded.value = true
+      mockOpenedProject.value = {
+        rootPath: '/project/path',
+        packageJson: { name: 'test-project' },
+      }
+
+      // Trigger watcher - this will call getGitBranches once
+      await nextTick()
+      await new Promise((resolve) => setTimeout(resolve, 0))
+
+      // Verify initial branch after project load
+      expect(mockGetGitBranches).toHaveBeenCalledTimes(1)
+      expect(breadcrumb.currentGitBranch.value).toBe('main')
+
+      // Simulate git file change - this will call getGitBranches again
+      expect(gitChangeCallback).toBeDefined()
+      if (gitChangeCallback) {
+        await gitChangeCallback()
+        // Wait for async operation to complete
+        await new Promise((resolve) => setTimeout(resolve, 0))
+      }
+
+      expect(mockGetGitBranches).toHaveBeenCalledTimes(2)
+      expect(breadcrumb.currentGitBranch.value).toBe('new-branch')
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        '[BreadcrumbContext] Git file change detected, updating branch'
+      )
+    })
+
+    it('should throttle source file changes', async () => {
+      vi.useFakeTimers()
+
+      let sourceChangeCallback: any
+      mockOnFileChange.mockImplementation((type, callback) => {
+        if (type === 'source') {
+          sourceChangeCallback = callback
+        }
+      })
+
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Breadcrumb computed for test validation
+      const _breadcrumb = useBreadcrumbContext()
+
+      // Load a project
+      mockIsProjectLoaded.value = true
+      mockOpenedProject.value = {
+        rootPath: '/project/path',
+        packageJson: { name: 'test-project' },
+      }
+
+      // Trigger watcher
+      await vi.runAllTimersAsync()
+
+      // Simulate multiple rapid source file changes
+      if (sourceChangeCallback) {
+        sourceChangeCallback()
+        sourceChangeCallback()
+        sourceChangeCallback()
+      }
+
+      // Should not have called refresh yet
+      expect(mockRefreshFiles).not.toHaveBeenCalled()
+
+      // Advance time past throttle
+      await vi.advanceTimersByTimeAsync(5000)
+
+      // Now it should have called refresh only once
+      expect(mockRefreshFiles).toHaveBeenCalledTimes(1)
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        '[BreadcrumbContext] Source file changes detected (throttled), refreshing files'
+      )
+
+      vi.useRealTimers()
+    })
+
+    it('should handle refresh files error for source changes', async () => {
+      vi.useFakeTimers()
+      mockRefreshFiles.mockRejectedValue(new Error('Refresh error'))
+
+      let sourceChangeCallback: any
+      mockOnFileChange.mockImplementation((type, callback) => {
+        if (type === 'source') {
+          sourceChangeCallback = callback
+        }
+      })
+
+      const breadcrumb = useBreadcrumbContext()
+
+      // Load a project
+      mockIsProjectLoaded.value = true
+      mockOpenedProject.value = {
+        rootPath: '/project/path',
+        packageJson: { name: 'test-project' },
+      }
+
+      // Trigger watcher
+      await vi.runAllTimersAsync()
+
+      // Simulate source file change
+      if (sourceChangeCallback) {
+        sourceChangeCallback()
+      }
+
+      // Advance time past throttle
+      await vi.advanceTimersByTimeAsync(5000)
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        '[BreadcrumbContext] Failed to refresh files:',
+        expect.any(Error)
+      )
+
+      vi.useRealTimers()
+    })
+
+    it('should throttle config file changes', async () => {
+      vi.useFakeTimers()
+
+      let configChangeCallback: any
+      mockOnFileChange.mockImplementation((type, callback) => {
+        if (type === 'config') {
+          configChangeCallback = callback
+        }
+      })
+
+      const breadcrumb = useBreadcrumbContext()
+
+      // Load a project
+      mockIsProjectLoaded.value = true
+      mockOpenedProject.value = {
+        rootPath: '/project/path',
+        packageJson: { name: 'test-project' },
+      }
+
+      // Trigger watcher
+      await vi.runAllTimersAsync()
+
+      // Simulate multiple rapid config file changes
+      if (configChangeCallback) {
+        configChangeCallback()
+        configChangeCallback()
+        configChangeCallback()
+      }
+
+      // Should not have called refresh yet
+      expect(mockRefreshFiles).not.toHaveBeenCalled()
+
+      // Advance time past throttle
+      await vi.advanceTimersByTimeAsync(5000)
+
+      // Now it should have called refresh only once
+      expect(mockRefreshFiles).toHaveBeenCalledTimes(1)
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        '[BreadcrumbContext] Config file changes detected (throttled), refreshing files'
+      )
+
+      vi.useRealTimers()
+    })
+
+    it('should handle refresh files error for config changes', async () => {
+      vi.useFakeTimers()
+      mockRefreshFiles.mockRejectedValue(new Error('Refresh error'))
+
+      let configChangeCallback: any
+      mockOnFileChange.mockImplementation((type, callback) => {
+        if (type === 'config') {
+          configChangeCallback = callback
+        }
+      })
+
+      const breadcrumb = useBreadcrumbContext()
+
+      // Load a project
+      mockIsProjectLoaded.value = true
+      mockOpenedProject.value = {
+        rootPath: '/project/path',
+        packageJson: { name: 'test-project' },
+      }
+
+      // Trigger watcher
+      await vi.runAllTimersAsync()
+
+      // Simulate config file change
+      if (configChangeCallback) {
+        configChangeCallback()
+      }
+
+      // Advance time past throttle
+      await vi.advanceTimersByTimeAsync(5000)
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        '[BreadcrumbContext] Failed to refresh files:',
+        expect.any(Error)
+      )
+
+      vi.useRealTimers()
+    })
+  })
+
+  describe('edge cases', () => {
+    it('should handle null branches response', async () => {
+      mockGetGitBranches.mockResolvedValue(null)
+
+      const breadcrumb = useBreadcrumbContext()
+
+      // Load a project
+      mockIsProjectLoaded.value = true
+      mockOpenedProject.value = {
+        rootPath: '/project/path',
+        packageJson: { name: 'test-project' },
+      }
+
+      // Trigger watcher
+      await nextTick()
+      await new Promise((resolve) => setTimeout(resolve, 0))
+
+      expect(breadcrumb.currentGitBranch.value).toBe('main')
+    })
+
+    it('should handle partial context from localStorage', () => {
+      const partialContext = {
+        generative: {
+          projectPath: '/partial/path/',
+        },
+        // Missing other fields
+      }
+
+      vi.mocked(mockLocalStorage.getItem).mockReturnValue(
+        JSON.stringify(partialContext)
+      )
+
+      const breadcrumb = useBreadcrumbContext()
+
+      // Partial values are merged with defaults
+      expect(breadcrumb.context.generative.projectPath).toBe('/partial/path/')
+      expect(breadcrumb.context.visual.currentUrl).toBe(
+        'https://example.com/dashboard'
+      )
+    })
+
+    it('should handle empty string project name', () => {
+      mockIsProjectLoaded.value = true
+      mockOpenedProject.value = {
+        name: '',
+        rootPath: '/project/path',
+        packageJson: { name: '' },
+      }
+
+      const breadcrumb = useBreadcrumbContext()
+
+      expect(breadcrumb.projectDisplayName.value).toBe('unknown-project')
+    })
+  })
+})

@@ -527,5 +527,363 @@ describe('Vault', () => {
       const uninitializedVault = new Vault(storage, config)
       await expect(uninitializedVault.destroy()).resolves.not.toThrow()
     })
+
+    it('should clear vault key from memory on close', async () => {
+      await vault.store('test-key', 'test-value')
+
+      // Close vault
+      await vault.close()
+
+      // Vault key should be cleared - operations should fail
+      await expect(vault.store('another-key', 'value')).rejects.toThrow(
+        'Vault not initialized'
+      )
+    })
+  })
+
+  describe('backup and restore', () => {
+    beforeEach(async () => {
+      await vault.initialize()
+    })
+
+    it('should export vault data as encrypted backup', async () => {
+      await vault.store('backup-key1', 'sensitive-data-1')
+      await vault.store('backup-key2', { secret: 'data-2' })
+      await vault.store('backup-key3', ['secret', 'array'])
+
+      const backup = await vault.exportBackup()
+
+      // Backup should be encrypted data structure
+      expect(backup).toHaveProperty('data')
+      expect(backup).toHaveProperty('iv')
+      expect(backup.data).toBeTruthy()
+      expect(backup.iv).toBeTruthy()
+    })
+
+    it('should import vault data from encrypted backup', async () => {
+      // Store original data
+      const originalData = {
+        key1: 'value1',
+        key2: { secret: 'value2' },
+        key3: ['array', 'data'],
+      }
+
+      for (const [key, value] of Object.entries(originalData)) {
+        await vault.store(`import:${key}`, value)
+      }
+
+      // Export backup
+      const backup = await vault.exportBackup()
+
+      // Clear vault
+      await vault.clear()
+      expect((await vault.listKeys()).length).toBe(0)
+
+      // Import backup
+      await vault.importBackup(backup)
+
+      // Verify all data was restored
+      for (const [key, expectedValue] of Object.entries(originalData)) {
+        const retrieved = await vault.retrieve(`import:${key}`)
+        expect(retrieved).toEqual(expectedValue)
+      }
+    })
+
+    it('should handle import with uninitialized vault', async () => {
+      const uninitializedVault = new Vault(storage, config)
+
+      const fakeBackup = {
+        data: 'fake-encrypted-data',
+        iv: 'fake-iv-base64',
+        salt: 'fake-salt',
+        authTag: 'fake-auth-tag',
+        algorithm: 'aes-256-gcm' as const,
+        keyDerivation: 'argon2id' as const,
+      }
+
+      await expect(uninitializedVault.importBackup(fakeBackup)).rejects.toThrow(
+        'Vault not initialized'
+      )
+    })
+
+    it('should handle import errors gracefully', async () => {
+      await vault.initialize()
+
+      // Create invalid backup data
+      const invalidBackup = {
+        data: 'invalid-base64-data',
+        iv: 'invalid-iv',
+        salt: 'invalid-salt',
+        authTag: 'invalid-auth',
+        algorithm: 'aes-256-gcm' as const,
+        keyDerivation: 'argon2id' as const,
+      }
+
+      await expect(vault.importBackup(invalidBackup)).rejects.toThrow(
+        'Backup import failed'
+      )
+    })
+  })
+
+  describe('access logging and auditing', () => {
+    beforeEach(async () => {
+      await vault.initialize()
+    })
+
+    it('should log store and retrieve operations', async () => {
+      await vault.store('log-test1', 'value1')
+      await vault.store('log-test2', 'value2')
+      await vault.retrieve('log-test1')
+
+      const accessLog = vault.getAccessLog()
+
+      expect(accessLog.length).toBe(3)
+      expect(accessLog[0]).toMatchObject({
+        key: 'log-test1',
+        operation: 'store',
+      })
+      expect(accessLog[1]).toMatchObject({
+        key: 'log-test2',
+        operation: 'store',
+      })
+      expect(accessLog[2]).toMatchObject({
+        key: 'log-test1',
+        operation: 'retrieve',
+      })
+      expect(accessLog[0].timestamp).toBeGreaterThan(0)
+    })
+
+    it('should clear access log', async () => {
+      await vault.store('clear-test', 'value')
+      await vault.retrieve('clear-test')
+
+      let accessLog = vault.getAccessLog()
+      expect(accessLog.length).toBeGreaterThan(0)
+
+      vault.clearAccessLog()
+
+      accessLog = vault.getAccessLog()
+      expect(accessLog.length).toBe(0)
+    })
+
+    it('should limit access log size', async () => {
+      const limitedConfig = {
+        ...config,
+        maxAccessLogSize: 5,
+      }
+
+      const limitedVault = new Vault(storage, limitedConfig)
+      await limitedVault.initialize()
+
+      // Perform more operations than max log size
+      for (let i = 0; i < 10; i++) {
+        await limitedVault.store(`limit-test:${i}`, `value${i}`)
+      }
+
+      const accessLog = limitedVault.getAccessLog()
+
+      // Log should be limited to maxAccessLogSize
+      expect(accessLog.length).toBeLessThanOrEqual(5)
+    })
+
+    it('should not log when audit is disabled', async () => {
+      const noAuditConfig = {
+        ...config,
+        auditEnabled: false,
+      }
+
+      const noAuditVault = new Vault(storage, noAuditConfig)
+      await noAuditVault.initialize()
+
+      await noAuditVault.store('no-audit-test', 'value')
+      await noAuditVault.retrieve('no-audit-test')
+
+      const accessLog = noAuditVault.getAccessLog()
+      expect(accessLog.length).toBe(0)
+    })
+
+    it('should return only last 100 entries from access log', async () => {
+      const largeLogConfig = {
+        ...config,
+        maxAccessLogSize: 200,
+      }
+
+      const largeLogVault = new Vault(storage, largeLogConfig)
+      await largeLogVault.initialize()
+
+      // Create 150 log entries
+      for (let i = 0; i < 150; i++) {
+        await largeLogVault.store(`large-log:${i}`, `value${i}`)
+      }
+
+      const accessLog = largeLogVault.getAccessLog()
+
+      // getAccessLog should return only last 100 entries
+      expect(accessLog.length).toBe(100)
+    })
+  })
+
+  describe('Buffer handling and parsing', () => {
+    beforeEach(async () => {
+      await vault.initialize()
+    })
+
+    it('should handle Buffer data from adapter correctly', async () => {
+      await vault.store('buffer-test', 'buffer-value')
+
+      // Mock adapter to return Buffer instead of parsed object
+      const getSpy = vi.spyOn(storage, 'get')
+      const originalGet = storage.get.bind(storage)
+
+      getSpy.mockImplementationOnce(async (key: string) => {
+        const data = await originalGet(key)
+        // Convert to Buffer to simulate certain storage backends
+        return Buffer.from(JSON.stringify(data)) as unknown as typeof data
+      })
+
+      const retrieved = await vault.retrieve('buffer-test')
+      expect(retrieved).toBe('buffer-value')
+
+      getSpy.mockRestore()
+    })
+
+    it('should handle invalid Buffer JSON gracefully', async () => {
+      await vault.store('invalid-buffer-test', 'value')
+
+      // Mock adapter to return invalid Buffer
+      const getSpy = vi.spyOn(storage, 'get')
+      getSpy.mockResolvedValueOnce(
+        Buffer.from('invalid-json-{{{') as unknown as never
+      )
+
+      await expect(vault.retrieve('invalid-buffer-test')).rejects.toThrow(
+        'Failed to parse vault entry from Buffer'
+      )
+
+      getSpy.mockRestore()
+    })
+  })
+
+  describe('error recovery and edge cases', () => {
+    beforeEach(async () => {
+      await vault.initialize()
+    })
+
+    it('should handle errors in automatic key rotation', async () => {
+      const autoRotateConfig = {
+        ...config,
+        autoRotateKeys: true,
+        keyRotationInterval: 50, // 50ms for testing
+      }
+
+      vi.useFakeTimers()
+
+      const autoVault = new Vault(storage, autoRotateConfig)
+      await autoVault.initialize()
+
+      // Store data
+      await autoVault.store('auto-error-test', 'value')
+
+      // Mock rotateKeys to fail
+      const rotateSpy = vi.spyOn(autoVault, 'rotateKeys')
+      rotateSpy.mockRejectedValueOnce(new Error('Rotation error'))
+
+      // Spy on console.error to verify error is logged
+      const consoleErrorSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {})
+
+      // Trigger auto-rotation
+      vi.advanceTimersByTime(60)
+      await vi.runOnlyPendingTimersAsync()
+
+      // Error should be logged but not thrown
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'Auto key rotation failed:',
+        expect.any(Error)
+      )
+
+      consoleErrorSpy.mockRestore()
+      rotateSpy.mockRestore()
+      await autoVault.destroy()
+      vi.useRealTimers()
+    })
+
+    it('should handle getLastKeyRotation errors', async () => {
+      // Mock adapter.get to throw error
+      const getSpy = vi.spyOn(storage, 'get')
+      getSpy.mockRejectedValueOnce(new Error('Storage error'))
+
+      const stats = await vault.getStats()
+
+      // Should return 0 for lastKeyRotation on error
+      expect(stats.lastKeyRotation).toBe(0)
+
+      getSpy.mockRestore()
+    })
+
+    it('should handle getCurrentKeyVersion errors', async () => {
+      // Mock adapter.get to throw error for key version
+      const getSpy = vi.spyOn(storage, 'get')
+      getSpy.mockImplementation(async (key: string) => {
+        if (key === 'vault:__key_version__') {
+          throw new Error('Version read error')
+        }
+        // Return null for other keys to avoid affecting other operations
+        return null as never
+      })
+
+      // This should not throw and should default to version 1
+      await vault.store('version-error-test', 'value')
+
+      getSpy.mockRestore()
+    })
+
+    it('should handle clear() when vault is not initialized', async () => {
+      const uninitializedVault = new Vault(storage, config)
+
+      await expect(uninitializedVault.clear()).rejects.toThrow(
+        'Vault not initialized'
+      )
+    })
+
+    it('should handle rotateKeys when passphrase is missing', async () => {
+      // Create vault with passphrase to initialize
+      const vaultNoPassphrase = new Vault(storage, {
+        ...config,
+        passphrase: 'test',
+      })
+      await vaultNoPassphrase.initialize()
+
+      // Clear passphrase after initialization to trigger error
+      ;(
+        vaultNoPassphrase as unknown as { config: { passphrase?: string } }
+      ).config.passphrase = undefined
+
+      await expect(vaultNoPassphrase.rotateKeys()).rejects.toThrow(
+        'Vault not initialized'
+      )
+    })
+
+    it('should handle multiple setupAutoRotation calls', async () => {
+      const autoConfig1 = {
+        ...config,
+        autoRotateKeys: true,
+        keyRotationInterval: 100,
+      }
+
+      const autoVault = new Vault(storage, autoConfig1)
+      await autoVault.initialize()
+
+      // Initialize creates first timer
+      expect(autoVault.isAutoRotateEnabled()).toBe(true)
+
+      // Manually trigger setupAutoRotation again to hit clearInterval path
+      ;(
+        autoVault as unknown as { setupAutoRotation: () => void }
+      ).setupAutoRotation()
+
+      await autoVault.destroy()
+    })
   })
 })

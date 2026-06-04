@@ -77,31 +77,92 @@ export class PtyManager extends EventEmitter {
   private ptyHost: ChildProcess | null = null
   private pendingRequests = new Map<string, PendingRequest<unknown>>()
   private isInitialized = false
+  private isDestroyed = false
   private terminals = new Map<string, RemoteTerminalProxy>()
 
   constructor() {
     super()
-    this.initializePtyHost()
+    this.initializePtyHost().catch((error) => {
+      console.error('[PTY Manager] Initialization failed:', error)
+      this.emit('error', error)
+    })
   }
 
   private async initializePtyHost(): Promise<void> {
     try {
-      const ptyHostPath = join(__dirname, 'ptyHost.cjs') // Compiled version
+      // Look for ptyHost.cjs in multiple locations
+      const possiblePaths = [
+        join(__dirname, '..', 'dist-vite', 'ptyHost.cjs'), // Production build location
+        join(__dirname, 'ptyHost.cjs'), // Same directory
+        join(__dirname, '..', 'src', 'ptyHost.cjs'), // Source directory
+      ]
 
-      // Fork PTY Host with ELECTRON_RUN_AS_NODE
-      this.ptyHost = fork(ptyHostPath, [], {
-        env: {
-          ...process.env,
-          ELECTRON_RUN_AS_NODE: '1',
-        },
-        silent: false,
+      const fs = require('fs')
+      let ptyHostPath = ''
+
+      for (const path of possiblePaths) {
+        if (fs.existsSync(path)) {
+          ptyHostPath = path
+          break
+        }
+      }
+
+      if (!ptyHostPath) {
+        console.error(
+          `[PTY Manager] PTY Host file not found in any of: ${possiblePaths.join(', ')}`
+        )
+        // In test environments, don't throw - just emit error and return
+        if (process.env.NODE_ENV === 'test' || process.env.VITEST === 'true') {
+          this.emit(
+            'error',
+            new Error('PTY Host not available in test environment')
+          )
+          return
+        }
+        throw new Error(
+          `PTY Host file not found in any of: ${possiblePaths.join(', ')}`
+        )
+      }
+
+      console.log(
+        '[PTY Manager] Attempting to start PTY Host from:',
+        ptyHostPath
+      )
+      console.log('[PTY Manager] Current __dirname:', __dirname)
+      console.log('[PTY Manager] Process type:', process.type)
+      console.log(
+        '[PTY Manager] ELECTRON_RUN_AS_NODE:',
+        process.env.ELECTRON_RUN_AS_NODE
+      )
+
+      // Fork PTY Host - CRITICAL: Run as Node.js, not Electron
+      // FIXED: Ensure ELECTRON_RUN_AS_NODE is set to prevent PTY Host from exiting
+      const ptyHostEnv = {
+        ...process.env,
+        ELECTRON_RUN_AS_NODE: '1', // CRITICAL: Force to run as Node.js
+        NODE_ENV: process.env.NODE_ENV || 'development',
+      }
+
+      console.log('[PTY Manager] Fork environment prepared:', {
+        ELECTRON_RUN_AS_NODE: ptyHostEnv.ELECTRON_RUN_AS_NODE,
+        NODE_ENV: ptyHostEnv.NODE_ENV,
       })
+
+      this.ptyHost = fork(ptyHostPath, [], {
+        env: ptyHostEnv,
+        silent: false,
+        stdio: ['ignore', 'pipe', 'pipe', 'ipc'], // Ignore stdin to prevent premature exit
+      })
+
+      if (!this.ptyHost || !this.ptyHost.pid) {
+        throw new Error('Failed to spawn PTY Host process')
+      }
 
       this.setupPtyHostHandlers()
       this.isInitialized = true
 
       console.log(
-        `[PTY Manager] PTY Host started with PID: ${this.ptyHost?.pid || 'unknown'}`
+        `[PTY Manager] PTY Host started successfully with PID: ${this.ptyHost.pid}`
       )
       this.emit('ready')
     } catch (error) {
@@ -113,11 +174,22 @@ export class PtyManager extends EventEmitter {
   private setupPtyHostHandlers(): void {
     if (!this.ptyHost) return
 
+    console.log('[PTY Manager] Setting up PTY Host event handlers...')
+
     this.ptyHost.on('message', (message: PtyHostMessage) => {
+      console.log('[PTY Manager] Received message from PTY Host:', {
+        type: message.type,
+        id: message.id,
+      })
       this.handlePtyHostMessage(message)
     })
 
     this.ptyHost.on('error', (error: Error) => {
+      // Handle EPIPE errors gracefully - they occur when child process exits
+      if (error.code === 'EPIPE') {
+        console.log('[PTY Manager] PTY Host disconnected (EPIPE)')
+        return
+      }
       console.error('[PTY Manager] PTY Host error:', error)
       this.emit('error', error)
     })
@@ -129,13 +201,17 @@ export class PtyManager extends EventEmitter {
       this.ptyHost = null
       this.isInitialized = false
 
-      // Restart PTY Host if it crashed unexpectedly
-      if (code !== 0) {
+      // Restart PTY Host if it crashed unexpectedly (unless destroyed)
+      if (!this.isDestroyed && code !== 0 && code !== null) {
+        console.log(
+          '[PTY Manager] Restarting PTY Host after unexpected exit...'
+        )
         setTimeout(() => this.initializePtyHost(), 1000)
       }
     })
 
     this.ptyHost.on('disconnect', () => {
+      console.log('[PTY Manager] PTY Host disconnected')
       this.ptyHost = null
       this.isInitialized = false
     })
@@ -147,6 +223,11 @@ export class PtyManager extends EventEmitter {
         this.handleTerminalCreated(message)
         break
       case 'data':
+        console.log('[PTY Manager] Data message received from PTY Host:', {
+          id: message.id,
+          dataLength: (message.data as string)?.length,
+          first50: (message.data as string)?.substring(0, 50),
+        })
         this.emit('terminal-data', message.id, message.data)
         break
       case 'exit':
@@ -261,13 +342,30 @@ export class PtyManager extends EventEmitter {
       throw new Error('PTY Host not initialized')
     }
 
-    this.ptyHost.send(message)
+    try {
+      this.ptyHost.send(message)
+    } catch (error) {
+      // Handle EPIPE and other IPC errors gracefully
+      if (error instanceof Error && error.code === 'EPIPE') {
+        console.log('[PTY Manager] Cannot send message - PTY Host disconnected')
+        this.ptyHost = null
+        this.isInitialized = false
+        throw new Error('PTY Host disconnected')
+      }
+      throw error
+    }
   }
 
   async createTerminal(
     options: PtyCreateOptions = {}
   ): Promise<PtyTerminalInfo> {
     const id = uuidv4()
+    console.log(
+      '[PTY Manager] Creating terminal with ID:',
+      id,
+      'options:',
+      options
+    )
 
     return new Promise((resolve, reject) => {
       this.pendingRequests.set(id, {
@@ -276,12 +374,15 @@ export class PtyManager extends EventEmitter {
       })
 
       try {
+        console.log('[PTY Manager] Sending create message to PTY Host...')
         this.sendMessageToPtyHost({
           type: 'create',
           id,
           options,
         })
+        console.log('[PTY Manager] Create message sent successfully')
       } catch (error) {
+        console.error('[PTY Manager] Failed to send create message:', error)
         this.pendingRequests.delete(id)
         reject(error)
       }
@@ -289,12 +390,22 @@ export class PtyManager extends EventEmitter {
   }
 
   writeToTerminal(id: string, data: string): void {
+    console.log('[PTY Manager] 📝 writeToTerminal called:', {
+      terminalId: id,
+      data: data,
+      dataLength: data?.length,
+      charCode: data?.charCodeAt(0),
+      timestamp: new Date().toISOString(),
+    })
+
     try {
+      console.log('[PTY Manager] 📤 Sending write message to PTY Host...')
       this.sendMessageToPtyHost({
         type: 'write',
         id,
         data,
       })
+      console.log('[PTY Manager] ✅ Write message sent to PTY Host')
     } catch (error) {
       console.error(`[PTY Manager] Failed to write to terminal ${id}:`, error)
     }
@@ -380,6 +491,9 @@ export class PtyManager extends EventEmitter {
   }
 
   destroy(): void {
+    // Mark as destroyed to prevent restart
+    this.isDestroyed = true
+
     // Clean up all terminals from performance monitor
     for (const terminalId of this.terminals.keys()) {
       terminalPerformanceMonitor.unregisterTerminal(terminalId)

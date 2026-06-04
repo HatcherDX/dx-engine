@@ -49,6 +49,33 @@ dx-engine/
 
 Este es un **monorepo pnpm workspace**. Usar npm rompe la gestión de dependencias y workspaces.
 
+### 🚨 REGLA CRÍTICA: BETTER-SQLITE3 Y NODE MODULE_VERSION
+
+**PROBLEMA**: better-sqlite3 está compilado para Electron's Node.js v23.x (MODULE_VERSION 133), pero los tests corren con system Node.js v22.x (MODULE_VERSION 127).
+
+**SOLUCIÓN**: Los tests usan `VITEST_MOCK_SQLITE=true` por defecto para evitar MODULE_VERSION errors.
+
+- ✅ **TEST COMMAND**: `pnpm test` (ya incluye `VITEST_MOCK_SQLITE=true`)
+- ✅ **ELECTRON APP**: Usa better-sqlite3 real compiled for MODULE_VERSION 133
+- ✅ **CI TESTS**: Usan `VITEST_MOCK_SQLITE=true` para evitar MODULE_VERSION errors
+- ❌ **NUNCA** intentar recompilar better-sqlite3 para system Node.js (rompería Electron app)
+
+**ARQUITECTURA**:
+
+```
+┌─────────────────────────────┐
+│  Electron App (Node v23.x)  │  ← better-sqlite3 MODULE_VERSION 133 ✅
+├─────────────────────────────┤
+│  Tests (System Node v22.x)  │  ← Mocked SQLite (VITEST_MOCK_SQLITE=true) ✅
+└─────────────────────────────┘
+```
+
+**REBUILD ELECTRON SQLITE** (si necesario):
+
+```bash
+cd apps/electron && npx @electron/rebuild -f -o better-sqlite3
+```
+
 ### 🚨 REGLA CRÍTICA: APLICACIÓN SOLO ELECTRON - NUNCA BROWSER
 
 **ESTE ES UN IDE DESKTOP - NUNCA CORRERÁ EN BROWSER**
@@ -92,6 +119,70 @@ pnpm lint
 
 **Esta validación es OBLIGATORIA para mantener la calidad del código y evitar problemas en CI/CD.**
 
+### 🚨 REGLA CRÍTICA: ELECTRON NATIVE MODULES Y NODE_MODULE_VERSION
+
+**PROTECCIÓN CONTRA ERRORES DE MODULE_VERSION AL ARREGLAR BUGS**
+
+**CONTEXTO DEL PROBLEMA:**
+Este proyecto usa Electron 35.1.4, que embebe Node.js v23.x con NODE_MODULE_VERSION 133 y requiere C++20. Los módulos nativos (better-sqlite3, argon2) DEBEN estar compilados específicamente para Electron, NO para el Node.js del sistema.
+
+**REGLAS ESTRICTAS AL ARREGLAR ERRORES DE TESTS:**
+
+1. **NUNCA usar `pnpm rebuild` para arreglar errores de tests**
+   - ❌ **PROHIBIDO ABSOLUTO**: `pnpm rebuild better-sqlite3`
+   - ❌ **PROHIBIDO ABSOLUTO**: `npm rebuild`
+   - ❌ **CAUSA**: Compila para Node.js del sistema (MODULE_VERSION 127), NO para Electron (MODULE_VERSION 133)
+   - ❌ **RESULTADO**: Rompe la aplicación funcionando
+
+2. **COMANDO CORRECTO para rebuild de módulos nativos:**
+
+   ```bash
+   # ÚNICO COMANDO PERMITIDO para rebuild de módulos nativos
+   cd apps/electron && npx @electron/rebuild -f -o better-sqlite3
+   ```
+
+   - ✅ Flag `-o` (only): Excluye módulos incompatibles como lz4@0.6.5
+   - ✅ Flag `-f` (force): Fuerza rebuild completo
+   - ✅ Se ejecuta desde `apps/electron/` para contexto correcto
+
+3. **DIAGNÓSTICO ANTES DE ACTUAR:**
+   - ✅ **PRIMERO**: Leer los logs completos del error
+   - ✅ **VERIFICAR**: ¿El error es de MODULE_VERSION o de tests lógicos?
+   - ✅ **VERIFICAR**: ¿La aplicación está funcionando actualmente?
+   - ❌ **NUNCA**: Asumir que rebuild arreglará el problema sin investigar
+
+4. **PROTOCOLO DE INVESTIGACIÓN OBLIGATORIO:**
+
+   ```bash
+   # Paso 1: Verificar versión de Electron y Node.js embebido
+   cat apps/electron/package.json | grep '"electron"'
+
+   # Paso 2: Verificar qué MODULE_VERSION requiere Electron
+   # Electron 35.1.4 = Node.js v23.x = MODULE_VERSION 133
+
+   # Paso 3: SOLO SI el error dice "NODE_MODULE_VERSION X vs Y", entonces:
+   cd apps/electron && npx @electron/rebuild -f -o better-sqlite3
+   ```
+
+5. **MÓDULOS PROBLEMÁTICOS CONOCIDOS:**
+   - `lz4@0.6.5` - NO soporta C++20, NO puede compilarse para Electron 35.1.4
+   - **SOLUCIÓN**: Compression deshabilitado en ElectronStorageManager.ts:356
+   - ❌ **PROHIBIDO**: Habilitar compression sin actualizar lz4
+
+6. **CUANDO NO TOCAR NADA:**
+   - ✅ Si la aplicación funciona correctamente
+   - ✅ Si los tests fallan por lógica, NO por MODULE_VERSION
+   - ✅ Si no hay mensaje de error "NODE_MODULE_VERSION"
+
+**CONSECUENCIAS DE VIOLAR ESTAS REGLAS:**
+
+- Romper una aplicación funcionando
+- Perder datos de desarrollo
+- Crear errores que requieren rebuild manual del usuario
+- Obligar a revertir cambios manualmente
+
+**ESTA REGLA PREVIENE EL ERROR #1 MÁS COMÚN: ROMPER EL APP AL INTENTAR ARREGLAR TESTS.**
+
 ### 🚨 REGLA CRÍTICA: MODIFICACIONES MANUALES - NO SCRIPTS BATCH
 
 **NUNCA CREAR SCRIPTS PARA OPERACIONES BATCH O LIMPIEZA MASIVA**
@@ -108,6 +199,42 @@ pnpm lint
 Cada modificación debe ser consciente, revisada y precisa.
 
 **Esta regla garantiza que cada cambio sea intencional y controlado.**
+
+### 🚨 REGLA CRÍTICA: USO EXCLUSIVO DE @hatcherdx/storage
+
+**USAR ÚNICAMENTE @hatcherdx/storage PARA PERSISTENCIA**
+
+- ❌ **PROHIBIDO**: Crear wrappers directos sobre electron.safeStorage
+- ❌ **PROHIBIDO**: Implementar storage custom sin usar el package oficial
+- ✅ **OBLIGATORIO**: Usar SOLO `@hatcherdx/storage` package
+- ✅ **OBLIGATORIO**: Seguir schema multi-project/branch isolation
+- ✅ **OBLIGATORIO**: Actions amarrados a branch, no session
+
+**DOCUMENTACIÓN DE BASE DE DATOS:**
+
+Consultar `apps/electron/DATABASE.md` para:
+
+- Schema completo de tablas
+- Modelo de isolation (Project → Branch → Session)
+- Queries de métricas agregadas
+- Ejemplos de uso para DeckLog y Timegraph
+
+**ARCHITECTURE PRINCIPLES:**
+
+1. **3-Level Isolation**: Project → Branch → Session
+2. **Branch-Scoped Actions**: Actions amarrados a branch (no session)
+3. **On-Demand Metrics**: SELECT queries, no tabla de métricas
+4. **Trigger Sources**: 'decklog' | 'timegraph' | 'manual'
+
+**Context7 Patterns aplicados**:
+
+- Composite Keys para tenant isolation (Prisma)
+- Foreign Key Cascades para cleanup automático (Prisma)
+- Aggregation Queries on-demand (Prisma + better-sqlite3)
+- WAL mode para concurrencia (better-sqlite3)
+- Graceful shutdown con checkpoint (Node.js best practices)
+
+**ESTA REGLA GARANTIZA ISOLATION Y CONSISTENCIA EN TODA LA APLICACIÓN.**
 
 ### Comandos Principales
 

@@ -43,10 +43,10 @@ describe('ModeSelector.vue', () => {
   it('should display correct mode labels', () => {
     const wrapper = mount(ModeSelector, { props: defaultProps })
 
-    expect(wrapper.text()).toContain('Gen')
+    expect(wrapper.text()).toContain('Deck')
     expect(wrapper.text()).toContain('Visual')
     expect(wrapper.text()).toContain('Code')
-    expect(wrapper.text()).toContain('Timeline')
+    expect(wrapper.text()).toContain('Timegraph')
   })
 
   it('should handle keyboard navigation', async () => {

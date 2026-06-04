@@ -404,7 +404,7 @@ const performAction = (action: FileAction, file: FileItem | null): void => {
 
 .file-selected {
   background-color: var(--accent-primary);
-  color: white;
+  color: var(--text-on-accent);
 }
 
 .file-content {

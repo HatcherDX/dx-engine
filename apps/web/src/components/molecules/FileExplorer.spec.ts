@@ -489,6 +489,20 @@ describe('FileExplorer', () => {
 
       expect(actions).toEqual([])
     })
+
+    it('should return empty actions for git-history context', () => {
+      wrapper = mount(FileExplorer, {
+        props: {
+          files: mockFiles,
+          context: 'git-history',
+        },
+      })
+
+      const vm = wrapper.vm as unknown as FileExplorerInstance
+      const actions = vm.getContextActions(mockFiles[1])
+
+      expect(actions).toHaveLength(0)
+    })
   })
 
   describe('Status Classes', () => {
@@ -526,6 +540,19 @@ describe('FileExplorer', () => {
 
       const vm = wrapper.vm as unknown as FileExplorerInstance
       expect(vm.getStatusClass(mockFiles[1])).toBe('')
+    })
+
+    it('should return empty string for unknown status in git context', () => {
+      wrapper = mount(FileExplorer, {
+        props: {
+          files: mockFiles,
+          context: 'git-changes',
+        },
+      })
+
+      const vm = wrapper.vm as unknown as FileExplorerInstance
+      const fileWithUnknownStatus = { ...mockFiles[1], status: undefined }
+      expect(vm.getStatusClass(fileWithUnknownStatus)).toBe('')
     })
   })
 
@@ -576,6 +603,155 @@ describe('FileExplorer', () => {
       expect(wrapper.find('.file-item').exists()).toBe(true)
       expect(wrapper.find('.change-stats').exists()).toBe(false)
     })
+
+    it('should handle performAction with null file', () => {
+      wrapper = mount(FileExplorer, {
+        props: {
+          files: mockFiles,
+          context: 'git-changes',
+        },
+      })
+
+      const vm = wrapper.vm as unknown as FileExplorerInstance
+      const mockAction = {
+        id: 'test',
+        label: 'Test',
+        icon: 'Code',
+        handler: 'test',
+      }
+
+      // Should not throw error and should not emit event
+      vm.performAction(mockAction, null)
+      expect(wrapper.emitted('fileAction')).toBeFalsy()
+    })
+
+    it('should handle git-history context', () => {
+      wrapper = mount(FileExplorer, {
+        props: {
+          files: mockFiles,
+          context: 'git-history',
+        },
+      })
+
+      expect(wrapper.find('.file-explorer').classes()).toContain(
+        'context-git-history'
+      )
+      expect(wrapper.find('input[type="checkbox"]').exists()).toBe(false)
+    })
+
+    it('should handle files with only additions in git context', () => {
+      const filesWithOnlyAdditions: FileItem[] = [
+        {
+          id: 'added-only',
+          name: 'new-file.js',
+          path: '/new-file.js',
+          type: 'file',
+          depth: 0,
+          additions: 15,
+          deletions: 0, // Explicitly 0
+        },
+      ]
+
+      wrapper = mount(FileExplorer, {
+        props: {
+          files: filesWithOnlyAdditions,
+          context: 'git-changes',
+        },
+      })
+
+      const changeStats = wrapper.find('.change-stats')
+      expect(changeStats.exists()).toBe(true)
+      expect(changeStats.find('.additions').text()).toBe('+15')
+      expect(changeStats.find('.deletions').exists()).toBe(false)
+    })
+
+    it('should handle files with only deletions in git context', () => {
+      const filesWithOnlyDeletions: FileItem[] = [
+        {
+          id: 'deleted-only',
+          name: 'removed-file.js',
+          path: '/removed-file.js',
+          type: 'file',
+          depth: 0,
+          additions: 0, // Explicitly 0
+          deletions: 10,
+        },
+      ]
+
+      wrapper = mount(FileExplorer, {
+        props: {
+          files: filesWithOnlyDeletions,
+          context: 'git-changes',
+        },
+      })
+
+      const changeStats = wrapper.find('.change-stats')
+      expect(changeStats.exists()).toBe(true)
+      expect(changeStats.find('.additions').exists()).toBe(false)
+      expect(changeStats.find('.deletions').text()).toBe('-10')
+    })
+
+    it('should not show change stats when no additions or deletions', () => {
+      const filesWithNoChanges: FileItem[] = [
+        {
+          id: 'no-changes',
+          name: 'unchanged.js',
+          path: '/unchanged.js',
+          type: 'file',
+          depth: 0,
+          additions: 0,
+          deletions: 0,
+        },
+      ]
+
+      wrapper = mount(FileExplorer, {
+        props: {
+          files: filesWithNoChanges,
+          context: 'git-changes',
+        },
+      })
+
+      expect(wrapper.find('.change-stats').exists()).toBe(false)
+    })
+
+    it('should get correct icon for non-git context files', () => {
+      wrapper = mount(FileExplorer, {
+        props: {
+          files: mockFiles,
+          context: 'code',
+        },
+      })
+
+      const vm = wrapper.vm as unknown as FileExplorerInstance
+      expect(vm.getFileIcon({ ...mockFiles[1], type: 'file' })).toBe('Code')
+    })
+
+    it('should handle files with file.staged as false explicitly', () => {
+      const fileWithExplicitFalse: FileItem[] = [
+        {
+          id: 'explicit-false',
+          name: 'explicit.js',
+          path: '/explicit.js',
+          type: 'file',
+          depth: 0,
+          staged: false,
+        },
+      ]
+
+      wrapper = mount(FileExplorer, {
+        props: {
+          files: fileWithExplicitFalse,
+          context: 'git-changes',
+        },
+      })
+
+      const vm = wrapper.vm as unknown as FileExplorerInstance
+      vm.handleStageChange(fileWithExplicitFalse[0])
+
+      expect(wrapper.emitted('stageChanged')).toBeTruthy()
+      const emittedEvents = wrapper.emitted('stageChanged')
+      expect(emittedEvents?.[0]).toEqual([fileWithExplicitFalse[0], false])
+    })
   })
 
   describe('Event Handling', () => {
@@ -613,6 +789,91 @@ describe('FileExplorer', () => {
 
       // Verify that file selection wasn't triggered
       expect(wrapper.emitted('fileSelected')).toBeFalsy()
+    })
+
+    it('should handle file items with directory type CSS class', () => {
+      const fileItems = wrapper.findAll('.file-item')
+      expect(fileItems[0].classes()).toContain('file-directory') // First item is directory
+    })
+
+    it('should handle file items with deleted status', () => {
+      const filesWithDeleted: FileItem[] = [
+        {
+          id: 'deleted-file',
+          name: 'deleted.js',
+          path: '/deleted.js',
+          type: 'file',
+          depth: 0,
+          status: 'deleted',
+        },
+      ]
+
+      wrapper = mount(FileExplorer, {
+        props: {
+          files: filesWithDeleted,
+          context: 'git-changes',
+        },
+      })
+
+      const fileItem = wrapper.find('.file-item')
+      expect(fileItem.classes()).toContain('file-deleted')
+    })
+
+    it('should trigger file selection when clicking on file item (template click handler)', async () => {
+      const fileItem = wrapper.findAll('.file-item')[1] // Second item is a file
+      await fileItem.trigger('click')
+
+      expect(wrapper.emitted('fileSelected')).toBeTruthy()
+      const emittedEvents = wrapper.emitted('fileSelected')
+      expect(emittedEvents?.[0]).toEqual([mockFiles[1]])
+    })
+
+    it('should trigger context menu when right-clicking file item', async () => {
+      const fileItem = wrapper.findAll('.file-item')[1] // Second item is a file
+      await fileItem.trigger('contextmenu')
+
+      await wrapper.vm.$nextTick()
+      expect(wrapper.find('.context-menu').exists()).toBe(true)
+    })
+
+    it('should trigger checkbox change handler when clicking git checkbox', async () => {
+      const checkbox = wrapper.find('input[type="checkbox"]')
+      await checkbox.trigger('change')
+
+      expect(wrapper.emitted('stageChanged')).toBeTruthy()
+    })
+
+    it('should render all context action items in context menu', async () => {
+      // Show context menu first
+      const vm = wrapper.vm as unknown as FileExplorerInstance
+      const mockEvent = { clientX: 100, clientY: 200 } as MouseEvent
+      vm.showContextMenu(mockFiles[1], mockEvent)
+      await wrapper.vm.$nextTick()
+
+      // Check that context items are rendered with icons and labels
+      const contextItems = wrapper.findAll('.context-item')
+      expect(contextItems.length).toBeGreaterThan(0)
+
+      // Each context item should have an icon and span
+      contextItems.forEach((item) => {
+        expect(item.find('[data-testid="base-icon"]').exists()).toBe(true)
+        expect(item.find('span').exists()).toBe(true)
+      })
+    })
+
+    it('should trigger performAction when clicking context menu item', async () => {
+      // Show context menu first
+      const vm = wrapper.vm as unknown as FileExplorerInstance
+      const mockEvent = { clientX: 100, clientY: 200 } as MouseEvent
+      vm.showContextMenu(mockFiles[1], mockEvent)
+      await wrapper.vm.$nextTick()
+
+      // Click on a context menu item
+      const contextItem = wrapper.find('.context-item')
+      await contextItem.trigger('click')
+
+      expect(wrapper.emitted('fileAction')).toBeTruthy()
+      expect(wrapper.find('.context-menu').exists()).toBe(false) // Menu should be hidden
     })
   })
 })

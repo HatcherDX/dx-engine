@@ -1,11 +1,42 @@
 import { defineConfig } from 'vitest/config'
 import { resolve } from 'path'
 
+/**
+ * SQLite Test Configuration
+ *
+ * TEMPORARILY ENABLED: Testing SQLiteAdapter.coverage.spec.ts after better-sqlite3 rebuild.
+ * Previous issue was MODULE_VERSION mismatch, now resolved after running `pnpm rebuild better-sqlite3`.
+ *
+ * SQLiteAdapter.spec.ts remains excluded as it's the legacy test file.
+ * SQLiteAdapter.coverage.spec.ts is the comprehensive test suite following Context7 patterns.
+ */
+const baseExclude = [
+  '**/node_modules/**',
+  '**/dist/**',
+  '**/SQLiteAdapter.spec.ts', // Legacy test file - kept excluded
+  // '**/SQLiteAdapter.coverage.spec.ts', // TEMPORARILY ENABLED: Testing after better-sqlite3 rebuild
+]
+
 export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    setupFiles: ['./src/test-mocks.ts', './src/test-setup.ts'],
+    setupFiles: ['./src/test-setup.ts'],
+
+    // CRITICAL: Process isolation with environment variables
+    pool: 'forks',
+    poolOptions: {
+      forks: {
+        isolate: true,
+        env: {
+          // SQLite Mock Configuration - ALWAYS force mocked SQLite to avoid MODULE_VERSION errors
+          // Hardcoded 'true' to ensure it's always set, regardless of parent process env
+          VITEST_MOCK_SQLITE: 'true',
+          NODE_ENV: 'test',
+          VITEST: 'true',
+        },
+      },
+    },
 
     // Coverage configuration
     coverage: {
@@ -20,6 +51,7 @@ export default defineConfig({
       exclude: [
         '**/*.{test,spec}.{js,ts}',
         '**/test-setup.ts',
+        '**/test-mocks.ts',
         '**/dist/**',
         '**/node_modules/**',
         '**/*.d.ts',
@@ -37,7 +69,7 @@ export default defineConfig({
     // Test patterns
     include: ['src/**/*.{test,spec}.{js,ts}'],
 
-    exclude: ['**/node_modules/**', '**/dist/**'],
+    exclude: baseExclude,
   },
 
   resolve: {

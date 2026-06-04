@@ -12,8 +12,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { nextTick, defineComponent } from 'vue'
-import { mount, flushPromises } from '@vue/test-utils'
+import { nextTick } from 'vue'
+import { flushPromises } from '@vue/test-utils'
 
 // Mock ElectronAPI interface that matches the complete ElectronAPI
 interface MockElectronAPI {
@@ -184,6 +184,7 @@ vi.stubGlobal('window', mockWindow)
 
 import {
   useSystemTerminals,
+  resetSharedState,
   type UseSystemTerminalsConfig,
 } from './useSystemTerminals'
 
@@ -198,6 +199,9 @@ const mockConsole = {
 beforeEach(() => {
   // Reset all mocks
   vi.clearAllMocks()
+
+  // Reset shared state from the composable
+  resetSharedState()
 
   // Clear IPC event callbacks
   onActivatedCallback = null
@@ -402,6 +406,9 @@ describe('useSystemTerminals', () => {
      * Tests auto-initialization when setting active terminal.
      */
     it('should auto-initialize when setting active terminal on uninitialized state', async () => {
+      // Reset shared state for this test
+      resetSharedState()
+
       const newTerminals = useSystemTerminals({
         isElectronOverride: true,
         electronAPI: mockElectronAPI,
@@ -691,15 +698,16 @@ describe('useSystemTerminals', () => {
       const config: UseSystemTerminalsConfig = {
         autoInit: false,
         console: mockConsole,
+        isElectronOverride: true,
+        electronAPI: mockElectronAPI,
       }
 
       const terminals = useSystemTerminals(config)
-      await terminals.initializeTerminals()
-
-      expect(terminals.isInitialized.value).toBe(false)
-      expect(terminals.initError.value).toBe(
+      await expect(terminals.initializeTerminals()).rejects.toThrow(
         'System terminals not returned from initialization'
       )
+
+      expect(terminals.isInitialized.value).toBe(false)
     })
 
     it('should test all branches in setActiveTerminal with different scenarios', async () => {
@@ -1229,7 +1237,7 @@ describe('useSystemTerminals', () => {
   })
 
   describe('Advanced Testing Patterns from Context7', () => {
-    it('should test lifecycle hooks with flushPromises pattern', async () => {
+    it('should test async initialization with flushPromises pattern', async () => {
       const mockElectronAPI = {
         systemTerminal: {
           initialize: vi.fn().mockResolvedValue({
@@ -1273,28 +1281,19 @@ describe('useSystemTerminals', () => {
       const config: UseSystemTerminalsConfig = {
         isElectronOverride: true,
         electronAPI: mockElectronAPI,
-        autoInit: true,
+        autoInit: false, // Disable auto-init to test manually
       }
 
-      // Test with component wrapper pattern from Context7
-      const TestComponent = defineComponent({
-        setup() {
-          const terminals = useSystemTerminals(config)
-          return {
-            terminals,
-          }
-        },
-        template: '<div>{{ terminals.isInitialized.value }}</div>',
-      })
+      const terminals = useSystemTerminals(config)
 
-      const wrapper = mount(TestComponent)
-
-      // Use flushPromises to resolve all pending promises including lifecycle hooks
+      // Manually initialize and use flushPromises pattern from Context7
+      const initPromise = terminals.initializeTerminals()
       await flushPromises()
       await nextTick()
+      await initPromise
 
       expect(mockElectronAPI.systemTerminal.initialize).toHaveBeenCalled()
-      expect(wrapper.text()).toBe('true')
+      expect(terminals.isInitialized.value).toBe(true)
     })
 
     it('should use custom electronAPI when provided', async () => {
@@ -1393,10 +1392,11 @@ describe('useSystemTerminals', () => {
       }
 
       const terminals = useSystemTerminals(config)
-      await terminals.initializeTerminals()
+      await expect(terminals.initializeTerminals()).rejects.toThrow(
+        'IPC initialization failed'
+      )
 
       expect(terminals.isInitialized.value).toBe(false)
-      expect(terminals.initError.value).toBe('IPC initialization failed')
     })
 
     it('should handle missing terminal data in IPC response', async () => {
@@ -1422,12 +1422,11 @@ describe('useSystemTerminals', () => {
       }
 
       const terminals = useSystemTerminals(config)
-      await terminals.initializeTerminals()
-
-      expect(terminals.isInitialized.value).toBe(false)
-      expect(terminals.initError.value).toBe(
+      await expect(terminals.initializeTerminals()).rejects.toThrow(
         'System terminals not returned from initialization'
       )
+
+      expect(terminals.isInitialized.value).toBe(false)
     })
 
     it('should handle Electron IPC operations and error scenarios', async () => {
@@ -1876,6 +1875,306 @@ describe('useSystemTerminals', () => {
       expect(typeof terminals).toBe('object')
       expect(terminals.isInitialized.value).toBe(false)
       expect(terminals.activeTerminal.value).toBeNull()
+    })
+  })
+
+  describe('100% Coverage Enhancement Tests', () => {
+    let mockElectronAPI: MockElectronAPI
+
+    beforeEach(() => {
+      resetSharedState()
+      vi.clearAllMocks()
+
+      mockElectronAPI = {
+        versions: { node: '16.0.0', electron: '13.0.0', chrome: '91.0.0' },
+        send: vi.fn(),
+        on: vi.fn(),
+        invoke: vi.fn().mockResolvedValue({}),
+        systemTerminal: {
+          initialize: vi.fn().mockResolvedValue({
+            success: true,
+            data: {
+              systemTerminal: {
+                id: 'system',
+                name: 'Terminal [System]',
+                type: 'system' as const,
+                isActive: true,
+                createdAt: new Date(),
+                lastActivity: new Date(),
+                lines: [],
+                autoScroll: true,
+                maxLines: 500,
+                status: 'ready' as const,
+              },
+              timelineTerminal: {
+                id: 'timeline',
+                name: 'Terminal [Timeline]',
+                type: 'timeline' as const,
+                isActive: false,
+                createdAt: new Date(),
+                lastActivity: new Date(),
+                lines: [],
+                autoScroll: true,
+                maxLines: 1000,
+                status: 'ready' as const,
+              },
+            },
+          }),
+          log: vi.fn().mockResolvedValue({ success: true }),
+          gitOperation: vi.fn().mockResolvedValue({ success: true }),
+          getTerminal: vi.fn().mockResolvedValue({
+            success: true,
+            data: {
+              id: 'system',
+              name: 'Terminal [System]',
+              type: 'system' as const,
+              isActive: true,
+              createdAt: new Date(),
+              lastActivity: new Date(),
+              lines: [],
+              autoScroll: true,
+              maxLines: 500,
+              status: 'ready' as const,
+            },
+          }),
+          listTerminals: vi.fn().mockResolvedValue({
+            success: true,
+            data: [],
+          }),
+          setActive: vi.fn().mockResolvedValue({ success: true }),
+          clear: vi.fn().mockResolvedValue({ success: true }),
+          getLines: vi.fn().mockResolvedValue({
+            success: true,
+            data: [],
+          }),
+          updateConfig: vi.fn().mockResolvedValue({ success: true }),
+          onEvent: vi.fn(),
+          onOutput: vi.fn(),
+          onActivated: vi.fn(),
+          onCleared: vi.fn(),
+        },
+      }
+    })
+
+    describe('Initialization timeout path', () => {
+      it('should handle initialization timeout and fallback to mock data', async () => {
+        // Create a mock that times out after 10 seconds
+        const timeoutMock = vi.fn().mockImplementation(
+          () =>
+            new Promise((_, reject) => {
+              setTimeout(() => {
+                reject(
+                  new Error(
+                    'System terminal initialization timed out after 10 seconds'
+                  )
+                )
+              }, 0)
+            })
+        )
+
+        const config: UseSystemTerminalsConfig = {
+          autoInit: false,
+          isElectronOverride: true,
+          electronAPI: {
+            ...mockElectronAPI,
+            systemTerminal: {
+              ...mockElectronAPI.systemTerminal,
+              initialize: timeoutMock,
+            },
+          },
+        }
+
+        const terminals = useSystemTerminals(config)
+        await terminals.initializeTerminals()
+
+        // Verify timeout was called
+        expect(timeoutMock).toHaveBeenCalled()
+
+        // Verify fallback mock data was used
+        expect(terminals.isInitialized.value).toBe(true)
+        expect(terminals.systemTerminal.terminal).toBeDefined()
+        expect(terminals.timelineTerminal.terminal).toBeDefined()
+      })
+    })
+
+    describe('Non-timeout error during initialization', () => {
+      it('should handle non-timeout errors during initialization', async () => {
+        // Create a mock that throws a non-timeout error
+        const errorMock = vi
+          .fn()
+          .mockRejectedValue(new Error('IPC initialization failed'))
+
+        const config: UseSystemTerminalsConfig = {
+          autoInit: false,
+          isElectronOverride: true,
+          electronAPI: {
+            ...mockElectronAPI,
+            systemTerminal: {
+              ...mockElectronAPI.systemTerminal,
+              initialize: errorMock,
+            },
+          },
+        }
+
+        const terminals = useSystemTerminals(config)
+
+        // Expect initialization to throw
+        await expect(terminals.initializeTerminals()).rejects.toThrow(
+          'IPC initialization failed'
+        )
+
+        // Verify error was called
+        expect(errorMock).toHaveBeenCalled()
+        expect(terminals.initError.value).toBe('IPC initialization failed')
+      })
+    })
+
+    describe('Line limit enforcement', () => {
+      it('should enforce maxLines limit for system terminal when exceeded', async () => {
+        const config: UseSystemTerminalsConfig = {
+          autoInit: false,
+          isElectronOverride: true,
+          electronAPI: mockElectronAPI,
+        }
+
+        const terminals = useSystemTerminals(config)
+        await terminals.initializeTerminals()
+
+        // Get the onOutput callback
+        const onOutputCall =
+          mockElectronAPI.systemTerminal.onOutput.mock.calls[0]
+        expect(onOutputCall).toBeDefined()
+        const onOutputCallback = onOutputCall[0]
+
+        // Set maxLines to a low number
+        if (terminals.systemTerminal.terminal) {
+          terminals.systemTerminal.terminal.maxLines = 3
+        }
+
+        // Add lines beyond maxLines
+        for (let i = 0; i < 5; i++) {
+          onOutputCallback({
+            terminal: 'system' as const,
+            line: {
+              id: `line-${i}`,
+              content: `Test line ${i}`,
+              type: 'INFO' as const,
+              timestamp: new Date(),
+            },
+            timestamp: new Date(),
+          })
+        }
+
+        // Verify that only maxLines are kept
+        expect(terminals.systemTerminal.lines.length).toBeLessThanOrEqual(3)
+      })
+
+      it('should enforce maxLines limit for timeline terminal when exceeded', async () => {
+        const config: UseSystemTerminalsConfig = {
+          autoInit: false,
+          isElectronOverride: true,
+          electronAPI: mockElectronAPI,
+        }
+
+        const terminals = useSystemTerminals(config)
+        await terminals.initializeTerminals()
+
+        // Get the onOutput callback
+        const onOutputCall =
+          mockElectronAPI.systemTerminal.onOutput.mock.calls[0]
+        expect(onOutputCall).toBeDefined()
+        const onOutputCallback = onOutputCall[0]
+
+        // Set maxLines to a low number
+        if (terminals.timelineTerminal.terminal) {
+          terminals.timelineTerminal.terminal.maxLines = 3
+        }
+
+        // Add lines beyond maxLines
+        for (let i = 0; i < 5; i++) {
+          onOutputCallback({
+            terminal: 'timeline' as const,
+            line: {
+              id: `line-${i}`,
+              content: `Test line ${i}`,
+              type: 'INFO' as const,
+              timestamp: new Date(),
+            },
+            timestamp: new Date(),
+          })
+        }
+
+        // Verify that only maxLines are kept
+        expect(terminals.timelineTerminal.lines.length).toBeLessThanOrEqual(3)
+      })
+    })
+
+    describe('Auto-init error handling', () => {
+      it('should handle initialization errors in catch block', async () => {
+        // Create a mock that throws an error
+        const errorMock = vi
+          .fn()
+          .mockRejectedValue(new Error('Initialization failed'))
+
+        const mockConsole = {
+          log: vi.fn(),
+          warn: vi.fn(),
+          error: vi.fn(),
+          info: vi.fn(),
+        }
+
+        const config: UseSystemTerminalsConfig = {
+          autoInit: false, // Disable auto-init, we'll call manually
+          isElectronOverride: true,
+          electronAPI: {
+            ...mockElectronAPI,
+            systemTerminal: {
+              ...mockElectronAPI.systemTerminal,
+              initialize: errorMock,
+            },
+          },
+          console: mockConsole,
+        }
+
+        const terminals = useSystemTerminals(config)
+
+        // Manually call initialization to trigger error
+        try {
+          await terminals.initializeTerminals()
+        } catch (error) {
+          // Error is expected
+          expect(error).toBeInstanceOf(Error)
+        }
+
+        // Verify error was logged
+        expect(mockConsole.error).toHaveBeenCalled()
+        expect(terminals.initError.value).toBe('Initialization failed')
+      })
+    })
+
+    describe('Event listener cleanup', () => {
+      it('should register event listeners during initialization', async () => {
+        const config: UseSystemTerminalsConfig = {
+          autoInit: false,
+          isElectronOverride: true,
+          electronAPI: mockElectronAPI,
+        }
+
+        const terminals = useSystemTerminals(config)
+
+        // Initialize to setup event listeners
+        await terminals.initializeTerminals()
+
+        // Verify that event listeners were registered
+        expect(mockElectronAPI.systemTerminal.onOutput).toHaveBeenCalled()
+        expect(mockElectronAPI.systemTerminal.onActivated).toHaveBeenCalled()
+        expect(mockElectronAPI.systemTerminal.onCleared).toHaveBeenCalled()
+
+        // Verify terminals were properly initialized
+        expect(terminals.isInitialized.value).toBe(true)
+        expect(terminals.systemTerminal.terminal).toBeDefined()
+        expect(terminals.timelineTerminal.terminal).toBeDefined()
+      })
     })
   })
 })

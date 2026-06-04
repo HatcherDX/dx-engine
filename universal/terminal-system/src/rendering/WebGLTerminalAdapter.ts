@@ -242,6 +242,52 @@ export class WebGLTerminalAdapter {
   }
 
   /**
+   * Get WebGL context information.
+   *
+   * @returns WebGL context info or null if not available
+   *
+   * @example
+   * ```typescript
+   * const info = adapter.getContextInfo()
+   * console.log(`GPU: ${info?.vendor} - ${info?.renderer}`)
+   * ```
+   *
+   * @public
+   */
+  getContextInfo(): {
+    vendor: string
+    renderer: string
+    version: string
+  } | null {
+    if (!this._isInitialized) {
+      return null
+    }
+
+    try {
+      const canvas = document.createElement('canvas')
+      const gl = canvas.getContext('webgl2') || canvas.getContext('webgl')
+
+      if (!gl) {
+        return null
+      }
+
+      const debugInfo = gl.getExtension('WEBGL_debug_renderer_info')
+
+      return {
+        vendor: debugInfo
+          ? gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL)
+          : gl.getParameter(gl.VENDOR),
+        renderer: debugInfo
+          ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL)
+          : gl.getParameter(gl.RENDERER),
+        version: gl.getParameter(gl.VERSION),
+      }
+    } catch {
+      return null
+    }
+  }
+
+  /**
    * Clean up WebGL resources.
    *
    * @public

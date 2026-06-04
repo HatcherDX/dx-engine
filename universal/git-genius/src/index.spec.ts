@@ -49,6 +49,36 @@ describe('Git Genius Library', () => {
     expect(compatibility).toHaveProperty('issues')
   })
 
+  it('should return compatible environment in Node.js/Electron', () => {
+    const compatibility = checkCompatibility()
+
+    expect(compatibility.isCompatible).toBe(true)
+    expect(compatibility.environment).toBe('node')
+    expect(compatibility.features.isomorphicGit).toBe(true)
+    expect(compatibility.features.fileSystem).toBe(true)
+    expect(compatibility.features.caching).toBe(true)
+    expect(compatibility.issues).toHaveLength(0)
+  })
+
+  it('should validate all required features are present', () => {
+    const compatibility = checkCompatibility()
+
+    // Verify all features object properties
+    expect(compatibility.features).toHaveProperty('isomorphicGit')
+    expect(compatibility.features).toHaveProperty('fileSystem')
+    expect(compatibility.features).toHaveProperty('caching')
+
+    // All should be true in our environment
+    expect(Object.values(compatibility.features).every(Boolean)).toBe(true)
+  })
+
+  it('should have empty issues array when fully compatible', () => {
+    const compatibility = checkCompatibility()
+
+    expect(Array.isArray(compatibility.issues)).toBe(true)
+    expect(compatibility.issues).toEqual([])
+  })
+
   it('should export core classes', () => {
     expect(RepositoryManager).toBeDefined()
     expect(GitEngine).toBeDefined()

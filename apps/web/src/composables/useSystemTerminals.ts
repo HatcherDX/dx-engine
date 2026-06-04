@@ -300,6 +300,27 @@ export interface UseSystemTerminalsReturn {
   ) => Promise<T>
 }
 
+// Shared singleton state for system terminals
+// This ensures only one instance exists across all components
+// Using mutex pattern to prevent race conditions during initialization
+let sharedInitialized = false
+let sharedInitPromise: Promise<void> | null = null
+let sharedInitializing = false
+let initializationCount = 0
+
+/**
+ * Reset shared state for testing purposes.
+ *
+ * @internal
+ * @since 1.0.0
+ */
+export function resetSharedState(): void {
+  sharedInitialized = false
+  sharedInitPromise = null
+  sharedInitializing = false
+  initializationCount = 0
+}
+
 /**
  * useSystemTerminals - Vue composable for system terminal integration.
  *
@@ -424,120 +445,260 @@ export function useSystemTerminals(
    * Initialize system terminals using Electron IPC.
    */
   const initializeTerminals = async (): Promise<void> => {
-    if (isInitialized.value) {
-      return
+    // Check shared state to prevent duplicate initialization
+    if (sharedInitialized || isInitialized.value) {
+      consoleImpl.log('[useSystemTerminals] Already initialized, skipping')
+      return sharedInitPromise || Promise.resolve()
     }
 
-    try {
-      initError.value = null
+    // If another component is initializing, wait for it
+    if (sharedInitializing || sharedInitPromise) {
+      consoleImpl.log(
+        '[useSystemTerminals] Initialization in progress, waiting...'
+      )
+      return sharedInitPromise || Promise.resolve()
+    }
 
-      if (!isElectron || !electronAPI?.systemTerminal) {
-        // Fallback for non-Electron environments
-        consoleImpl.warn(
-          '[useSystemTerminals] Running in non-Electron environment, using mock data'
+    // Lock initialization to prevent race conditions
+    sharedInitializing = true
+    initializationCount++
+    const currentInitCount = initializationCount
+    consoleImpl.log(
+      `[useSystemTerminals] Starting initialization #${currentInitCount}`
+    )
+
+    // Create shared promise for initialization
+    sharedInitPromise = (async () => {
+      // Capture the initialization state at the beginning
+      const wasInitialized = sharedInitialized
+
+      try {
+        initError.value = null
+
+        if (!isElectron || !electronAPI?.systemTerminal) {
+          // Fallback for non-Electron environments
+          consoleImpl.warn(
+            '[useSystemTerminals] Running in non-Electron environment, using mock data'
+          )
+
+          // Initialize with mock terminals
+          systemTerminal.terminal = {
+            id: 'system',
+            name: 'Terminal [System]',
+            type: 'system',
+            isActive: true,
+            createdAt: new Date(),
+            lastActivity: new Date(),
+            lines: [
+              {
+                id: 'init-1',
+                content: `${new Date().toISOString().replace('T', ' ').substring(0, 23)} [INFO] Terminal [System] ready - monitoring IDE lifecycle events`,
+                type: 'INFO',
+                timestamp: new Date(),
+              },
+            ],
+            autoScroll: true,
+            maxLines: 500,
+            status: 'ready',
+          }
+
+          timelineTerminal.terminal = {
+            id: 'timeline',
+            name: 'Terminal [Timeline]',
+            type: 'timeline',
+            isActive: false,
+            createdAt: new Date(),
+            lastActivity: new Date(),
+            lines: [
+              {
+                id: 'init-2',
+                content: `${new Date().toISOString().replace('T', ' ').substring(0, 23)} [INFO] Terminal [Timeline] ready - monitoring Git activity with complete traceability`,
+                type: 'INFO',
+                timestamp: new Date(),
+              },
+            ],
+            autoScroll: true,
+            maxLines: 1000,
+            status: 'ready',
+          }
+
+          systemTerminal.lines = [...(systemTerminal.terminal.lines || [])]
+          systemTerminal.isReady = true
+          systemTerminal.isActive = false
+
+          timelineTerminal.lines = [...(timelineTerminal.terminal.lines || [])]
+          timelineTerminal.isReady = true
+          timelineTerminal.isActive = false
+
+          activeTerminal.value = null
+          isInitialized.value = true
+          return
+        }
+
+        // Initialize system terminals via IPC with timeout
+        consoleImpl.log(
+          '[useSystemTerminals] Calling electronAPI.systemTerminal.initialize()...'
         )
 
-        // Initialize with mock terminals
-        systemTerminal.terminal = {
-          id: 'system',
-          name: 'Terminal [System]',
-          type: 'system',
-          isActive: true,
-          createdAt: new Date(),
-          lastActivity: new Date(),
-          lines: [
-            {
-              id: 'init-1',
-              content: `${new Date().toISOString().replace('T', ' ').substring(0, 23)} [INFO] Terminal [System] ready - monitoring IDE lifecycle events`,
-              type: 'INFO',
-              timestamp: new Date(),
-            },
-          ],
-          autoScroll: true,
-          maxLines: 500,
-          status: 'ready',
+        // Create a timeout promise
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          setTimeout(() => {
+            reject(
+              new Error(
+                'System terminal initialization timed out after 10 seconds'
+              )
+            )
+          }, 10000) // 10 second timeout
+        })
+
+        let result
+        try {
+          // Race between the actual initialization and the timeout
+          result = await Promise.race([
+            electronAPI.systemTerminal.initialize(),
+            timeoutPromise,
+          ])
+
+          consoleImpl.log('[useSystemTerminals] IPC call returned:', result)
+        } catch (error) {
+          // Check if this is a timeout error (from our timeout promise)
+          if (
+            error instanceof Error &&
+            error.message.includes('timed out after 10 seconds')
+          ) {
+            // If we hit the timeout, fallback to mock data
+            consoleImpl.error(
+              '[useSystemTerminals] IPC call timed out, using fallback:',
+              error
+            )
+
+            // Fallback to mock terminals on timeout
+            systemTerminal.terminal = {
+              id: 'system',
+              name: 'Terminal [System]',
+              type: 'system',
+              isActive: true,
+              createdAt: new Date(),
+              lastActivity: new Date(),
+              lines: [
+                {
+                  id: 'timeout-1',
+                  content: `${new Date().toISOString().replace('T', ' ').substring(0, 23)} [WARN] Terminal initialization timed out - using fallback mode`,
+                  type: 'WARN',
+                  timestamp: new Date(),
+                },
+              ],
+              autoScroll: true,
+              maxLines: 500,
+              status: 'ready',
+            }
+
+            timelineTerminal.terminal = {
+              id: 'timeline',
+              name: 'Terminal [Timeline]',
+              type: 'timeline',
+              isActive: false,
+              createdAt: new Date(),
+              lastActivity: new Date(),
+              lines: [
+                {
+                  id: 'timeout-2',
+                  content: `${new Date().toISOString().replace('T', ' ').substring(0, 23)} [WARN] Terminal initialization timed out - using fallback mode`,
+                  type: 'WARN',
+                  timestamp: new Date(),
+                },
+              ],
+              autoScroll: true,
+              maxLines: 1000,
+              status: 'ready',
+            }
+
+            systemTerminal.lines = [...(systemTerminal.terminal.lines || [])]
+            systemTerminal.isReady = true
+            systemTerminal.isActive = false
+
+            timelineTerminal.lines = [
+              ...(timelineTerminal.terminal.lines || []),
+            ]
+            timelineTerminal.isReady = true
+            timelineTerminal.isActive = false
+
+            activeTerminal.value = null
+            isInitialized.value = true
+            sharedInitialized = true
+            sharedInitializing = false
+
+            return
+          } else {
+            // For other errors (like IPC initialization failed), re-throw
+            throw error
+          }
         }
 
-        timelineTerminal.terminal = {
-          id: 'timeline',
-          name: 'Terminal [Timeline]',
-          type: 'timeline',
-          isActive: false,
-          createdAt: new Date(),
-          lastActivity: new Date(),
-          lines: [
-            {
-              id: 'init-2',
-              content: `${new Date().toISOString().replace('T', ' ').substring(0, 23)} [INFO] Terminal [Timeline] ready - monitoring Git activity with complete traceability`,
-              type: 'INFO',
-              timestamp: new Date(),
-            },
-          ],
-          autoScroll: true,
-          maxLines: 1000,
-          status: 'ready',
+        if (!result.success) {
+          throw new Error(
+            result.error || 'Failed to initialize system terminals'
+          )
         }
 
-        systemTerminal.lines = [...(systemTerminal.terminal.lines || [])]
+        if (!result.data?.systemTerminal || !result.data?.timelineTerminal) {
+          throw new Error('System terminals not returned from initialization')
+        }
+
+        // Update reactive state with IPC data
+        systemTerminal.terminal = result.data.systemTerminal
+        systemTerminal.lines = [...(result.data.systemTerminal.lines || [])]
         systemTerminal.isReady = true
-        systemTerminal.isActive = false
+        systemTerminal.isActive = result.data.systemTerminal.isActive
 
-        timelineTerminal.lines = [...(timelineTerminal.terminal.lines || [])]
+        timelineTerminal.terminal = result.data.timelineTerminal
+        timelineTerminal.lines = [...(result.data.timelineTerminal.lines || [])]
         timelineTerminal.isReady = true
-        timelineTerminal.isActive = false
+        timelineTerminal.isActive = result.data.timelineTerminal.isActive
 
-        activeTerminal.value = null
+        // Set initial active terminal based on IPC response
+        if (result.data.systemTerminal.isActive) {
+          activeTerminal.value = 'system'
+        } else if (result.data.timelineTerminal.isActive) {
+          activeTerminal.value = 'timeline'
+        } else {
+          // No terminal active by default - will be activated when needed
+          activeTerminal.value = null
+          systemTerminal.isActive = false
+          timelineTerminal.isActive = false
+        }
+
+        // Setup IPC event listeners
+        setupIPCEventListeners()
+
         isInitialized.value = true
-        return
+        sharedInitialized = true
+
+        // Log successful initialization via IPC - only once when actually initialized
+        if (!wasInitialized && currentInitCount === 1) {
+          await logInfo('System terminals Vue integration initialized')
+        }
+
+        consoleImpl.log(
+          `[useSystemTerminals] Initialization #${currentInitCount} completed successfully`
+        )
+        sharedInitializing = false
+        // Keep the promise for other waiting components
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error)
+        initError.value = errorMessage
+        sharedInitPromise = null // Reset on error
+        sharedInitializing = false // Unlock on error
+        consoleImpl.error(
+          `[useSystemTerminals] Initialization #${currentInitCount} failed:`,
+          error
+        )
+        throw error
       }
+    })()
 
-      // Initialize system terminals via IPC
-      const result = await electronAPI.systemTerminal.initialize()
-
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to initialize system terminals')
-      }
-
-      if (!result.data?.systemTerminal || !result.data?.timelineTerminal) {
-        throw new Error('System terminals not returned from initialization')
-      }
-
-      // Update reactive state with IPC data
-      systemTerminal.terminal = result.data.systemTerminal
-      systemTerminal.lines = [...(result.data.systemTerminal.lines || [])]
-      systemTerminal.isReady = true
-      systemTerminal.isActive = result.data.systemTerminal.isActive
-
-      timelineTerminal.terminal = result.data.timelineTerminal
-      timelineTerminal.lines = [...(result.data.timelineTerminal.lines || [])]
-      timelineTerminal.isReady = true
-      timelineTerminal.isActive = result.data.timelineTerminal.isActive
-
-      // Set initial active terminal based on IPC response
-      if (result.data.systemTerminal.isActive) {
-        activeTerminal.value = 'system'
-      } else if (result.data.timelineTerminal.isActive) {
-        activeTerminal.value = 'timeline'
-      } else {
-        // No terminal active by default - will be activated when needed
-        activeTerminal.value = null
-        systemTerminal.isActive = false
-        timelineTerminal.isActive = false
-      }
-
-      // Setup IPC event listeners
-      setupIPCEventListeners()
-
-      isInitialized.value = true
-
-      // Log successful initialization via IPC
-      await logInfo('System terminals Vue integration initialized')
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error)
-      initError.value = errorMessage
-      consoleImpl.error('[useSystemTerminals] Initialization failed:', error)
-    }
+    return sharedInitPromise
   }
 
   /**

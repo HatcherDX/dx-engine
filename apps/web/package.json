@@ -17,8 +17,11 @@
     "lint:fix": "echo \"Linting handled at root level\""
   },
   "dependencies": {
+    "@hatcherdx/ai-cli": "workspace:*",
+    "@hatcherdx/git-genius": "workspace:*",
     "@hatcherdx/shared-rendering": "workspace:*",
     "@hatcherdx/terminal-system": "workspace:*",
+    "@headlessui/vue": "^1.7.23",
     "@types/prismjs": "^1.26.5",
     "@xterm/addon-clipboard": "^0.1.0",
     "@xterm/addon-fit": "^0.10.0",
@@ -26,8 +29,12 @@
     "@xterm/addon-unicode11": "^0.8.0",
     "@xterm/addon-web-links": "^0.11.0",
     "@xterm/addon-webgl": "^0.18.0",
+    "focus-trap": "^7",
+    "marked": "^16.4.0",
     "prismjs": "^1.30.0",
+    "tippy.js": "^6.3.7",
     "vue": "^3.5.13",
+    "vue-tippy": "v6",
     "xterm": "^5.3.0"
   },
   "devDependencies": {

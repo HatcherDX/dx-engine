@@ -272,13 +272,13 @@ export class SQLiteAdapter extends BaseStorageAdapter {
 
     this.preparedStatements = {
       get: this.db.prepare(`
-        SELECT value, metadata 
-        FROM storage 
+        SELECT value, metadata
+        FROM storage
         WHERE namespace = ? AND key = ?
       `),
 
       set: this.db.prepare(`
-        INSERT OR REPLACE INTO storage 
+        INSERT OR REPLACE INTO storage
         (id, namespace, key, value, metadata, created_at, updated_at, access_count)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `),
@@ -321,8 +321,8 @@ export class SQLiteAdapter extends BaseStorageAdapter {
       `),
 
       updateAccess: this.db.prepare(`
-        UPDATE storage 
-        SET accessed_at = ?, access_count = access_count + 1 
+        UPDATE storage
+        SET accessed_at = ?, access_count = access_count + 1
         WHERE namespace = ? AND key = ?
       `),
     }

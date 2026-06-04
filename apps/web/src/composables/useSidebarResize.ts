@@ -1,10 +1,37 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 
-export function useSidebarResize() {
-  const sidebarWidth = ref(270) // Ancho inicial
+/**
+ * Configuration options for sidebar resize behavior.
+ *
+ * @interface SidebarResizeOptions
+ * @property {number} minWidth - Minimum allowed sidebar width in pixels
+ * @property {number} maxWidth - Maximum allowed sidebar width in pixels
+ * @property {number} initialWidth - Initial sidebar width in pixels
+ */
+export interface SidebarResizeOptions {
+  minWidth?: number
+  maxWidth?: number
+  initialWidth?: number
+}
+
+/**
+ * Composable for managing sidebar resize functionality with drag-and-drop.
+ *
+ * @param {SidebarResizeOptions} options - Configuration options
+ * @returns Reactive sidebar resize state and controls
+ *
+ * @example
+ * ```typescript
+ * const sidebar = useSidebarResize({ minWidth: 200, maxWidth: 600 })
+ * ```
+ */
+export function useSidebarResize(options: SidebarResizeOptions = {}) {
+  const minWidth = options.minWidth ?? 270
+  const maxWidth = options.maxWidth ?? 500
+  const initialWidth = options.initialWidth ?? 270
+
+  const sidebarWidth = ref(initialWidth)
   const isResizing = ref(false)
-  const minWidth = 270
-  const maxWidth = 500
 
   // Load saved width from localStorage
   onMounted(() => {
@@ -28,7 +55,7 @@ export function useSidebarResize() {
     const isAtMaxWidth = proposedWidth >= maxWidth
 
     if (isAtMinWidth && isAtMaxWidth) {
-      document.body.style.cursor = 'not-allowed'
+      document.body.style.cursor = 'default'
     } else if (isAtMinWidth) {
       document.body.style.cursor = 'e-resize' // Can only resize to the right
     } else if (isAtMaxWidth) {
@@ -87,7 +114,7 @@ export function useSidebarResize() {
     const isAtMaxWidth = sidebarWidth.value >= maxWidth
 
     if (isAtMinWidth && isAtMaxWidth) {
-      return 'not-allowed' // Can't resize either direction
+      return 'default' // Can't resize either direction
     } else if (isAtMinWidth) {
       return 'e-resize' // Can only resize to the right (increase width)
     } else if (isAtMaxWidth) {

@@ -3,11 +3,13 @@
  * Now uses the consolidated terminal system with automatic backend detection
  */
 
+// Import all modules from main export (Electron app can use Node.js APIs)
 import {
   BackendDetector,
   EnhancedTerminalFactory,
   type BackendProcess,
   type TerminalCapabilities,
+  WelcomeMessageProvider,
 } from '@hatcherdx/terminal-system'
 import { EventEmitter } from 'node:events'
 
@@ -20,7 +22,7 @@ interface TerminalOptions {
 }
 
 export interface TerminalInterface extends EventEmitter {
-  spawn(): void
+  spawn(): void | Promise<void>
   write(data: string): void
   resize(cols: number, rows: number): void
   kill(): void
@@ -151,13 +153,19 @@ class TerminalStrategyManager {
     try {
       console.log(`[Enhanced Terminal Strategy] Creating terminal ${id}...`)
 
+      // Generate welcome message
+      const welcomeProvider = new WelcomeMessageProvider()
+      const welcomeMessage = welcomeProvider.getWelcomeMessage()
+
       // Use the enhanced terminal factory to create the best available terminal
       const result = await EnhancedTerminalFactory.createTerminal({
         shell: options.shell,
         cwd: options.cwd || process.cwd(),
         env: options.env,
-        cols: options.cols || 80,
+        cols: options.cols || 45, // Further reduced to 45 to eliminate prompt spacing
         rows: options.rows || 24,
+        welcomeMessage,
+        welcomeDelay: 50, // Small delay for event-based detection
       })
 
       console.log(

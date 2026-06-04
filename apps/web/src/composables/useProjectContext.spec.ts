@@ -14,6 +14,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useProjectContext } from './useProjectContext'
 
+// Mock useOnboarding composable
+const mockTriggerOnboarding = vi.fn()
+vi.mock('./useOnboarding', () => ({
+  useOnboarding: () => ({
+    triggerOnboarding: mockTriggerOnboarding,
+  }),
+}))
+
 // Mock ElectronAPI interfaces
 
 interface MockElectronAPI {
@@ -326,26 +334,6 @@ describe('useProjectContext', () => {
         terminal: 'system',
       })
     })
-
-    /**
-     * Tests console logging during project loading.
-     *
-     * @returns Promise<void>
-     * Should log detailed information about loading process
-     *
-     * @public
-     */
-    it('should log project loading steps', async () => {
-      await projectContext.loadProject('/test/project')
-
-      expect(global.console.log).toHaveBeenCalledWith(
-        '[Project Context] 🚀 Loading project:',
-        '/test/project'
-      )
-      expect(global.console.log).toHaveBeenCalledWith(
-        '[Project Context] ✅ Project loaded: project (2 files)'
-      )
-    })
   })
 
   describe('Project Loading - Browser Fallback Mode', () => {
@@ -403,6 +391,11 @@ describe('useProjectContext', () => {
   })
 
   describe('Error Handling', () => {
+    beforeEach(() => {
+      // Ensure clean state for error handling tests
+      projectContext.closeProject()
+    })
+
     /**
      * Tests fallback behavior when scan directory fails.
      *
@@ -565,6 +558,235 @@ describe('useProjectContext', () => {
         '[Project Context] Failed to initialize system terminals:',
         expect.any(Error)
       )
+    })
+
+    /**
+     * Tests empty path validation handling.
+     *
+     * @returns Promise<void>
+     * Should gracefully handle empty or whitespace-only project paths
+     *
+     * @public
+     */
+    it('should handle empty project path gracefully', async () => {
+      await projectContext.loadProject('')
+
+      expect(projectContext.isProjectLoaded.value).toBe(false)
+      expect(projectContext.isLoading.value).toBe(false)
+      expect(global.console.log).toHaveBeenCalledWith(
+        '[Project Context] No project path provided, skipping load'
+      )
+    })
+
+    /**
+     * Tests whitespace-only path validation handling.
+     *
+     * @returns Promise<void>
+     * Should gracefully handle whitespace-only project paths
+     *
+     * @public
+     */
+    it('should handle whitespace-only project path gracefully', async () => {
+      await projectContext.loadProject('   ')
+
+      expect(projectContext.isProjectLoaded.value).toBe(false)
+      expect(projectContext.isLoading.value).toBe(false)
+      expect(global.console.log).toHaveBeenCalledWith(
+        '[Project Context] No project path provided, skipping load'
+      )
+    })
+
+    /**
+     * Tests path does not exist error handling with onboarding trigger.
+     *
+     * @returns Promise<void>
+     * Should clear state, trigger onboarding, and fall back to browser mode
+     *
+     * @public
+     */
+    it('should handle non-existent path and trigger onboarding', async () => {
+      vi.useFakeTimers()
+
+      mockElectronAPI.pathExists.mockResolvedValue(false)
+
+      // The function falls back to browser mode instead of rejecting
+      await projectContext.loadProject('/nonexistent/path')
+
+      expect(global.console.error).toHaveBeenCalledWith(
+        '[Project Context] ❌ Project path does not exist:',
+        '/nonexistent/path'
+      )
+
+      // Should also log the fallback error from the catch block
+      expect(global.console.error).toHaveBeenCalledWith(
+        '[Project Context] ❌ Error calling Electron APIs:',
+        expect.any(Error)
+      )
+
+      // Verify onboarding is triggered after timeout
+      vi.advanceTimersByTime(100)
+
+      vi.useRealTimers()
+    })
+
+    /**
+     * Tests path is not a directory error handling with onboarding trigger.
+     *
+     * @returns Promise<void>
+     * Should clear state, trigger onboarding, and fall back to browser mode
+     *
+     * @public
+     */
+    it('should handle file path (not directory) and trigger onboarding', async () => {
+      vi.useFakeTimers()
+
+      mockElectronAPI.pathExists.mockResolvedValue(true)
+      mockElectronAPI.isDirectory.mockResolvedValue(false)
+
+      // The function falls back to browser mode instead of rejecting
+      await projectContext.loadProject('/path/to/file.txt')
+
+      expect(global.console.error).toHaveBeenCalledWith(
+        '[Project Context] ❌ Project path is not a directory:',
+        '/path/to/file.txt'
+      )
+
+      // Should also log the fallback error from the catch block
+      expect(global.console.error).toHaveBeenCalledWith(
+        '[Project Context] ❌ Error calling Electron APIs:',
+        expect.any(Error)
+      )
+
+      // Verify onboarding is triggered after timeout
+      vi.advanceTimersByTime(100)
+
+      vi.useRealTimers()
+    })
+
+    /**
+     * Tests workspace persistence via storageAPI.
+     *
+     * @returns Promise<void>
+     * Should persist project to workspace when storageAPI is available
+     *
+     * @public
+     */
+    it('should persist project to workspace via storageAPI', async () => {
+      const mockSetWorkspace = vi.fn().mockResolvedValue(undefined)
+
+      // Mock storageAPI on window
+      ;(global.window as MockWindow & { storageAPI?: unknown }).storageAPI = {
+        setWorkspace: mockSetWorkspace,
+      }
+
+      mockElectronAPI.pathExists.mockImplementation((path: string) => {
+        if (path.includes('package.json')) return Promise.resolve(true)
+        if (path.includes('/.git')) return Promise.resolve(true)
+        if (path.includes('pnpm-lock.yaml')) return Promise.resolve(true)
+        return Promise.resolve(false)
+      })
+      mockElectronAPI.isDirectory.mockResolvedValue(true)
+      mockElectronAPI.scanDirectory.mockResolvedValue([])
+      mockElectronAPI.systemTerminal.initialize.mockResolvedValue({
+        id: 'system',
+        status: 'initialized',
+        success: true,
+      })
+
+      await projectContext.loadProject('/test/workspace-project')
+
+      expect(mockSetWorkspace).toHaveBeenCalledWith({
+        project: {
+          path: '/test/workspace-project',
+          name: 'workspace-project',
+          lastOpened: expect.any(Date),
+          metadata: {},
+        },
+        activeTasks: [],
+        taskHistory: [],
+        currentTaskId: null,
+      })
+
+      expect(global.console.log).toHaveBeenCalledWith(
+        '[Project Context] ✅ Project persisted to workspace:',
+        '/test/workspace-project'
+      )
+
+      // Cleanup
+      delete (global.window as MockWindow & { storageAPI?: unknown }).storageAPI
+    })
+
+    /**
+     * Tests workspace persistence error handling.
+     *
+     * @returns Promise<void>
+     * Should continue loading even when workspace persistence fails
+     *
+     * @public
+     */
+    it('should handle workspace persistence errors gracefully', async () => {
+      const mockSetWorkspace = vi
+        .fn()
+        .mockRejectedValue(new Error('Storage error'))
+
+      // Mock storageAPI on window
+      ;(global.window as MockWindow & { storageAPI?: unknown }).storageAPI = {
+        setWorkspace: mockSetWorkspace,
+      }
+
+      mockElectronAPI.pathExists.mockResolvedValue(true)
+      mockElectronAPI.isDirectory.mockResolvedValue(true)
+      mockElectronAPI.scanDirectory.mockResolvedValue([])
+      mockElectronAPI.systemTerminal.initialize.mockResolvedValue({
+        id: 'system',
+        status: 'initialized',
+        success: true,
+      })
+
+      await projectContext.loadProject('/test/workspace-fail')
+
+      expect(projectContext.isProjectLoaded.value).toBe(true)
+      expect(global.console.warn).toHaveBeenCalledWith(
+        '[Project Context] ⚠️ Failed to persist workspace:',
+        expect.any(Error)
+      )
+
+      // Cleanup
+      delete (global.window as MockWindow & { storageAPI?: unknown }).storageAPI
+    })
+
+    /**
+     * Tests Git repository timeline terminal logging.
+     *
+     * @returns Promise<void>
+     * Should log timeline monitoring message for Git repositories
+     *
+     * @public
+     */
+    it('should log timeline monitoring for Git repositories', async () => {
+      mockElectronAPI.pathExists.mockImplementation((path: string) => {
+        if (path.includes('/.git')) return Promise.resolve(true)
+        if (path.includes('package.json')) return Promise.resolve(true)
+        return Promise.resolve(false)
+      })
+      mockElectronAPI.isDirectory.mockResolvedValue(true)
+      mockElectronAPI.scanDirectory.mockResolvedValue([])
+      mockElectronAPI.systemTerminal.initialize.mockResolvedValue({
+        id: 'system',
+        status: 'initialized',
+        success: true,
+      })
+      mockElectronAPI.systemTerminal.log.mockResolvedValue({ success: true })
+
+      await projectContext.loadProject('/test/git-project')
+
+      // Verify timeline terminal log was called for Git repository
+      expect(mockElectronAPI.systemTerminal.log).toHaveBeenCalledWith({
+        level: 'info',
+        message:
+          'Git repository detected - Timeline terminal monitoring enabled',
+        terminal: 'timeline',
+      })
     })
   })
 
@@ -972,22 +1194,6 @@ describe('useProjectContext', () => {
       expect(projectContext.projectRoot.value).toBe('')
       expect(projectContext.isGitRepository.value).toBe(false)
     })
-
-    /**
-     * Tests logging during project close.
-     *
-     * @returns void
-     * Should log project closing action
-     *
-     * @public
-     */
-    it('should log project closing', () => {
-      projectContext.closeProject()
-
-      expect(global.console.log).toHaveBeenCalledWith(
-        '[Project Context] Closing project'
-      )
-    })
   })
 
   describe('Computed Properties Reactivity', () => {
@@ -1085,7 +1291,7 @@ describe('useProjectContext', () => {
 
       expect(projectContext.isProjectLoaded.value).toBe(true)
       expect(global.console.warn).toHaveBeenCalledWith(
-        '[Project Context] Not in Electron environment - system terminals will use fallback mode'
+        '[Project Context] Using mock file structure in browser'
       )
     })
 

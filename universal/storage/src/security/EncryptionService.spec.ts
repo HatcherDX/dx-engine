@@ -327,4 +327,216 @@ describe('EncryptionService', () => {
       // with specialized tools, but we verify the operations complete correctly
     })
   })
+
+  describe('error path coverage', () => {
+    beforeEach(async () => {
+      await encryption.deriveKey(config.passphrase!)
+    })
+
+    it('should re-throw EncryptionError in encrypt() catch block', async () => {
+      // Trigger an EncryptionError by encrypting without a key
+      const noKeyEncryption = new EncryptionService(config)
+
+      await expect(noKeyEncryption.encrypt('data')).rejects.toThrow(
+        'No encryption key available'
+      )
+    })
+
+    it('should handle null encrypted data in decrypt()', async () => {
+      await expect(
+        encryption.decrypt(null as unknown as never)
+      ).rejects.toThrow('Cannot decrypt: encrypted data is null or undefined')
+    })
+
+    it('should handle undefined encrypted data in decrypt()', async () => {
+      await expect(
+        encryption.decrypt(undefined as unknown as never)
+      ).rejects.toThrow('Cannot decrypt: encrypted data is null or undefined')
+    })
+
+    it('should throw error for rotateKeys (not implemented)', async () => {
+      await expect(encryption.rotateKeys('new-passphrase')).rejects.toThrow(
+        'Key rotation not implemented yet'
+      )
+    })
+  })
+
+  describe('encryptFields edge cases', () => {
+    beforeEach(async () => {
+      await encryption.deriveKey(config.passphrase!)
+    })
+
+    it('should return same data if not an object', async () => {
+      const result = await encryption.encryptFields(
+        null as unknown as Record<string, unknown>,
+        ['field']
+      )
+      expect(result).toBeNull()
+    })
+
+    it('should skip fields that do not exist', async () => {
+      const data = { existing: 'value' }
+      const result = await encryption.encryptFields(data, ['nonExistent'])
+
+      expect(result.existing).toBe('value')
+      expect('nonExistent' in result).toBe(false)
+    })
+
+    it('should skip undefined values in fields', async () => {
+      const data = { field: undefined }
+      const result = await encryption.encryptFields(data, ['field'])
+
+      expect(result.field).toBeUndefined()
+      expect(encryption.isEncrypted(result.field)).toBe(false)
+    })
+
+    it('should handle nested field that does not exist', async () => {
+      const data = { level1: {} }
+      const result = await encryption.encryptFields(data, [
+        'level1.nonExistent',
+      ])
+
+      expect(result).toEqual(data)
+    })
+
+    it('should create nested objects when setting nested fields', async () => {
+      const data = { level1: null }
+      const result = await encryption.encryptFields(data, ['level1.level2'])
+
+      // Should handle null gracefully without creating nested structure
+      expect(result).toEqual(data)
+    })
+  })
+
+  describe('decryptFields edge cases', () => {
+    beforeEach(async () => {
+      await encryption.deriveKey(config.passphrase!)
+    })
+
+    it('should return same data if not an object', async () => {
+      const result = await encryption.decryptFields(
+        null as unknown as Record<string, unknown>,
+        ['field']
+      )
+      expect(result).toBeNull()
+    })
+
+    it('should skip fields that do not exist', async () => {
+      const data = { existing: 'value' }
+      const result = await encryption.decryptFields(data, ['nonExistent'])
+
+      expect(result.existing).toBe('value')
+      expect('nonExistent' in result).toBe(false)
+    })
+
+    it('should skip non-encrypted values', async () => {
+      const data = { plainField: 'plain-value' }
+      const result = await encryption.decryptFields(data, ['plainField'])
+
+      // Should not try to decrypt plain values
+      expect(result.plainField).toBe('plain-value')
+    })
+
+    it('should skip null values', async () => {
+      const data = { nullField: null }
+      const result = await encryption.decryptFields(data, ['nullField'])
+
+      expect(result.nullField).toBeNull()
+    })
+
+    it('should handle nested field that does not exist', async () => {
+      const data = { level1: {} }
+      const result = await encryption.decryptFields(data, [
+        'level1.nonExistent',
+      ])
+
+      expect(result).toEqual(data)
+    })
+  })
+
+  describe('nested field helper methods', () => {
+    beforeEach(async () => {
+      await encryption.deriveKey(config.passphrase!)
+    })
+
+    it('should handle hasNestedField with null intermediate value', async () => {
+      const data = { level1: null }
+      const result = await encryption.encryptFields(data, [
+        'level1.level2.level3',
+      ])
+
+      // Should handle null gracefully
+      expect(result).toEqual(data)
+    })
+
+    it('should handle getNestedField with null intermediate value', async () => {
+      const data = { level1: null }
+      const result = await encryption.decryptFields(data, [
+        'level1.level2.level3',
+      ])
+
+      // Should handle null gracefully
+      expect(result).toEqual(data)
+    })
+
+    it('should handle setNestedField creating nested structure', async () => {
+      const data = {}
+      const encrypted = await encryption.encrypt('secret')
+
+      // Access private method for testing
+      const service = encryption as unknown as {
+        setNestedField: (
+          obj: Record<string, unknown>,
+          field: string,
+          value: unknown
+        ) => void
+      }
+
+      service.setNestedField(data, 'level1.level2.level3', encrypted)
+
+      expect(data).toHaveProperty('level1')
+      expect(data).toHaveProperty('level1.level2')
+      expect(data).toHaveProperty('level1.level2.level3')
+    })
+
+    it('should handle setNestedField when intermediate is null', async () => {
+      const data: Record<string, unknown> = { level1: null }
+      const encrypted = await encryption.encrypt('secret')
+
+      // Access private method for testing
+      const service = encryption as unknown as {
+        setNestedField: (
+          obj: Record<string, unknown>,
+          field: string,
+          value: unknown
+        ) => void
+      }
+
+      service.setNestedField(data, 'level1.level2', encrypted)
+
+      // Should overwrite null with object
+      expect(typeof data.level1).toBe('object')
+      expect(data.level1).not.toBeNull()
+    })
+
+    it('should handle hasNestedField with primitive intermediate value', async () => {
+      const data = { level1: 'string-value' }
+      const result = await encryption.encryptFields(data, [
+        'level1.level2.level3',
+      ])
+
+      // Should handle primitive gracefully
+      expect(result).toEqual(data)
+    })
+
+    it('should handle getNestedField with primitive intermediate value', async () => {
+      const data = { level1: 'string-value' }
+      const result = await encryption.decryptFields(data, [
+        'level1.level2.level3',
+      ])
+
+      // Should handle primitive gracefully
+      expect(result).toEqual(data)
+    })
+  })
 })

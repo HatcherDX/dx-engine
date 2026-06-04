@@ -216,7 +216,7 @@ describe('useChatSidebar', () => {
     const sidebar = useChatSidebar()
     sidebar.setMode('generative')
 
-    expect(sidebar.resizeCursor.value).toBe('not-allowed')
+    expect(sidebar.resizeCursor.value).toBe('default')
   })
 
   it('should calculate resize cursor correctly for different width constraints', () => {

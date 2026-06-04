@@ -298,6 +298,45 @@ describe('IPCBridge', () => {
     })
 
     /**
+     * Tests terminal creation when terminal has no pid.
+     *
+     * @returns Promise<void>
+     * Should handle create-terminal IPC calls with missing pid
+     *
+     * @public
+     */
+    it('should handle terminal creation with no pid', async () => {
+      const mockTerminal = {
+        id: 'terminal-1',
+        name: 'Test Terminal',
+        // No pid property
+      }
+
+      mockTerminalManager.createTerminal = vi
+        .fn()
+        .mockResolvedValue(mockTerminal)
+
+      // Get the create-terminal handler
+      const createTerminalCall = mockIpcMain.handle.mock.calls.find(
+        (call) => call[0] === 'create-terminal'
+      )
+      const createHandler = createTerminalCall?.[1]
+
+      const options: CreateTerminalMessage = {
+        name: 'Test Terminal',
+      }
+
+      const mockEvent = {} as IpcMainInvokeEvent
+      const result = await createHandler?.(mockEvent, options)
+
+      expect(result).toEqual({
+        id: 'terminal-1',
+        name: 'Test Terminal',
+        pid: 0, // Should default to 0
+      })
+    })
+
+    /**
      * Tests error handling in terminal creation.
      *
      * @throws {@link Error}
@@ -444,6 +483,36 @@ describe('IPCBridge', () => {
         rows: 30,
       })
     })
+
+    /**
+     * Tests error handling in terminal resize.
+     *
+     * @returns void
+     * Should handle errors gracefully without crashing
+     *
+     * @public
+     */
+    it('should handle terminal resize errors gracefully', () => {
+      mockTerminalManager.resizeTerminal = vi.fn().mockImplementation(() => {
+        throw new Error('Failed to resize terminal')
+      })
+
+      const resizeCall = mockIpcMain.on.mock.calls.find(
+        (call) => call[0] === 'resize-terminal'
+      )
+      const resizeHandler = resizeCall?.[1]
+
+      const resizeMessage: TerminalResizeMessage = {
+        id: 'terminal-1',
+        cols: 120,
+        rows: 30,
+      }
+
+      const mockEvent = {} as IpcMainEvent
+
+      // Should not throw
+      expect(() => resizeHandler?.(mockEvent, resizeMessage)).not.toThrow()
+    })
   })
 
   describe('Terminal close handler', () => {
@@ -476,6 +545,30 @@ describe('IPCBridge', () => {
       expect(mockTerminalManager.closeTerminal).toHaveBeenCalledWith(
         'terminal-1'
       )
+    })
+
+    /**
+     * Tests error handling in terminal close.
+     *
+     * @returns void
+     * Should handle errors gracefully without crashing
+     *
+     * @public
+     */
+    it('should handle terminal close errors gracefully', () => {
+      mockTerminalManager.closeTerminal = vi.fn().mockImplementation(() => {
+        throw new Error('Failed to close terminal')
+      })
+
+      const closeCall = mockIpcMain.on.mock.calls.find(
+        (call) => call[0] === 'close-terminal'
+      )
+      const closeHandler = closeCall?.[1]
+
+      const mockEvent = {} as IpcMainEvent
+
+      // Should not throw
+      expect(() => closeHandler?.(mockEvent, 'terminal-1')).not.toThrow()
     })
   })
 
@@ -517,11 +610,189 @@ describe('IPCBridge', () => {
       expect(mockTerminalManager.getAllTerminals).toHaveBeenCalled()
       expect(result).toEqual(mockTerminals)
     })
+
+    /**
+     * Tests error handling in list terminals.
+     *
+     * @throws {@link Error}
+     * Should propagate errors from TerminalManager
+     *
+     * @public
+     */
+    it('should handle list terminals errors', () => {
+      const error = new Error('Failed to list terminals')
+      mockTerminalManager.getAllTerminals = vi.fn().mockImplementation(() => {
+        throw error
+      })
+
+      const listCall = mockIpcMain.handle.mock.calls.find(
+        (call) => call[0] === 'list-terminals'
+      )
+      const listHandler = listCall?.[1]
+
+      expect(() => listHandler?.()).toThrow('Failed to list terminals')
+    })
   })
 
   describe('Terminal manager event forwarding', () => {
     beforeEach(() => {
       ipcBridge.setWebContents(mockWebContents as WebContents)
+    })
+
+    describe('without WebContents', () => {
+      /**
+       * Tests event handling when WebContents is not set.
+       *
+       * @returns void
+       * Should not crash or throw when no WebContents is available
+       *
+       * @public
+       */
+      it('should handle terminalCreated events without WebContents', () => {
+        // Clear all previous mocks
+        vi.clearAllMocks()
+
+        // Create fresh mocks
+        const freshIpcMain = {
+          handle: vi.fn(),
+          on: vi.fn(),
+          removeAllListeners: vi.fn(),
+        }
+
+        const freshTerminalManager = {
+          createTerminal: vi.fn(),
+          sendData: vi.fn(),
+          resizeTerminal: vi.fn(),
+          closeTerminal: vi.fn(),
+          getAllTerminals: vi.fn(() => []),
+          cleanup: vi.fn(),
+          on: vi.fn(),
+        }
+
+        vi.mocked(TerminalManager).mockImplementation(
+          () => freshTerminalManager as unknown as TerminalManager
+        )
+
+        // Create new bridge without setting WebContents to trigger event handlers
+        void new IPCBridge(freshIpcMain as IpcMain)
+
+        const terminalCreatedCall = freshTerminalManager.on.mock.calls.find(
+          (call: Parameters<typeof freshTerminalManager.on>) =>
+            call[0] === 'terminalCreated'
+        )
+        const eventHandler = terminalCreatedCall[1]
+
+        const mockTerminal = {
+          id: 'terminal-1',
+          name: 'Test Terminal',
+          pid: 1234,
+        }
+
+        // Should not throw when WebContents is null
+        expect(() => eventHandler(mockTerminal)).not.toThrow()
+      })
+
+      /**
+       * Tests event handling when WebContents is not set for exit events.
+       *
+       * @returns void
+       * Should not crash when no WebContents is available
+       *
+       * @public
+       */
+      it('should handle terminalExit events without WebContents', () => {
+        // Clear all previous mocks
+        vi.clearAllMocks()
+
+        // Create fresh mocks
+        const freshIpcMain = {
+          handle: vi.fn(),
+          on: vi.fn(),
+          removeAllListeners: vi.fn(),
+        }
+
+        const freshTerminalManager = {
+          createTerminal: vi.fn(),
+          sendData: vi.fn(),
+          resizeTerminal: vi.fn(),
+          closeTerminal: vi.fn(),
+          getAllTerminals: vi.fn(() => []),
+          cleanup: vi.fn(),
+          on: vi.fn(),
+        }
+
+        vi.mocked(TerminalManager).mockImplementation(
+          () => freshTerminalManager as unknown as TerminalManager
+        )
+
+        // Create new bridge without setting WebContents to trigger event handlers
+        void new IPCBridge(freshIpcMain as IpcMain)
+
+        const terminalExitCall = freshTerminalManager.on.mock.calls.find(
+          (call: Parameters<typeof freshTerminalManager.on>) =>
+            call[0] === 'terminalExit'
+        )
+        const eventHandler = terminalExitCall[1]
+
+        const exitEvent = {
+          id: 'terminal-1',
+          data: { exitCode: 0 },
+        }
+
+        // Should not throw when WebContents is null
+        expect(() => eventHandler(exitEvent)).not.toThrow()
+      })
+
+      /**
+       * Tests event handling when WebContents is not set for error events.
+       *
+       * @returns void
+       * Should not crash when no WebContents is available
+       *
+       * @public
+       */
+      it('should handle terminalError events without WebContents', () => {
+        // Clear all previous mocks
+        vi.clearAllMocks()
+
+        // Create fresh mocks
+        const freshIpcMain = {
+          handle: vi.fn(),
+          on: vi.fn(),
+          removeAllListeners: vi.fn(),
+        }
+
+        const freshTerminalManager = {
+          createTerminal: vi.fn(),
+          sendData: vi.fn(),
+          resizeTerminal: vi.fn(),
+          closeTerminal: vi.fn(),
+          getAllTerminals: vi.fn(() => []),
+          cleanup: vi.fn(),
+          on: vi.fn(),
+        }
+
+        vi.mocked(TerminalManager).mockImplementation(
+          () => freshTerminalManager as unknown as TerminalManager
+        )
+
+        // Create new bridge without setting WebContents to trigger event handlers
+        void new IPCBridge(freshIpcMain as IpcMain)
+
+        const terminalErrorCall = freshTerminalManager.on.mock.calls.find(
+          (call: Parameters<typeof freshTerminalManager.on>) =>
+            call[0] === 'terminalError'
+        )
+        const eventHandler = terminalErrorCall[1]
+
+        const errorEvent = {
+          id: 'terminal-1',
+          data: { error: 'Terminal connection failed' },
+        }
+
+        // Should not throw when WebContents is null
+        expect(() => eventHandler(errorEvent)).not.toThrow()
+      })
     })
 
     /**
@@ -559,6 +830,36 @@ describe('IPCBridge', () => {
         id: 'terminal-1',
         name: 'Test Terminal',
         pid: 1234,
+      })
+    })
+
+    /**
+     * Tests terminal created event forwarding when terminal has no pid.
+     *
+     * @returns void
+     * Should forward terminalCreated events with pid defaulted to 0
+     *
+     * @public
+     */
+    it('should handle terminal created events with no pid', () => {
+      const terminalCreatedCall = mockTerminalManager.on.mock.calls.find(
+        (call: Parameters<typeof mockTerminalManager.on>) =>
+          call[0] === 'terminalCreated'
+      )
+      const eventHandler = terminalCreatedCall[1]
+
+      const mockTerminal = {
+        id: 'terminal-1',
+        name: 'Test Terminal',
+        // No pid property
+      }
+
+      eventHandler(mockTerminal)
+
+      expect(mockWebContents.send).toHaveBeenCalledWith('terminal-created', {
+        id: 'terminal-1',
+        name: 'Test Terminal',
+        pid: 0, // Should default to 0
       })
     })
 
@@ -635,6 +936,34 @@ describe('IPCBridge', () => {
     })
 
     /**
+     * Tests terminal exit event forwarding with missing exit code.
+     *
+     * @returns void
+     * Should forward terminalExit events with default exit code when data is missing
+     *
+     * @public
+     */
+    it('should handle terminal exit events with missing data', () => {
+      const terminalExitCall = mockTerminalManager.on.mock.calls.find(
+        (call: Parameters<typeof mockTerminalManager.on>) =>
+          call[0] === 'terminalExit'
+      )
+      const eventHandler = terminalExitCall[1]
+
+      const exitEvent = {
+        id: 'terminal-1',
+        data: null, // No data
+      }
+
+      eventHandler(exitEvent)
+
+      expect(mockWebContents.send).toHaveBeenCalledWith('terminal-exit', {
+        id: 'terminal-1',
+        exitCode: 0, // Should default to 0
+      })
+    })
+
+    /**
      * Tests terminal error event forwarding to renderer.
      *
      * @returns void
@@ -667,6 +996,34 @@ describe('IPCBridge', () => {
       expect(mockWebContents.send).toHaveBeenCalledWith('terminal-error', {
         id: 'terminal-1',
         error: 'Terminal connection failed',
+      })
+    })
+
+    /**
+     * Tests terminal error event forwarding with missing error message.
+     *
+     * @returns void
+     * Should forward terminalError events with default error when data is missing
+     *
+     * @public
+     */
+    it('should handle terminal error events with missing data', () => {
+      const terminalErrorCall = mockTerminalManager.on.mock.calls.find(
+        (call: Parameters<typeof mockTerminalManager.on>) =>
+          call[0] === 'terminalError'
+      )
+      const eventHandler = terminalErrorCall[1]
+
+      const errorEvent = {
+        id: 'terminal-1',
+        data: null, // No data
+      }
+
+      eventHandler(errorEvent)
+
+      expect(mockWebContents.send).toHaveBeenCalledWith('terminal-error', {
+        id: 'terminal-1',
+        error: 'Unknown error', // Should default to 'Unknown error'
       })
     })
 

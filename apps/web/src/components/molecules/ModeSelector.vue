@@ -39,9 +39,9 @@ const emit = defineEmits<Emits>()
 const modes: Mode[] = [
   {
     key: 'generative',
-    label: 'Gen',
+    label: 'Deck',
     icon: 'Terminal',
-    description: 'AI-powered command line replacement',
+    description: 'Decklog HAT - Command center with immutable audit trail',
   },
   {
     key: 'visual',
@@ -57,7 +57,7 @@ const modes: Mode[] = [
   },
   {
     key: 'timeline',
-    label: 'Timeline',
+    label: 'Timegraph',
     icon: 'Timeline',
     description: 'Project timeline and history',
   },
@@ -99,17 +99,19 @@ const getModeClasses = (mode: ModeType) => {
   font-size: 13px;
   font-weight: 500;
   color: var(--text-secondary);
+  opacity: 0.7; /* Reduced opacity for inactive buttons */
   transition: all var(--transition-fast);
   /* Disable drag for interactive buttons */
   -webkit-app-region: no-drag;
   /* Make buttons span full height */
   height: 100%;
-  border-radius: 0;
+  border-radius: 0; /* No rounded corners */
 }
 
 .mode-button:hover {
   color: var(--text-primary);
   background-color: var(--hover-bg-light);
+  opacity: 1; /* Full opacity on hover */
 }
 
 .dark .mode-button:hover {
@@ -118,7 +120,8 @@ const getModeClasses = (mode: ModeType) => {
 
 .mode-button.active {
   background-color: var(--accent-primary);
-  color: white;
+  color: var(--text-on-accent);
+  opacity: 1; /* Active button always has full opacity */
   /* Full height illuminated section effect */
   position: relative;
 }
@@ -132,14 +135,15 @@ const getModeClasses = (mode: ModeType) => {
   right: 0;
   background-color: var(--accent-primary);
   z-index: -1;
+  border-radius: 0; /* No rounded corners */
 }
 
 .mode-button.active:hover {
-  background-color: var(--accent-secondary);
+  background-color: var(--accent-primary-hover);
 }
 
 .mode-button.active:hover::before {
-  background-color: var(--accent-secondary);
+  background-color: var(--accent-primary-hover);
 }
 
 .mode-button:focus-visible {

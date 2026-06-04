@@ -26,7 +26,6 @@
 
     <div class="code-content">
       <pre class="code-pre">
-        <!-- eslint-disable-next-line vue/no-v-html -->
         <code :class="`language-${language}`" v-html="highlightedCode"></code>
       </pre>
     </div>
@@ -265,7 +264,7 @@ const copyCode = async () => {
 }
 
 .dark :deep(.comment) {
-  color: #8b949e;
+  color: var(--terminal-text);
 }
 
 .dark :deep(.tag) {

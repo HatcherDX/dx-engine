@@ -930,6 +930,248 @@ describe('VisualSidebar.vue', () => {
     })
   })
 
+  describe('📊 Coverage Edge Cases', () => {
+    it('should test optional chaining with undefined children', () => {
+      const wrapper = mount(VisualSidebar)
+      const vm = wrapper.vm as unknown as VisualSidebarComponent
+
+      // Create a component explicitly without children property
+      const componentNoChildren = {
+        id: 'no-children',
+        name: 'No Children Component',
+        type: 'button' as const,
+        depth: 1,
+        expanded: false,
+      }
+
+      // This tests the optional chaining branch where children is undefined
+      expect(() => {
+        vm.selectComponent(componentNoChildren)
+      }).not.toThrow()
+    })
+
+    it('should test optional chaining with empty children array', () => {
+      const wrapper = mount(VisualSidebar)
+      const vm = wrapper.vm as unknown as VisualSidebarComponent
+
+      // Create a component with empty children array
+      const componentEmptyChildren = {
+        id: 'empty-children',
+        name: 'Empty Children Component',
+        type: 'container' as const,
+        depth: 1,
+        expanded: false,
+        children: [],
+      }
+
+      // This tests the optional chaining branch where children exists but is empty
+      expect(() => {
+        vm.selectComponent(componentEmptyChildren)
+      }).not.toThrow()
+    })
+
+    it('should test expanded state false branch in ternary operator', async () => {
+      const wrapper = mount(VisualSidebar)
+      const vm = wrapper.vm as unknown as VisualSidebarComponent
+
+      // First, collapse ALL components in the tree
+      const collapseAll = (components: Record<string, unknown>[]) => {
+        components.forEach((comp) => {
+          comp.expanded = false
+          if (comp.children) {
+            collapseAll(comp.children as Record<string, unknown>[])
+          }
+        })
+      }
+
+      collapseAll(vm.componentTree)
+      await wrapper.vm.$nextTick()
+
+      // Now verify no icons have the expanded class
+      const expandedIcons = wrapper.findAll('.expand-icon.expanded')
+      expect(expandedIcons.length).toBe(0)
+
+      // Verify expand icons still exist
+      const expandIcons = wrapper.findAll('.expand-icon')
+      expect(expandIcons.length).toBeGreaterThan(0)
+    })
+
+    it('should test expanded state true branch in ternary operator', () => {
+      const wrapper = mount(VisualSidebar)
+      const vm = wrapper.vm as unknown as VisualSidebarComponent
+
+      // Find a component with children and ensure it IS expanded
+      const componentWithChildren = vm.componentTree.find(
+        (c: Record<string, unknown>) =>
+          c.children && (c.children as unknown[]).length > 0
+      )
+
+      if (componentWithChildren) {
+        // Ensure expanded is true
+        componentWithChildren.expanded = true
+        wrapper.vm.$forceUpdate()
+
+        // The expand icon should render with expanded=true state
+        const expandIcons = wrapper.findAll('.expand-icon.expanded')
+        expect(expandIcons.length).toBeGreaterThan(0)
+      }
+    })
+
+    it('should verify all component types are rendered with correct icons', () => {
+      const wrapper = mount(VisualSidebar)
+      const vm = wrapper.vm as unknown as VisualSidebarComponent
+
+      // Collect all component types from the tree
+      const allComponents: Record<string, unknown>[] = []
+      const flattenComponents = (components: Record<string, unknown>[]) => {
+        components.forEach((comp) => {
+          allComponents.push(comp)
+          if (comp.children) {
+            flattenComponents(comp.children as Record<string, unknown>[])
+          }
+        })
+      }
+
+      flattenComponents(vm.componentTree)
+
+      // Verify each type gets the correct icon
+      const typeIconMap = {
+        container: 'Menu',
+        text: 'Terminal',
+        button: 'Eye',
+        input: 'Code',
+        image: 'GitBranch',
+      }
+
+      allComponents.forEach((comp) => {
+        const icon = vm.getComponentIcon(comp.type as string)
+        if (comp.type in typeIconMap) {
+          expect(icon).toBe(typeIconMap[comp.type as keyof typeof typeIconMap])
+        }
+      })
+    })
+
+    it('should handle component with explicit undefined children property', () => {
+      const wrapper = mount(VisualSidebar)
+      const vm = wrapper.vm as unknown as VisualSidebarComponent
+
+      const componentExplicitUndefined = {
+        id: 'explicit-undefined',
+        name: 'Explicit Undefined',
+        type: 'text' as const,
+        depth: 0,
+        expanded: false,
+        children: undefined,
+      }
+
+      expect(() => {
+        vm.selectComponent(componentExplicitUndefined)
+      }).not.toThrow()
+
+      expect(vm.selectedComponentId).toBe('explicit-undefined')
+    })
+
+    it('should test default case in getComponentIcon with type coercion edge cases', () => {
+      const wrapper = mount(VisualSidebar)
+      const vm = wrapper.vm as unknown as VisualSidebarComponent
+
+      // Test with various edge case type values
+      expect(vm.getComponentIcon('' as unknown as string)).toBe('Menu')
+      expect(vm.getComponentIcon(' ' as unknown as string)).toBe('Menu')
+      expect(vm.getComponentIcon('CONTAINER' as unknown as string)).toBe('Menu') // Wrong case
+      expect(vm.getComponentIcon('Container' as unknown as string)).toBe('Menu') // Wrong case
+      expect(vm.getComponentIcon(0 as unknown as string)).toBe('Menu')
+      expect(vm.getComponentIcon(false as unknown as string)).toBe('Menu')
+      expect(vm.getComponentIcon(true as unknown as string)).toBe('Menu')
+      expect(vm.getComponentIcon([] as unknown as string)).toBe('Menu')
+    })
+
+    it('should test selectComponent console.log execution', () => {
+      const wrapper = mount(VisualSidebar)
+      const vm = wrapper.vm as unknown as VisualSidebarComponent
+
+      const consoleSpy = vi.spyOn(console, 'log')
+
+      const testComp = {
+        id: 'console-test',
+        name: 'Console Test Component',
+        type: 'button' as const,
+        depth: 0,
+        expanded: false,
+      }
+
+      vm.selectComponent(testComp)
+
+      // Verify console.log was called with exact parameters
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Selected component:',
+        'Console Test Component'
+      )
+    })
+
+    it('should test toggleExpanded with both true and false initial states', () => {
+      const wrapper = mount(VisualSidebar)
+      const vm = wrapper.vm as unknown as VisualSidebarComponent
+
+      // Test starting from false
+      const compFalse = {
+        id: 'toggle-false',
+        name: 'Toggle False',
+        type: 'container' as const,
+        depth: 0,
+        expanded: false,
+      }
+
+      vm.toggleExpanded(compFalse)
+      expect(compFalse.expanded).toBe(true)
+
+      // Test starting from true
+      const compTrue = {
+        id: 'toggle-true',
+        name: 'Toggle True',
+        type: 'container' as const,
+        depth: 0,
+        expanded: true,
+      }
+
+      vm.toggleExpanded(compTrue)
+      expect(compTrue.expanded).toBe(false)
+    })
+
+    it('should ensure all code paths in selectComponent are executed', () => {
+      const wrapper = mount(VisualSidebar)
+      const vm = wrapper.vm as unknown as VisualSidebarComponent
+
+      const consoleSpy = vi.spyOn(console, 'log')
+
+      // Test with component having all possible property combinations
+      const fullComponent = {
+        id: 'full-comp',
+        name: 'Full Component',
+        type: 'container' as const,
+        depth: 2,
+        expanded: true,
+        children: [
+          {
+            id: 'child',
+            name: 'Child',
+            type: 'button' as const,
+            depth: 3,
+            expanded: false,
+          },
+        ],
+      }
+
+      vm.selectComponent(fullComponent)
+
+      expect(vm.selectedComponentId).toBe('full-comp')
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Selected component:',
+        'Full Component'
+      )
+    })
+  })
+
   describe('🧪 Integration Tests', () => {
     it('should handle complete user workflow: expand, select, collapse', async () => {
       const wrapper = mount(VisualSidebar)

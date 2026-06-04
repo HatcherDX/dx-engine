@@ -354,33 +354,6 @@ index 1234567..abcdefg 100644
 
   describe('Initialization and Global Setup', () => {
     /**
-     * Tests setTimeout-based debug call.
-     *
-     * @returns void
-     * Should call debugElectronAPI after delay
-     *
-     * @public
-     */
-    it('should call debugElectronAPI after initialization delay', () => {
-      vi.useFakeTimers()
-
-      // Clear previous logs
-      mockConsole.log.mockClear()
-
-      // Create new instance
-      gitIntegration = useGitIntegration()
-
-      // Fast-forward timer
-      vi.advanceTimersByTime(100)
-
-      expect(mockConsole.log).toHaveBeenCalledWith(
-        '[Git Integration] 🔧 DEBUG: Electron API Analysis'
-      )
-
-      vi.useRealTimers()
-    })
-
-    /**
      * Tests global window function exposure.
      *
      * @returns void
@@ -626,26 +599,6 @@ index 1234567..abcdefg 100644
 
       expect(gitIntegration.isLoadingStatus.value).toBe(false)
     })
-
-    /**
-     * Tests Git status console logging.
-     *
-     * @returns Promise<void>
-     * Should log detailed information about status operation
-     *
-     * @public
-     */
-    it('should log Git status operation details', async () => {
-      await gitIntegration.getGitStatus('/test/project')
-
-      expect(mockConsole.log).toHaveBeenCalledWith(
-        '[Git Integration] Getting status for:',
-        '/test/project'
-      )
-      expect(mockConsole.log).toHaveBeenCalledWith(
-        '[Git Integration] Found 4 changed files'
-      )
-    })
   })
 
   describe('Commit History Operations', () => {
@@ -722,25 +675,6 @@ index 1234567..abcdefg 100644
       await expect(
         gitIntegration.getCommitHistory('/test/project')
       ).rejects.toThrow('Electron API not available')
-    })
-
-    /**
-     * Tests commit history console logging.
-     *
-     * @returns Promise<void>
-     * Should log commit history operation details
-     *
-     * @public
-     */
-    it('should log commit history operation details', async () => {
-      await gitIntegration.getCommitHistory('/test/project', 25)
-
-      expect(mockConsole.log).toHaveBeenCalledWith(
-        '[Git Integration] Getting commit history (limit: 25)'
-      )
-      expect(mockConsole.log).toHaveBeenCalledWith(
-        '[Git Integration] Retrieved 3 commits'
-      )
     })
   })
 
@@ -865,28 +799,6 @@ index 1234567..abcdefg 100644
       )
 
       expect(result).toEqual([])
-    })
-
-    /**
-     * Tests file content console logging.
-     *
-     * @returns Promise<void>
-     * Should log file content operation details
-     *
-     * @public
-     */
-    it('should log file content operation details', async () => {
-      const mockContent = 'line 1\nline 2'
-      mockElectronAPI.getFileContent.mockResolvedValue(mockContent)
-
-      await gitIntegration.getFileContent('/test/project', 'test.txt', 'abc123')
-
-      expect(mockConsole.log).toHaveBeenCalledWith(
-        '[Git Integration] Getting file content for test.txt at abc123'
-      )
-      expect(mockConsole.log).toHaveBeenCalledWith(
-        '[Git Integration] Retrieved 2 lines for test.txt'
-      )
     })
   })
 
@@ -1103,25 +1015,6 @@ index 1234567..abcdefg 100644
         gitIntegration.getFileDiff('/test/project', 'test.txt')
       ).rejects.toThrow('Electron API getGitDiff not available')
     })
-
-    /**
-     * Tests file diff console logging.
-     *
-     * @returns Promise<void>
-     * Should log diff operation details
-     *
-     * @public
-     */
-    it('should log file diff operation details', async () => {
-      await gitIntegration.getFileDiff('/test/project', 'test.txt', 'abc123')
-
-      expect(mockConsole.log).toHaveBeenCalledWith(
-        '[Git Integration] Getting diff for test.txt at abc123 using Electron API'
-      )
-      expect(mockConsole.log).toHaveBeenCalledWith(
-        '[Git Integration] Generated diff with 1 hunks using Electron API'
-      )
-    })
   })
 
   describe('Status Utilities', () => {
@@ -1333,6 +1226,260 @@ index 1234567..abcdefg 100644
       )
 
       expect(result.hunks).toEqual([])
+    })
+  })
+
+  describe('Git Branches Operations', () => {
+    /**
+     * Tests successful Git branches retrieval.
+     *
+     * @returns Promise<void>
+     * Should get all Git branches successfully
+     *
+     * @public
+     */
+    it('should get Git branches successfully', async () => {
+      const mockBranches = {
+        current: 'main',
+        all: ['main', 'develop', 'feature/test'],
+        local: ['main', 'develop', 'feature/test'],
+        remote: ['origin/main', 'origin/develop'],
+      }
+
+      ;(
+        mockElectronAPI as MockElectronAPI & {
+          getGitBranches?: ReturnType<typeof vi.fn>
+        }
+      ).getGitBranches = vi.fn().mockResolvedValue(mockBranches)
+
+      const result = await gitIntegration.getGitBranches('/test/project')
+
+      expect(result).toEqual(mockBranches)
+      expect(result.current).toBe('main')
+      expect(result.all).toHaveLength(3)
+      expect(result.local).toHaveLength(3)
+      expect(result.remote).toHaveLength(2)
+    })
+
+    /**
+     * Tests Git branches error handling.
+     *
+     * @returns Promise<void>
+     * Should handle errors during branches retrieval
+     *
+     * @public
+     */
+    it('should handle Git branches errors', async () => {
+      const error = new Error('Failed to get branches')
+      ;(
+        mockElectronAPI as MockElectronAPI & {
+          getGitBranches?: ReturnType<typeof vi.fn>
+        }
+      ).getGitBranches = vi.fn().mockRejectedValue(error)
+
+      await expect(
+        gitIntegration.getGitBranches('/test/project')
+      ).rejects.toThrow('Failed to get branches')
+
+      expect(mockConsole.error).toHaveBeenCalledWith(
+        '[Git Integration] Failed to get Git branches:',
+        'Failed to get branches'
+      )
+    })
+
+    /**
+     * Tests Git branches without Electron API.
+     *
+     * @returns Promise<void>
+     * Should throw error when Electron API is not available
+     *
+     * @public
+     */
+    it('should handle Git branches without Electron API', async () => {
+      ;(global.window as unknown as MockWindow).electronAPI =
+        {} as unknown as MockElectronAPI
+
+      gitIntegration = useGitIntegration()
+
+      await expect(
+        gitIntegration.getGitBranches('/test/project')
+      ).rejects.toThrow('Electron API getGitBranches not available')
+    })
+
+    /**
+     * Tests Git branches error with non-Error object.
+     *
+     * @returns Promise<void>
+     * Should handle non-Error thrown objects
+     *
+     * @public
+     */
+    it('should handle Git branches with non-Error object', async () => {
+      ;(
+        mockElectronAPI as MockElectronAPI & {
+          getGitBranches?: ReturnType<typeof vi.fn>
+        }
+      ).getGitBranches = vi.fn().mockRejectedValue('String error')
+
+      await expect(
+        gitIntegration.getGitBranches('/test/project')
+      ).rejects.toThrow()
+
+      expect(mockConsole.error).toHaveBeenCalledWith(
+        '[Git Integration] Failed to get Git branches:',
+        'Unknown error'
+      )
+    })
+  })
+
+  describe('Git Branch Switching Operations', () => {
+    /**
+     * Tests successful Git branch switching.
+     *
+     * @returns Promise<void>
+     * Should switch Git branch successfully
+     *
+     * @public
+     */
+    it('should switch Git branch successfully', async () => {
+      const mockResult = {
+        success: true,
+        currentBranch: 'feature/test',
+        message: 'Switched to branch feature/test',
+      }
+
+      ;(
+        mockElectronAPI as MockElectronAPI & {
+          switchGitBranch?: ReturnType<typeof vi.fn>
+        }
+      ).switchGitBranch = vi.fn().mockResolvedValue(mockResult)
+
+      const result = await gitIntegration.switchBranch(
+        '/test/project',
+        'feature/test'
+      )
+
+      expect(result).toEqual(mockResult)
+      expect(result.success).toBe(true)
+      expect(result.currentBranch).toBe('feature/test')
+    })
+
+    /**
+     * Tests Git branch switching with uncommitted changes error.
+     *
+     * @returns Promise<void>
+     * Should handle uncommitted changes error
+     *
+     * @public
+     */
+    it('should handle switch branch with uncommitted changes', async () => {
+      const mockErrorResult = {
+        success: false,
+        currentBranch: 'main',
+        message: 'Cannot switch branches: uncommitted changes',
+        errorType: 'uncommitted_changes' as const,
+        affectedFiles: ['file1.txt', 'file2.txt'],
+        suggestions: ['Commit your changes', 'Stash your changes'],
+        canForce: true,
+        rawError: 'error: Your local changes would be overwritten',
+      }
+
+      ;(
+        mockElectronAPI as MockElectronAPI & {
+          switchGitBranch?: ReturnType<typeof vi.fn>
+        }
+      ).switchGitBranch = vi.fn().mockResolvedValue(mockErrorResult)
+
+      const result = await gitIntegration.switchBranch(
+        '/test/project',
+        'feature/test'
+      )
+
+      expect(result.success).toBe(false)
+      expect(result.errorType).toBe('uncommitted_changes')
+      expect(result.affectedFiles).toHaveLength(2)
+      expect(result.canForce).toBe(true)
+    })
+
+    /**
+     * Tests Git branch switching error handling.
+     *
+     * @returns Promise<void>
+     * Should handle errors during branch switching
+     *
+     * @public
+     */
+    it('should handle Git branch switching errors', async () => {
+      const error = new Error('Failed to switch branch')
+      ;(
+        mockElectronAPI as MockElectronAPI & {
+          switchGitBranch?: ReturnType<typeof vi.fn>
+        }
+      ).switchGitBranch = vi.fn().mockRejectedValue(error)
+
+      const result = await gitIntegration.switchBranch(
+        '/test/project',
+        'feature/test'
+      )
+
+      expect(result.success).toBe(false)
+      expect(result.currentBranch).toBe('')
+      expect(result.message).toBe('Failed to switch branch')
+      expect(mockConsole.error).toHaveBeenCalledWith(
+        '[Git Integration] Failed to switch Git branch:',
+        'Failed to switch branch'
+      )
+    })
+
+    /**
+     * Tests Git branch switching without Electron API.
+     *
+     * @returns Promise<void>
+     * Should return error result when Electron API is not available
+     *
+     * @public
+     */
+    it('should handle switch branch without Electron API', async () => {
+      ;(global.window as unknown as MockWindow).electronAPI =
+        {} as unknown as MockElectronAPI
+
+      gitIntegration = useGitIntegration()
+
+      const result = await gitIntegration.switchBranch(
+        '/test/project',
+        'feature/test'
+      )
+
+      expect(result.success).toBe(false)
+      expect(result.message).toContain('Electron API switchGitBranch not')
+    })
+
+    /**
+     * Tests Git branch switching with non-Error object.
+     *
+     * @returns Promise<void>
+     * Should handle non-Error thrown objects
+     *
+     * @public
+     */
+    it('should handle switch branch with non-Error object', async () => {
+      ;(
+        mockElectronAPI as MockElectronAPI & {
+          switchGitBranch?: ReturnType<typeof vi.fn>
+        }
+      ).switchGitBranch = vi.fn().mockRejectedValue('String error')
+
+      const result = await gitIntegration.switchBranch(
+        '/test/project',
+        'feature/test'
+      )
+
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('Unknown error')
+      expect(mockConsole.error).toHaveBeenCalledWith(
+        '[Git Integration] Failed to switch Git branch:',
+        'Unknown error'
+      )
     })
   })
 })

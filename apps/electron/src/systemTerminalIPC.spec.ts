@@ -452,10 +452,12 @@ describe('SystemTerminalIPC', () => {
         mockReadOnlyTerminalManager.initializeSystemTerminals
       ).toHaveBeenCalled()
       expect(mockSystemLogger.info).toHaveBeenCalledWith(
-        'Initializing Hatcher workspace: Test Project'
+        'Initializing Hatcher workspace: Test Project',
+        'system'
       )
       expect(mockSystemLogger.info).toHaveBeenCalledWith(
-        'Project detected: Vue with pnpm'
+        'Project detected: Vue with pnpm',
+        'system'
       )
 
       expect(result).toEqual({
@@ -506,9 +508,8 @@ describe('SystemTerminalIPC', () => {
 
       const result = await initHandler?.({}, {})
 
-      expect(mockSystemLogger.info).toHaveBeenCalledWith(
-        'Initializing Hatcher workspace...'
-      )
+      // When no projectName is provided, no log message is emitted
+      expect(mockSystemLogger.info).not.toHaveBeenCalled()
       expect(result.success).toBe(true)
     })
 

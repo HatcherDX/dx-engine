@@ -52,22 +52,27 @@ const handleClick = () => {
   width: 28px;
   height: 28px;
   border: none;
-  border-radius: 0;
+  border-radius: 4px;
   background-color: transparent;
   color: var(--text-primary);
   cursor: pointer;
   transition: all var(--transition-fast);
   flex-shrink: 0;
+  opacity: 0.8;
   /* Disable drag for interactive button */
   -webkit-app-region: no-drag;
 }
 
 .play-button:hover {
   background-color: var(--hover-bg-light);
+  opacity: 1;
+  transform: scale(1.05);
 }
 
 .dark .play-button:hover {
   background-color: var(--hover-bg-dark);
+  opacity: 1;
+  transform: scale(1.05);
 }
 
 .play-button:active {
@@ -76,7 +81,7 @@ const handleClick = () => {
 
 .play-button:disabled {
   opacity: 0.5;
-  cursor: not-allowed;
+  cursor: default;
   transform: none;
 }
 

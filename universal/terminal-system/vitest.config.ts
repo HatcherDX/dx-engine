@@ -5,6 +5,11 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./src/test-setup.ts'],
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/demo/**', // Exclude demo directory - it has its own test suite with Vue support
+    ],
     coverage: {
       provider: 'istanbul',
       reporter: ['text', 'json', 'html'],
@@ -17,6 +22,7 @@ export default defineConfig({
       exclude: [
         'node_modules/',
         'dist/',
+        'demo/', // Exclude demo from coverage
         '**/*.d.ts',
         '**/*.config.*',
         '**/types/**',

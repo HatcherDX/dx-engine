@@ -324,7 +324,7 @@ watch(
 
 .play-button.playing {
   background: var(--accent-primary);
-  color: white;
+  color: var(--text-on-accent);
 }
 
 .speed-control {

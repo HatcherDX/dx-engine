@@ -864,4 +864,175 @@ describe('TimelineControls', () => {
       expect(timelineCommit.classes()).toContain('timeline-commit')
     })
   })
+
+  describe('🎯 Coverage: DOM Event Handlers', () => {
+    it('should trigger pausePlayback on timeline slider mousedown event', async () => {
+      wrapper = mount(TimelineControls, {
+        props: {
+          commits: mockCommits,
+          timelineState: {
+            ...mockTimelineState,
+            isPlaying: true,
+          },
+        },
+      })
+
+      const timelineSlider = wrapper.find('.timeline-slider')
+      await timelineSlider.trigger('mousedown')
+      await nextTick()
+
+      expect(wrapper.emitted('stop')).toBeTruthy()
+    })
+
+    it('should trigger resumePlayback on timeline slider mouseup event', async () => {
+      wrapper = mount(TimelineControls, {
+        props: {
+          commits: mockCommits,
+          timelineState: {
+            ...mockTimelineState,
+            isPlaying: true,
+          },
+        },
+      })
+
+      const timelineSlider = wrapper.find('.timeline-slider')
+
+      // First trigger mousedown to set wasPlayingBeforeScrub
+      await timelineSlider.trigger('mousedown')
+      await nextTick()
+
+      // Clear the stop event from mousedown
+      vi.clearAllMocks()
+
+      // Then trigger mouseup to resume playback
+      await timelineSlider.trigger('mouseup')
+      await nextTick()
+
+      expect(wrapper.emitted('play')).toBeTruthy()
+    })
+
+    it('should trigger handleScrubberChange on timeline slider input event', async () => {
+      wrapper = mount(TimelineControls, {
+        props: {
+          commits: mockCommits,
+          timelineState: mockTimelineState,
+        },
+      })
+
+      const timelineSlider = wrapper.find('.timeline-slider')
+
+      // Set value and trigger input event
+      await timelineSlider.setValue(2)
+      await timelineSlider.trigger('input')
+      await nextTick()
+
+      expect(wrapper.emitted('seek')).toBeTruthy()
+    })
+
+    it('should trigger updatePlaybackSpeed on speed slider input event', async () => {
+      wrapper = mount(TimelineControls, {
+        props: {
+          commits: mockCommits,
+          timelineState: mockTimelineState,
+        },
+      })
+
+      const speedSlider = wrapper.find('.speed-slider')
+
+      // Set value and trigger input event
+      await speedSlider.setValue(2.5)
+      await speedSlider.trigger('input')
+      await nextTick()
+
+      expect(wrapper.emitted('speedChanged')).toBeTruthy()
+    })
+
+    it('should not emit stop on mousedown when already stopped', async () => {
+      wrapper = mount(TimelineControls, {
+        props: {
+          commits: mockCommits,
+          timelineState: {
+            ...mockTimelineState,
+            isPlaying: false,
+          },
+        },
+      })
+
+      const timelineSlider = wrapper.find('.timeline-slider')
+      await timelineSlider.trigger('mousedown')
+      await nextTick()
+
+      // Should not emit stop when already stopped
+      expect(wrapper.emitted('stop')).toBeFalsy()
+    })
+
+    it('should not emit play on mouseup when was not playing before scrub', async () => {
+      wrapper = mount(TimelineControls, {
+        props: {
+          commits: mockCommits,
+          timelineState: {
+            ...mockTimelineState,
+            isPlaying: false,
+          },
+        },
+      })
+
+      const timelineSlider = wrapper.find('.timeline-slider')
+
+      // Trigger mousedown when not playing
+      await timelineSlider.trigger('mousedown')
+      await nextTick()
+
+      // Trigger mouseup
+      await timelineSlider.trigger('mouseup')
+      await nextTick()
+
+      // Should not emit play when was not playing before
+      expect(wrapper.emitted('play')).toBeFalsy()
+    })
+  })
+
+  describe('🎯 Coverage: Step Button DOM Events', () => {
+    beforeEach(() => {
+      wrapper = mount(TimelineControls, {
+        props: {
+          commits: mockCommits,
+          timelineState: mockTimelineState,
+        },
+      })
+    })
+
+    it('should trigger stepBackward when backward button is clicked via DOM', async () => {
+      const stepButtons = wrapper.findAll('.step-button')
+      const backwardButton = stepButtons[0] // First button is backward
+
+      await backwardButton.trigger('click')
+      await nextTick()
+
+      expect(wrapper.emitted('step')).toBeTruthy()
+      const emittedEvents = wrapper.emitted('step')
+      expect(emittedEvents?.[0]).toEqual(['backward'])
+    })
+
+    it('should trigger stepForward when forward button is clicked via DOM', async () => {
+      const stepButtons = wrapper.findAll('.step-button')
+      const forwardButton = stepButtons[1] // Second button is forward
+
+      await forwardButton.trigger('click')
+      await nextTick()
+
+      expect(wrapper.emitted('step')).toBeTruthy()
+      const emittedEvents = wrapper.emitted('step')
+      expect(emittedEvents?.[0]).toEqual(['forward'])
+    })
+
+    it('should trigger togglePlayback when play button is clicked via DOM', async () => {
+      const playButton = wrapper.find('.play-button')
+
+      await playButton.trigger('click')
+      await nextTick()
+
+      expect(wrapper.emitted('play')).toBeTruthy()
+    })
+  })
 })

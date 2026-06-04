@@ -9,33 +9,28 @@
 
         <!-- Welcome Text -->
         <div class="text-section">
-          <h1 class="welcome-title">Welcome to Hatcher</h1>
+          <h1 class="greeting-text">
+            <span class="greeting-hello">Hello, </span>
+            <span class="greeting-hatcher"><b>Hatcher</b></span>
+          </h1>
           <p class="welcome-subtitle">The IDE for Controlled Amplification.</p>
           <p class="welcome-description">
-            Hatcher is a new kind of IDE that gives you deterministic control
-            over AI. Instead of just describing changes in text, you'll use our
-            Visual-to-Code bridge to point, click, and transform your intent
-            into precise code, eliminating the guesswork.
+            Hatcher is built on a simple pact: to amplify your expertise, not
+            replace it. We provide powerful AI tools with deterministic control,
+            in a private, local-first environment that respects your work. This
+            is your space to eliminate guesswork and focus on solving hard
+            problems.
           </p>
         </div>
 
         <!-- Action Section -->
         <div class="action-section">
-          <CtaButton @click="handleGetStarted"> Get Started </CtaButton>
-
-          <!-- Don't show again checkbox -->
-          <div class="checkbox-section">
-            <label class="checkbox-label">
-              <input
-                v-model="dontShowAgain"
-                type="checkbox"
-                class="checkbox-input"
-              />
-              <span class="checkbox-text"
-                >Don't show this welcome tutorial again</span
-              >
-            </label>
-          </div>
+          <CtaButton
+            :class="{ 'press-active': isPressActive }"
+            @click="handleGetStarted"
+          >
+            Get Started
+          </CtaButton>
         </div>
       </div>
     </div>
@@ -43,37 +38,61 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useOnboarding } from '../../composables/useOnboarding'
 import BaseLogo from '../atoms/BaseLogo.vue'
 import CtaButton from '../atoms/CtaButton.vue'
 
-const { nextStep, setShowWelcomeTutorial } = useOnboarding()
-
-const dontShowAgain = ref(false)
+const { nextStep } = useOnboarding()
+const isPressActive = ref(false)
 
 const handleGetStarted = (): void => {
-  if (dontShowAgain.value) {
-    setShowWelcomeTutorial(false)
-  }
+  // Terminal deactivation is now handled automatically by TerminalEasterEgg
+  // when clicking any interactive element
   nextStep()
 }
+
+// Note: Keyboard handling for 'h' key is now managed by Electron main process
+// The hover effect will be triggered via IPC when terminal is activated
+
+const handleHKey = (): void => {
+  console.log(
+    '[OnboardingWelcome] Activating press effect for Get Started button'
+  )
+  isPressActive.value = true
+  setTimeout(() => {
+    isPressActive.value = false
+    console.log(
+      '[OnboardingWelcome] Removing press effect from Get Started button'
+    )
+  }, 400) // More visible press effect
+}
+
+onMounted(() => {
+  console.log('[OnboardingWelcome] Component mounted')
+  // Terminal easter egg is now handled entirely by useTerminalEasterEgg composable
+  // Listen for the custom event when 'h' is pressed in terminal
+  const handleTerminalH = () => {
+    handleHKey()
+  }
+
+  window.addEventListener('terminal-welcome-h', handleTerminalH)
+
+  // Clean up on unmount
+  onUnmounted(() => {
+    window.removeEventListener('terminal-welcome-h', handleTerminalH)
+  })
+})
 </script>
 
 <style scoped>
 .onboarding-welcome {
-  position: relative;
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
-  background: linear-gradient(
-    135deg,
-    var(--bg-primary) 0%,
-    var(--bg-secondary) 100%
-  );
-  padding: 24px;
+  padding: 48px;
 }
 
 .welcome-container {
@@ -84,32 +103,24 @@ const handleGetStarted = (): void => {
 }
 
 .welcome-content {
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border-primary);
+  background-color: transparent;
   border-radius: 16px;
   padding: 48px 40px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(8px);
-  height: 580px;
-  padding-bottom: 40px;
   display: flex;
   flex-direction: column;
   justify-content: center;
-}
-
-.dark .welcome-content {
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  gap: 32px;
 }
 
 .logo-section {
-  margin-bottom: 32px;
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
 .welcome-logo {
-  height: 80px !important;
+  height: 120px !important;
   width: auto !important;
   filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.1));
 }
@@ -119,20 +130,27 @@ const handleGetStarted = (): void => {
 }
 
 .text-section {
-  margin-bottom: 40px;
+  margin-bottom: 20px;
 }
 
-.welcome-title {
+.greeting-text {
   font-size: 32px;
-  font-weight: 700;
+  font-weight: 300;
+  margin: 0;
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+
+.greeting-hello {
   color: var(--text-primary);
-  margin-bottom: 12px;
-  letter-spacing: -0.02em;
+}
+
+.greeting-hatcher {
+  color: var(--accent-primary);
 }
 
 .welcome-subtitle {
   font-size: 20px;
-  color: var(--accent-primary);
   margin-bottom: 24px;
   font-weight: 500;
 }
@@ -141,7 +159,7 @@ const handleGetStarted = (): void => {
   font-size: 16px;
   line-height: 1.6;
   color: var(--text-secondary);
-  max-width: 480px;
+  max-width: 510px;
   margin: 0 auto;
 }
 
@@ -152,55 +170,17 @@ const handleGetStarted = (): void => {
   gap: 16px;
 }
 
-.checkbox-section {
-  margin: 20px 0;
+/* Press effect activation for CtaButton when 'h' is pressed */
+:deep(.cta-button.press-active:not(:disabled)) {
+  background: var(--accent-primary-hover) !important;
+  border-color: var(--accent-primary-hover) !important;
+  transform: scale(1.05) translateY(-2px);
+  box-shadow: 0 8px 25px rgba(223, 169, 39, 0.6);
+  transition: all 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  font-size: 14px;
-  color: var(--text-secondary);
-  user-select: none;
-}
-
-.checkbox-input {
-  width: 16px;
-  height: 16px;
-  border: 2px solid var(--border-secondary);
-  border-radius: 3px;
-  background-color: var(--bg-primary);
-  cursor: pointer;
-  position: relative;
-  margin: 0;
-  appearance: none;
-  transition: all var(--transition-fast);
-}
-
-.checkbox-input:checked {
-  background-color: var(--accent-primary);
-  border-color: var(--accent-primary);
-}
-
-.checkbox-input:checked::after {
-  content: '✓';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  color: white;
-  font-size: 10px;
-  font-weight: bold;
-}
-
-.checkbox-input:hover {
-  border-color: var(--accent-primary);
-}
-
-.checkbox-text {
-  flex: 1;
+:deep(.cta-button.press-active::before) {
+  left: 100%;
 }
 
 /* Animations */
@@ -217,10 +197,6 @@ const handleGetStarted = (): void => {
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  .onboarding-welcome {
-    padding: 16px;
-  }
-
   .welcome-content {
     padding: 32px 24px;
   }
@@ -252,7 +228,7 @@ const handleGetStarted = (): void => {
   }
 
   .welcome-logo {
-    height: 64px !important;
+    height: 96px !important;
   }
 }
 </style>

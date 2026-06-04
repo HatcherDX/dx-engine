@@ -1,0 +1,16 @@
+# Logs
+demo.log
+*.log
+
+# Node modules (if local install)
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Development
+.DS_Store
+*.pid
+*.seed
+*.pid.lock

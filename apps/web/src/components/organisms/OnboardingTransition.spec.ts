@@ -20,10 +20,9 @@ interface OnboardingTransitionInstance
   extends InstanceType<typeof OnboardingTransition> {
   isLoading: boolean
   progress: number
-  currentMessage: string
+  currentMessageIndex: number
   selectedTask: { id: string; name: string } | null
   completeTask: () => void
-  skipTask: () => void
   [key: string]: unknown
 }
 
@@ -66,6 +65,7 @@ interface TransitionTask {
 // Mock useOnboarding composable
 const mockOnboarding = {
   getSelectedTask: ref<TransitionTask | null>(null),
+  getSelectedBranch: ref<{ name: string; ref: string } | null>(null),
   completeOnboarding: vi.fn(),
 }
 
@@ -96,6 +96,7 @@ beforeEach(() => {
 
   // Reset onboarding mock state
   mockOnboarding.getSelectedTask.value = null
+  mockOnboarding.getSelectedBranch.value = null
   mockOnboarding.completeOnboarding.mockClear()
 })
 
@@ -169,19 +170,18 @@ describe('OnboardingTransition', () => {
     })
 
     /**
-     * Tests skip button presence.
+     * Tests that component auto-completes.
      *
      * @returns void
-     * Should show skip animation button
+     * Should auto-complete after showing all messages
      *
      * @public
      */
-    it('should render skip button', () => {
+    it('should render progress messages', () => {
       wrapper = mount(OnboardingTransition)
 
-      const skipButton = wrapper.find('[data-testid="base-button"]')
-      expect(skipButton.exists()).toBe(true)
-      expect(skipButton.text()).toBe('Skip animation')
+      const progressMessages = wrapper.find('.progress-messages')
+      expect(progressMessages.exists()).toBe(true)
     })
   })
 
@@ -495,79 +495,88 @@ describe('OnboardingTransition', () => {
 
   describe('User Interactions', () => {
     /**
-     * Tests skip button click functionality.
+     * Tests auto-completion functionality.
      *
      * @returns Promise<void>
-     * Should complete onboarding when skip button is clicked
+     * Should complete onboarding automatically after timeout
      *
      * @public
      */
-    it('should complete onboarding when skip button is clicked', async () => {
+    it('should complete onboarding automatically after timeout', async () => {
       wrapper = mount(OnboardingTransition)
 
-      const skipButton = wrapper.find('[data-testid="base-button"]')
-
-      // Trigger the click event and check component behavior
-      await skipButton.trigger('click')
+      // The component should auto-complete after its internal timer
+      vi.advanceTimersByTime(5000)
       await nextTick()
 
-      // The component should call completeOnboarding through the mock
-      // Note: The mock might be called through component methods
-      expect(skipButton.exists()).toBe(true)
+      // The component should exist and be valid
+      expect(wrapper.exists()).toBe(true)
     })
 
     /**
-     * Tests skip button stops animation.
+     * Tests progress animation continues automatically.
      *
      * @returns Promise<void>
-     * Should clear interval when skip button is clicked
+     * Should progress through messages automatically
      *
      * @public
      */
-    it('should stop progress animation when skip button is clicked', async () => {
+    it('should progress through messages automatically', async () => {
       wrapper = mount(OnboardingTransition)
 
       const vm = wrapper.vm as OnboardingTransitionInstance
       expect(vm.currentMessageIndex).toBe(0)
 
-      const skipButton = wrapper.find('[data-testid="base-button"]')
-      await skipButton.trigger('click')
+      // Advance time to see progress
+      vi.advanceTimersByTime(1000)
       await nextTick()
+      expect(vm.currentMessageIndex).toBe(1)
 
-      // Component should handle skip button click
-      expect(skipButton.exists()).toBe(true)
-
-      // Advance time to ensure animation is stopped
-      vi.advanceTimersByTime(2000)
+      // Advance more time
+      vi.advanceTimersByTime(1000)
       await nextTick()
+      expect(vm.currentMessageIndex).toBe(2)
 
       // Component should be in a stable state
       expect(wrapper.exists()).toBe(true)
     })
 
     /**
-     * Tests multiple skip button clicks.
+     * Tests auto-completion after all messages.
      *
      * @returns Promise<void>
-     * Should handle multiple skip clicks gracefully
+     * Should auto-complete after all messages are shown
      *
      * @public
      */
-    it('should handle multiple skip button clicks gracefully', async () => {
+    it('should auto-complete after all messages are shown', async () => {
       wrapper = mount(OnboardingTransition)
 
-      const skipButton = wrapper.find('[data-testid="base-button"]')
+      const vm = wrapper.vm as OnboardingTransitionInstance
 
-      // Click multiple times
-      await skipButton.trigger('click')
+      // Advance through all messages (4 total)
+      vi.advanceTimersByTime(1000) // First message
       await nextTick()
-      await skipButton.trigger('click')
+      expect(vm.currentMessageIndex).toBe(1)
+
+      vi.advanceTimersByTime(1000) // Second message
       await nextTick()
-      await skipButton.trigger('click')
+      expect(vm.currentMessageIndex).toBe(2)
+
+      vi.advanceTimersByTime(1000) // Third message
+      await nextTick()
+      expect(vm.currentMessageIndex).toBe(3)
+
+      // This triggers the setTimeout for auto-completion
+      vi.advanceTimersByTime(1000) // Fourth message triggers completion logic
       await nextTick()
 
-      // Component should handle multiple clicks gracefully
-      expect(skipButton.exists()).toBe(true)
+      // Advance to trigger auto-completion (1500ms timeout)
+      vi.advanceTimersByTime(1500)
+      await nextTick()
+
+      // Should have called completeOnboarding
+      expect(mockOnboarding.completeOnboarding).toHaveBeenCalled()
       expect(wrapper.exists()).toBe(true)
     })
   })
@@ -701,10 +710,9 @@ describe('OnboardingTransition', () => {
 
       wrapper = mount(OnboardingTransition)
 
-      const skipButton = wrapper.find('[data-testid="base-button"]')
-
       // Should not throw error even if completion fails
-      await expect(skipButton.trigger('click')).resolves.not.toThrow()
+      vi.advanceTimersByTime(5000)
+      expect(wrapper.exists()).toBe(true)
     })
 
     /**
@@ -848,6 +856,225 @@ describe('OnboardingTransition', () => {
       if (updatedTaskName.exists()) {
         expect(updatedTaskName.text()).toBe('Bug Fix')
       }
+    })
+  })
+
+  describe('📊 Coverage Edge Cases - 100% Target', () => {
+    /**
+     * Tests branch-only scenario (no task selected).
+     *
+     * @returns void
+     * Should display branch-specific content when only branch is selected
+     *
+     * @public
+     */
+    it('should handle branch-only scenario (no task, only branch)', () => {
+      mockOnboarding.getSelectedTask.value = null
+      mockOnboarding.getSelectedBranch.value = {
+        name: 'feature/user-auth',
+        ref: 'refs/heads/feature/user-auth',
+      }
+
+      wrapper = mount(OnboardingTransition)
+
+      // taskDisplayName should return 'development' when branch exists
+      expect(wrapper.find('.transition-subtitle').text()).toContain(
+        'development journey'
+      )
+
+      // Should show branch name in task summary
+      expect(wrapper.find('.task-summary').exists()).toBe(true)
+      expect(wrapper.find('.task-name').text()).toBe(
+        'Working on feature/user-auth'
+      )
+
+      // contextMessage for branch-only should show "continue work" message
+      expect(wrapper.find('.task-context').text()).toContain(
+        'Ready to continue work on the "feature/user-auth" branch'
+      )
+      expect(wrapper.find('.task-context').text()).toContain(
+        'existing development context'
+      )
+    })
+
+    /**
+     * Tests task + branch scenario (creating new branch for task).
+     *
+     * @returns void
+     * Should display combined task and branch content
+     *
+     * @public
+     */
+    it('should handle task + branch scenario (creating new branch)', () => {
+      mockOnboarding.getSelectedTask.value = createMockTask(
+        'create-feature',
+        'Create New Feature',
+        'Plus'
+      )
+      mockOnboarding.getSelectedBranch.value = {
+        name: 'feature/new-component',
+        ref: 'refs/heads/feature/new-component',
+      }
+
+      wrapper = mount(OnboardingTransition)
+
+      // Should show combined task and branch name
+      expect(wrapper.find('.task-name').text()).toBe(
+        'Create New Feature - feature/new-component'
+      )
+
+      // contextMessage should show "creating new branch" message
+      expect(wrapper.find('.task-context').text()).toContain(
+        'Creating the new "feature/new-component" branch'
+      )
+      expect(wrapper.find('.task-context').text()).toContain(
+        'analyzing your codebase'
+      )
+    })
+
+    /**
+     * Tests handleComplete when progressInterval is already null.
+     *
+     * @returns void
+     * Should handle null progressInterval gracefully in handleComplete
+     *
+     * @public
+     */
+    it('should handle null progressInterval in handleComplete', () => {
+      // Reset the mock to ensure no error is thrown (previous test might have set it to throw)
+      mockOnboarding.completeOnboarding.mockClear()
+      mockOnboarding.completeOnboarding.mockImplementation(() => {})
+
+      wrapper = mount(OnboardingTransition)
+
+      // Access the component instance and manually set progressInterval to null
+      const vm = wrapper.vm as OnboardingTransitionInstance & {
+        handleComplete: () => void
+        progressInterval: ReturnType<typeof setInterval> | null
+      }
+
+      // Set progressInterval to null (simulating it already being cleared)
+      vm.progressInterval = null
+
+      // Call handleComplete - should not throw
+      expect(() => vm.handleComplete()).not.toThrow()
+
+      // Should still call completeOnboarding
+      expect(mockOnboarding.completeOnboarding).toHaveBeenCalled()
+    })
+
+    /**
+     * Tests onUnmounted when progressInterval is already null.
+     *
+     * @returns void
+     * Should handle null progressInterval gracefully in onUnmounted
+     *
+     * @public
+     */
+    it('should handle null progressInterval in onUnmounted', () => {
+      wrapper = mount(OnboardingTransition)
+
+      // Access and manually clear the interval first
+      const vm = wrapper.vm as OnboardingTransitionInstance & {
+        progressInterval: ReturnType<typeof setInterval> | null
+      }
+      vm.progressInterval = null
+
+      // Unmount should not throw even with null progressInterval
+      expect(() => wrapper.unmount()).not.toThrow()
+    })
+
+    /**
+     * Tests branch scenario with GitBranch icon fallback.
+     *
+     * @returns void
+     * Should use GitBranch icon when no task is selected
+     *
+     * @public
+     */
+    it('should use GitBranch icon fallback for branch-only scenario', () => {
+      mockOnboarding.getSelectedTask.value = null
+      mockOnboarding.getSelectedBranch.value = {
+        name: 'develop',
+        ref: 'refs/heads/develop',
+      }
+
+      wrapper = mount(OnboardingTransition)
+
+      // Should use GitBranch icon when no task
+      const icon = wrapper.find('[data-testid="base-icon"]')
+      expect(icon.attributes('data-name')).toBe('GitBranch')
+    })
+
+    /**
+     * Tests fallback message when neither task nor branch selected.
+     *
+     * @returns void
+     * Should show "Setting up..." message as final fallback
+     *
+     * @public
+     */
+    it('should show fallback message when no task or branch', () => {
+      mockOnboarding.getSelectedTask.value = null
+      mockOnboarding.getSelectedBranch.value = null
+
+      wrapper = mount(OnboardingTransition)
+
+      // task-summary should not exist
+      expect(wrapper.find('.task-summary').exists()).toBe(false)
+    })
+
+    /**
+     * Tests edge case with only branch (covers all contextMessage branches).
+     *
+     * @returns void
+     * Should handle all combinations of task and branch data
+     *
+     * @public
+     */
+    it('should cover all contextMessage branch combinations', () => {
+      // Test 1: Task + Branch (creating new branch)
+      mockOnboarding.getSelectedTask.value = createMockTask(
+        'fix-bug',
+        'Fix Bug',
+        'Bug'
+      )
+      mockOnboarding.getSelectedBranch.value = {
+        name: 'bugfix/critical-error',
+        ref: 'refs/heads/bugfix/critical-error',
+      }
+
+      wrapper = mount(OnboardingTransition)
+      expect(wrapper.find('.task-context').text()).toContain(
+        'Creating the new "bugfix/critical-error" branch'
+      )
+      wrapper.unmount()
+
+      // Test 2: Branch only (continue work)
+      mockOnboarding.getSelectedTask.value = null
+      mockOnboarding.getSelectedBranch.value = {
+        name: 'main',
+        ref: 'refs/heads/main',
+      }
+
+      wrapper = mount(OnboardingTransition)
+      expect(wrapper.find('.task-context').text()).toContain(
+        'Ready to continue work on the "main" branch'
+      )
+      wrapper.unmount()
+
+      // Test 3: Task only (fallback to task-specific message)
+      mockOnboarding.getSelectedTask.value = createMockTask(
+        'create-feature',
+        'New Feature',
+        'Plus'
+      )
+      mockOnboarding.getSelectedBranch.value = null
+
+      wrapper = mount(OnboardingTransition)
+      expect(wrapper.find('.task-context').text()).toContain(
+        'build new features with AI assistance'
+      )
     })
   })
 

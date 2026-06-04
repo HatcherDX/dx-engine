@@ -37,6 +37,7 @@ import type {
   RepositoryStatus,
 } from '../types/repository'
 import type { GitGeniusConfig, ErrorCode } from '../types'
+import type { CacheConfig } from '../types/cache'
 
 /**
  * Repository instance containing engine and metadata.
@@ -172,8 +173,9 @@ export class RepositoryManager extends EventEmitter {
     }
 
     // Initialize global cache
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    this.globalCache = new CacheManager(this.config.globalCache.config as any)
+    this.globalCache = new CacheManager(
+      this.config.globalCache.config as Partial<CacheConfig> | undefined
+    )
 
     // Start cleanup timer
     this.startCleanupTimer()

@@ -1,0 +1,5 @@
+// Mock fs/promises.cjs with memfs following context7 patterns
+// eslint-disable-next-line @typescript-eslint/no-require-imports, no-undef
+const { fs } = require('memfs')
+// eslint-disable-next-line no-undef
+module.exports = fs.promises

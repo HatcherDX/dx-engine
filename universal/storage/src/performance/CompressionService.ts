@@ -391,10 +391,12 @@ export class CompressionService {
       // Try to use native Brotli if available
       const brotli = await this.tryImport('brotli')
       if (brotli?.compress) {
-        const result = brotli.compress!(data, {
-          quality: this.config.level || 6,
-          lgwin: 22,
-        })
+        // brotli.js expects (buffer, isText) not an options object
+        const result = brotli.compress!(data, false)
+        if (!result) {
+          // If compression fails, fallback to gzip
+          return await gzipAsync(data, { level: this.config.level || 6 })
+        }
         return Buffer.from(result as Buffer | Uint8Array)
       }
 
@@ -421,6 +423,10 @@ export class CompressionService {
       const brotli = await this.tryImport('brotli')
       if (brotli?.decompress) {
         const result = brotli.decompress!(data)
+        if (!result) {
+          // If decompression fails, fallback to gunzip
+          return await gunzipAsync(data)
+        }
         return Buffer.from(result as Buffer | Uint8Array)
       }
 

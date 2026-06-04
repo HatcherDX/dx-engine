@@ -13,6 +13,44 @@
       </button>
     </div>
 
+    <!-- Master checkbox for all files - Fixed header -->
+    <div
+      v-if="activeTab === 'changes' && changedFiles.length > 0"
+      class="master-checkbox-container"
+    >
+      <div class="master-checkbox-wrapper" @click="toggleAllFiles">
+        <div class="master-checkbox" :class="masterCheckboxClass">
+          <svg
+            v-if="masterCheckboxState === 'checked'"
+            width="10"
+            height="8"
+            viewBox="0 0 10 8"
+          >
+            <path
+              d="M1 4L3.5 6.5L9 1"
+              stroke="currentColor"
+              stroke-width="1.5"
+              fill="none"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          <svg
+            v-else-if="masterCheckboxState === 'indeterminate'"
+            width="8"
+            height="2"
+            viewBox="0 0 8 2"
+          >
+            <rect width="8" height="2" fill="currentColor" rx="0.5" />
+          </svg>
+        </div>
+        <span class="master-checkbox-label">
+          {{ changedFiles.length }} changed
+          {{ changedFiles.length === 1 ? 'file' : 'files' }}
+        </span>
+      </div>
+    </div>
+
     <!-- Changes Tab Content -->
     <div v-if="activeTab === 'changes'" class="tab-content changes-content">
       <div ref="changesListRef" class="changes-list">
@@ -20,14 +58,20 @@
           v-for="file in changedFiles"
           :key="file.path"
           class="file-change-row"
+          :class="{
+            'file-selected':
+              globalSelectedFile === file.path &&
+              selectedFileContext === 'changes',
+          }"
           @click="selectFile(file.path)"
         >
           <input
             :id="`file-${file.path}`"
-            v-model="file.staged"
+            :checked="file.staged"
             type="checkbox"
             class="file-checkbox"
             @click.stop="handleCheckboxClick"
+            @change="toggleFileStaging(file.path)"
           />
           <span ref="filePathRef" class="file-path" :title="file.path">
             {{ getTruncatedPath(file.path) }}
@@ -139,11 +183,15 @@ const containerWidth = ref(200) // Default fallback width
 const changesListRef = ref<HTMLElement>()
 
 // Timeline events for communication with GitTimelineView
-const { selectFile: selectFileGlobal, selectCommit: selectCommitGlobal } =
-  useTimelineEvents()
+const {
+  selectFile: selectFileGlobal,
+  selectCommit: selectCommitGlobal,
+  selectedFile: globalSelectedFile,
+  selectedFileContext,
+} = useTimelineEvents()
 
 // Project context for real file system access
-const { isProjectLoaded, projectRoot, projectName } = useProjectContext()
+const { isProjectLoaded, projectRoot } = useProjectContext()
 
 // Define GitFileStatus type locally
 interface GitFileStatus {
@@ -156,6 +204,7 @@ interface GitFileStatus {
 
 // Pure Electron Git status - all files directly from simple-git
 const gitFiles = ref<GitFileStatus[]>([])
+const currentBranch = ref<string>('main')
 
 const isGitRepository = ref(false)
 
@@ -166,33 +215,13 @@ const isGitRepository = ref(false)
  * @private
  */
 const loadGitStatus = async () => {
-  console.log('[TimelineSidebar] 🔍 loadGitStatus called')
-  console.log('[TimelineSidebar] 🔍 Current state:', {
-    projectRoot: projectRoot.value,
-    isProjectLoaded: isProjectLoaded.value,
-    electronAPIExists: !!window.electronAPI,
-    getGitStatusExists: !!(
-      window.electronAPI && window.electronAPI.getGitStatus
-    ),
-  })
-
   if (!projectRoot.value || !isProjectLoaded.value) {
-    console.log('[TimelineSidebar] ❌ No project root or project not loaded')
-    console.log('[TimelineSidebar] 📊 Details:', {
-      projectRootValue: projectRoot.value,
-      isProjectLoadedValue: isProjectLoaded.value,
-    })
     gitFiles.value = []
     isGitRepository.value = false
     return
   }
 
   try {
-    console.log(
-      `[TimelineSidebar] 🚀 Loading Git status via Electron API for: ${projectRoot.value}`
-    )
-
-    // Verificar que window.electronAPI existe
     if (!window.electronAPI) {
       console.error('[TimelineSidebar] ❌ window.electronAPI is not defined!')
       gitFiles.value = []
@@ -200,25 +229,16 @@ const loadGitStatus = async () => {
       return
     }
 
-    // Verificar que getGitStatus existe
     if (!window.electronAPI.getGitStatus) {
       console.error(
         '[TimelineSidebar] ❌ window.electronAPI.getGitStatus is not defined!'
-      )
-      console.log(
-        '[TimelineSidebar] 📊 Available APIs:',
-        Object.keys(window.electronAPI)
       )
       gitFiles.value = []
       isGitRepository.value = false
       return
     }
 
-    console.log(
-      '[TimelineSidebar] 📡 Calling window.electronAPI.getGitStatus...'
-    )
     const result = await window.electronAPI.getGitStatus(projectRoot.value)
-    console.log('[TimelineSidebar] 📡 IPC call completed, result:', result)
 
     if (!result) {
       console.error('[TimelineSidebar] ❌ Git status result is null/undefined')
@@ -227,31 +247,11 @@ const loadGitStatus = async () => {
       return
     }
 
-    console.log(
-      `[TimelineSidebar] ✅ Got ${result.totalFiles} files from Electron:`,
-      result.files.map((f: GitFileStatus) => f.path)
-    )
-
     gitFiles.value = result.files
     isGitRepository.value = result.isRepository
-
-    console.log(
-      `[TimelineSidebar] 📊 Status breakdown:`,
-      gitFiles.value.reduce(
-        (acc: Record<string, number>, f) => {
-          acc[f.simplifiedStatus] = (acc[f.simplifiedStatus] || 0) + 1
-          return acc
-        },
-        {} as Record<string, number>
-      )
-    )
+    currentBranch.value = result.currentBranch || 'main'
   } catch (error) {
     console.error('[TimelineSidebar] ❌ Failed to load Git status:', error)
-    console.error('[TimelineSidebar] ❌ Error details:', {
-      message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
-      projectRoot: projectRoot.value,
-    })
     gitFiles.value = []
     isGitRepository.value = false
   }
@@ -290,27 +290,8 @@ onMounted(() => {
   }
 
   // Load initial Git data if project is already loaded
-  console.log(
-    '[TimelineSidebar] 🔧 onMounted - project loaded?',
-    isProjectLoaded.value,
-    'project root:',
-    projectRoot.value
-  )
-  console.log('[TimelineSidebar] 🔧 onMounted - useProjectContext state:', {
-    isProjectLoaded: isProjectLoaded.value,
-    projectRoot: projectRoot.value,
-    projectName: projectName.value,
-  })
-
   if (isProjectLoaded.value) {
-    console.log(
-      '[TimelineSidebar] 🔧 onMounted - calling loadGitStatus immediately'
-    )
     loadGitStatus()
-  } else {
-    console.log(
-      '[TimelineSidebar] 🔧 onMounted - no project loaded yet, waiting for watch trigger'
-    )
   }
 })
 
@@ -324,21 +305,11 @@ onUnmounted(() => {
 
 // Pure Electron Git status integration
 const changedFiles = computed(() => {
-  console.log('[TimelineSidebar] Computing changedFiles:', {
-    isProjectLoaded: isProjectLoaded.value,
-    isGitRepository: isGitRepository.value,
-    gitFilesLength: gitFiles.value.length,
-  })
-
   if (!isProjectLoaded.value || !isGitRepository.value) {
-    console.log(
-      '[TimelineSidebar] Not loaded or not git repo, returning empty array'
-    )
     return []
   }
 
   if (gitFiles.value.length === 0) {
-    console.log('[TimelineSidebar] No git files available')
     return []
   }
 
@@ -349,10 +320,6 @@ const changedFiles = computed(() => {
     staged: gitFile.isStaged,
   }))
 
-  console.log(
-    `[TimelineSidebar] 📋 UI files (${uiFiles.length}):`,
-    uiFiles.map((f) => `${f.path} [${f.status}]`)
-  )
   return uiFiles
 })
 
@@ -362,16 +329,8 @@ const commitHistory = ref<Commit[]>([])
 // Watch for project changes and load git data
 watch(
   () => isProjectLoaded.value,
-  async (loaded, oldLoaded) => {
-    console.log('[TimelineSidebar] 👀 isProjectLoaded watch triggered:', {
-      loaded,
-      oldLoaded,
-      projectRoot: projectRoot.value,
-    })
+  async (loaded) => {
     if (loaded) {
-      console.log(
-        '[TimelineSidebar] 👀 Project loaded, loading Git data via pure Electron'
-      )
       await loadGitStatus()
     }
   }
@@ -380,34 +339,28 @@ watch(
 // Also watch for project root changes
 watch(
   () => projectRoot.value,
-  async (newRoot, oldRoot) => {
-    console.log('[TimelineSidebar] 👀 projectRoot watch triggered:', {
-      newRoot,
-      oldRoot,
-      isProjectLoaded: isProjectLoaded.value,
-    })
+  async (newRoot) => {
     if (newRoot && isProjectLoaded.value) {
-      console.log(
-        '[TimelineSidebar] 👀 Root changed and project loaded, calling loadGitStatus'
-      )
       await loadGitStatus()
     }
   }
 )
 
 const canCommit = computed(() => {
-  const hasStagedFiles = changedFiles.value.some((file) => file.staged)
+  const hasStagedFiles = gitFiles.value.some((file) => file.isStaged)
   const hasTitle = commitTitle.value.trim().length > 0
   return hasStagedFiles && hasTitle
 })
 
 const commitButtonText = computed(() => {
-  const stagedCount = changedFiles.value.filter((file) => file.staged).length
+  // Count staged files directly from gitFiles to ensure reactivity
+  const stagedCount = gitFiles.value.filter((file) => file.isStaged).length
+  const branch = currentBranch.value || 'main'
   if (stagedCount === 0) {
-    return 'No files staged'
+    return `Commit to ${branch}`
   }
   const fileText = stagedCount === 1 ? 'file' : 'files'
-  return `Commit ${stagedCount} ${fileText} to main`
+  return `Commit ${stagedCount} ${fileText} to ${branch}`
 })
 
 const switchTab = (tabId: 'changes' | 'history') => {
@@ -455,19 +408,49 @@ const getStatusClass = (status: FileChange['status']) => {
 }
 
 const handleCheckboxClick = () => {
-  // El v-model ya maneja el cambio del estado del checkbox
   // Solo necesitamos prevenir el event bubbling, que ya hace @click.stop
 }
 
+const toggleFileStaging = (filePath: string) => {
+  // Find the file in gitFiles and toggle its staged status
+  const file = gitFiles.value.find((f) => f.path === filePath)
+  if (file) {
+    file.isStaged = !file.isStaged
+  }
+}
+
+// Master checkbox state management
+const masterCheckboxState = computed(() => {
+  const totalFiles = gitFiles.value.length
+  const stagedFiles = gitFiles.value.filter((f) => f.isStaged).length
+
+  if (stagedFiles === 0) return 'unchecked'
+  if (stagedFiles === totalFiles) return 'checked'
+  return 'indeterminate'
+})
+
+const masterCheckboxClass = computed(() => {
+  return {
+    checked: masterCheckboxState.value === 'checked',
+    indeterminate: masterCheckboxState.value === 'indeterminate',
+    unchecked: masterCheckboxState.value === 'unchecked',
+  }
+})
+
+const toggleAllFiles = () => {
+  const allStaged = gitFiles.value.every((f) => f.isStaged)
+  gitFiles.value.forEach((file) => {
+    file.isStaged = !allStaged
+  })
+}
+
 const selectFile = (filePath: string) => {
-  console.log('Selected file:', filePath, 'in tab:', activeTab.value)
   // Use context based on active tab
   const context = activeTab.value === 'changes' ? 'changes' : 'history'
   selectFileGlobal(filePath, context)
 }
 
 const selectCommit = (commitId: string) => {
-  console.log('Selected commit:', commitId)
   // Find commit index by ID
   const commitIndex = commitHistory.value.findIndex((c) => c.id === commitId)
   if (commitIndex !== -1) {
@@ -477,11 +460,6 @@ const selectCommit = (commitId: string) => {
 
 const performCommit = () => {
   if (canCommit.value) {
-    const stagedFiles = changedFiles.value.filter((file) => file.staged)
-    console.log('Committing files:', stagedFiles)
-    console.log('Commit title:', commitTitle.value)
-    console.log('Commit message:', commitMessage.value)
-
     // Reset form
     commitTitle.value = ''
     commitMessage.value = ''
@@ -553,6 +531,63 @@ const formatDate = (date: Date) => {
   padding: 8px 0;
 }
 
+.changes-content {
+  padding-top: 0; /* Remove top padding since master checkbox provides spacing */
+}
+
+/* Master Checkbox */
+.master-checkbox-container {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border-sidebar);
+  background: var(--bg-sidebar);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.master-checkbox-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-app-region: no-drag;
+}
+
+.master-checkbox {
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--border-primary);
+  border-radius: 3px;
+  background: var(--bg-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+  color: var(--text-primary);
+}
+
+.master-checkbox.checked {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: var(--text-on-accent);
+}
+
+.master-checkbox.indeterminate {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: var(--text-on-accent);
+}
+
+.master-checkbox-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
 /* Changes Tab */
 .changes-list {
   display: flex;
@@ -563,23 +598,30 @@ const formatDate = (date: Date) => {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 16px;
+  padding: 8px 16px;
   cursor: pointer;
   transition: background-color var(--transition-fast);
   -webkit-app-region: no-drag;
+  min-height: 28px;
 }
 
 .file-change-row:hover {
   background-color: var(--bg-tertiary);
 }
 
+.file-change-row.file-selected {
+  background-color: var(--accent-primary-bg);
+  border-left: 2px solid var(--accent-primary);
+  padding-left: 14px; /* Compensate for border */
+}
+
 .file-checkbox {
-  width: 16px;
-  height: 16px;
-  min-width: 16px;
-  min-height: 16px;
-  max-width: 16px;
-  max-height: 16px;
+  width: 14px;
+  height: 14px;
+  min-width: 14px;
+  min-height: 14px;
+  max-width: 14px;
+  max-height: 14px;
   accent-color: var(--accent-primary);
   cursor: pointer;
   flex-shrink: 0;
@@ -632,11 +674,21 @@ const formatDate = (date: Date) => {
 }
 
 .file-path {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-primary);
   cursor: pointer;
   flex: 1;
-  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  font-weight: 400;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* History Tab */
@@ -699,62 +751,91 @@ const formatDate = (date: Date) => {
   font-weight: 400;
 }
 
-/* Commit Section */
+/* Commit Section - Footer Style */
 .commit-section {
   border-top: 1px solid var(--border-sidebar);
-  padding: 16px;
-  background: var(--bg-secondary);
+  padding: 6px 16px;
+  background: var(--bg-sidebar);
+  min-height: fit-content;
+  position: relative;
+}
+
+.commit-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.02) 0%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  pointer-events: none;
+}
+
+.dark .commit-section::before {
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.03) 0%,
+    rgba(255, 255, 255, 0) 100%
+  );
 }
 
 .commit-form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
+  position: relative;
+  z-index: 1;
 }
 
 .commit-title-input {
   width: 100%;
-  padding: 8px 12px;
+  padding: 6px 10px;
   border: 1px solid var(--border-primary);
-  border-radius: 6px;
+  border-radius: 4px;
   background: var(--bg-primary);
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: 12px;
   outline: none;
   transition: border-color var(--transition-fast);
 }
 
 .commit-title-input:focus {
   border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px rgba(var(--accent-primary-rgb), 0.1);
+  box-shadow: 0 0 0 2px rgba(223, 169, 39, 0.1);
 }
 
 .commit-title-input::placeholder {
   color: var(--text-tertiary);
+  font-size: 12px;
 }
 
 .commit-message-textarea {
   width: 100%;
-  padding: 8px 12px;
+  padding: 6px 10px;
   border: 1px solid var(--border-primary);
-  border-radius: 6px;
+  border-radius: 4px;
   background: var(--bg-primary);
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: 12px;
   font-family: inherit;
   outline: none;
   resize: vertical;
-  min-height: 60px;
+  min-height: 50px;
   transition: border-color var(--transition-fast);
 }
 
 .commit-message-textarea:focus {
   border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px rgba(var(--accent-primary-rgb), 0.1);
+  box-shadow: 0 0 0 2px rgba(223, 169, 39, 0.1);
 }
 
 .commit-message-textarea::placeholder {
   color: var(--text-tertiary);
+  font-size: 12px;
 }
 
 .commit-button {
@@ -763,15 +844,26 @@ const formatDate = (date: Date) => {
   transition: all var(--transition-fast);
   position: relative;
   overflow: hidden;
-  color: white !important;
+  color: var(--text-on-accent) !important;
   background-color: var(--accent-primary) !important;
   border: 1px solid var(--accent-primary) !important;
-  padding: 4px 16px !important;
+  border-radius: 4px !important;
+  padding: 6px 14px !important;
   width: 100% !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  min-height: 28px !important;
 }
 
-.commit-button:hover {
-  background: var(--accent-secondary) !important;
+.commit-button:hover:not(:disabled) {
+  background: var(--accent-primary-hover) !important;
+  color: var(--text-on-accent) !important;
+}
+
+.commit-button:disabled {
+  background: var(--accent-primary) !important;
+  color: var(--text-on-accent) !important;
+  opacity: 0.6 !important;
 }
 
 .commit-button-active::before {

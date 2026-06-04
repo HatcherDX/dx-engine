@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Terminal System Demo - Electron Only</title>
+    <link rel="stylesheet" href="node_modules/xterm/css/xterm.css" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #1e1e1e;
+        color: #d4d4d4;
+        overflow: hidden;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .header {
+        background: #2d2d30;
+        padding: 12px 20px;
+        border-bottom: 1px solid #3e3e42;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .header h1 {
+        font-size: 18px;
+        font-weight: 500;
+        margin: 0;
+      }
+
+      .controls {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .zoom-controls {
+        display: flex;
+        gap: 5px;
+        align-items: center;
+        padding: 0 10px;
+        border-left: 1px solid #3e3e42;
+      }
+
+      .zoom-display {
+        min-width: 50px;
+        text-align: center;
+        font-size: 13px;
+        color: #4ec9b0;
+      }
+
+      .btn {
+        padding: 6px 12px;
+        background: #3c3c3c;
+        color: #cccccc;
+        border: 1px solid #464647;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 13px;
+        transition: all 0.2s;
+      }
+
+      .btn:hover:not(:disabled) {
+        background: #464647;
+        color: #ffffff;
+      }
+
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .btn-zoom {
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .btn-primary {
+        background: #0e639c;
+        border-color: #0e639c;
+        color: white;
+      }
+
+      .terminal-container {
+        flex: 1;
+        overflow: hidden;
+        position: relative;
+      }
+
+      #terminal {
+        width: 100%;
+        height: 100%;
+      }
+
+      .status-bar {
+        background: #007acc;
+        color: white;
+        padding: 6px 20px;
+        font-size: 12px;
+        display: flex;
+        gap: 20px;
+        align-items: center;
+      }
+
+      .keyboard-hint {
+        margin-left: auto;
+        opacity: 0.8;
+        font-size: 11px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>🚀 Terminal System Lab - Electron + node-pty</h1>
+      <div class="controls">
+        <button id="clear-btn" class="btn">Clear</button>
+        <button id="reset-btn" class="btn">Reset</button>
+        <div class="zoom-controls">
+          <button id="zoom-out" class="btn btn-zoom" title="Zoom Out (Ctrl+-)">
+            −
+          </button>
+          <span class="zoom-display" id="zoom-level">100%</span>
+          <button id="zoom-in" class="btn btn-zoom" title="Zoom In (Ctrl++)">
+            +
+          </button>
+          <button id="zoom-reset" class="btn" title="Reset Zoom (Ctrl+0)">
+            Reset
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="terminal-container">
+      <div id="terminal"></div>
+    </div>
+
+    <div class="status-bar">
+      <span id="backend-info">Backend: Detecting...</span>
+      <span id="terminal-size">Size: 80×24</span>
+      <span class="keyboard-hint">Zoom: Ctrl+Plus/Minus/0</span>
+    </div>
+
+    <script type="module">
+      import { Terminal } from 'xterm'
+      import { FitAddon } from 'xterm-addon-fit'
+      import { WebglAddon } from 'xterm-addon-webgl'
+      import { WebLinksAddon } from 'xterm-addon-web-links'
+
+      // Terminal instance
+      let terminal = null
+      let fitAddon = null
+      let currentZoom = 100
+      const BASE_FONT_SIZE = 14
+      const MIN_ZOOM = 50
+      const MAX_ZOOM = 200
+      const ZOOM_STEP = 10
+
+      // Initialize terminal
+      async function initTerminal() {
+        // Create terminal with base settings
+        terminal = new Terminal({
+          fontSize: BASE_FONT_SIZE,
+          fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+          theme: {
+            background: '#0a0e27',
+            foreground: '#b4b4b4',
+            cursor: '#00ff88',
+            selectionBackground: 'rgba(0, 255, 136, 0.2)',
+          },
+          cursorBlink: true,
+          scrollback: 10000,
+        })
+
+        // Add addons
+        fitAddon = new FitAddon()
+        terminal.loadAddon(fitAddon)
+        terminal.loadAddon(new WebLinksAddon())
+
+        // Try WebGL for performance
+        try {
+          const webglAddon = new WebglAddon()
+          terminal.loadAddon(webglAddon)
+          console.log('WebGL renderer loaded')
+        } catch (e) {
+          console.log('WebGL not supported, using canvas renderer')
+        }
+
+        // Mount terminal
+        const container = document.getElementById('terminal')
+        terminal.open(container)
+        fitAddon.fit()
+
+        // Get backend info
+        if (window.terminalAPI) {
+          try {
+            const capabilities = await window.terminalAPI.getCapabilities()
+            document.getElementById('backend-info').textContent =
+              `Backend: ${capabilities.backend}`
+
+            // Create backend terminal
+            const result = await window.terminalAPI.create({
+              cols: terminal.cols,
+              rows: terminal.rows,
+            })
+
+            // Setup data flow
+            terminal.onData((data) => {
+              window.terminalAPI.write(result.id, data)
+            })
+
+            window.terminalAPI.onData(({ id, data }) => {
+              if (id === result.id) {
+                console.log(
+                  '[Frontend] Writing to terminal:',
+                  data.slice(0, 50)
+                )
+                terminal.write(data)
+              }
+            })
+
+            window.terminalAPI.onExit(({ id, exitCode }) => {
+              if (id === result.id) {
+                terminal.write(`\r\n[Process exited with code ${exitCode}]\r\n`)
+              }
+            })
+
+            // Handle resize
+            terminal.onResize(({ cols, rows }) => {
+              window.terminalAPI.resize(result.id, cols, rows)
+              updateSizeDisplay(cols, rows)
+            })
+          } catch (error) {
+            console.error('Failed to initialize backend:', error)
+            terminal.writeln('Failed to connect to backend terminal')
+          }
+        } else {
+          document.getElementById('backend-info').textContent =
+            'Backend: Not available (requires Electron)'
+          terminal.writeln(
+            '⚠️  This demo requires Electron to function properly'
+          )
+          terminal.writeln('Please run: pnpm electron:dev')
+        }
+
+        // Focus terminal
+        terminal.focus()
+        updateSizeDisplay(terminal.cols, terminal.rows)
+      }
+
+      // Zoom functions
+      function zoomIn() {
+        if (currentZoom < MAX_ZOOM) {
+          currentZoom = Math.min(currentZoom + ZOOM_STEP, MAX_ZOOM)
+          applyZoom()
+        }
+      }
+
+      function zoomOut() {
+        if (currentZoom > MIN_ZOOM) {
+          currentZoom = Math.max(currentZoom - ZOOM_STEP, MIN_ZOOM)
+          applyZoom()
+        }
+      }
+
+      function resetZoom() {
+        currentZoom = 100
+        applyZoom()
+      }
+
+      function applyZoom() {
+        const newFontSize = Math.round(BASE_FONT_SIZE * (currentZoom / 100))
+        terminal.options.fontSize = newFontSize
+        fitAddon.fit()
+        document.getElementById('zoom-level').textContent = `${currentZoom}%`
+
+        // Update button states
+        document.getElementById('zoom-in').disabled = currentZoom >= MAX_ZOOM
+        document.getElementById('zoom-out').disabled = currentZoom <= MIN_ZOOM
+      }
+
+      function updateSizeDisplay(cols, rows) {
+        document.getElementById('terminal-size').textContent =
+          `Size: ${cols}×${rows}`
+      }
+
+      // Setup event handlers
+      document.getElementById('clear-btn').addEventListener('click', () => {
+        terminal.clear()
+      })
+
+      document.getElementById('reset-btn').addEventListener('click', () => {
+        terminal.reset()
+      })
+
+      document.getElementById('zoom-in').addEventListener('click', zoomIn)
+      document.getElementById('zoom-out').addEventListener('click', zoomOut)
+      document.getElementById('zoom-reset').addEventListener('click', resetZoom)
+
+      // Keyboard shortcuts
+      document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey || e.metaKey) {
+          if (e.key === '+' || e.key === '=') {
+            e.preventDefault()
+            zoomIn()
+          } else if (e.key === '-' || e.key === '_') {
+            e.preventDefault()
+            zoomOut()
+          } else if (e.key === '0') {
+            e.preventDefault()
+            resetZoom()
+          }
+        }
+      })
+
+      // Handle window resize
+      window.addEventListener('resize', () => {
+        if (fitAddon) {
+          fitAddon.fit()
+        }
+      })
+
+      // Initialize on load
+      initTerminal()
+    </script>
+  </body>
+</html>

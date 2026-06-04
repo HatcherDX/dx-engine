@@ -297,11 +297,10 @@ export class EncryptionService implements IEncryptionService {
   /**
    * Rotate encryption keys (re-encrypt all data with new key)
    *
-   * @param newPassphrase - New passphrase for key derivation
+   * @param _ - New passphrase for key derivation
    * @returns Promise that resolves when rotation completes
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async rotateKeys(_newPassphrase: string): Promise<void> {
+  async rotateKeys(_: string): Promise<void> {
     // This would need to be implemented with the storage adapter
     // to re-encrypt all existing data
     throw new EncryptionError(

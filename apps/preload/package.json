@@ -20,6 +20,11 @@
       "development": "./src/ipcMain.ts",
       "default": "./dist/ipcMain.cjs"
     },
+    "./storage": {
+      "types": "./dist/storage.d.ts",
+      "development": "./src/storage.ts",
+      "default": "./dist/storage.cjs"
+    },
     "./dist/*": "./dist/*"
   },
   "types": "./dist/index.d.ts",

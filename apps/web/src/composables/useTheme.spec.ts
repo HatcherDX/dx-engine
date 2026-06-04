@@ -376,22 +376,230 @@ describe('useTheme', () => {
     expect(eventName).toBe('simulate-platform')
 
     // Call the callback to test platform simulation
-    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    const { useTheme: useThemeForPlatform } = await import('./useTheme')
+    const theme = useThemeForPlatform()
     callback('linux')
-    expect(consoleSpy).toHaveBeenCalledWith(
-      'Platform simulation received:',
-      'linux'
-    )
-    consoleSpy.mockRestore()
+
+    // Platform should be updated
+    expect(theme.platform.value).toBe('linux')
   })
 
   it('should return void from all methods', async () => {
+    const { useTheme: useThemeForVoid } = await import('./useTheme')
+    const theme = useThemeForVoid()
+
+    // setTheme and toggleTheme are async, so they return Promises
+    expect(theme.setTheme('dark')).toBeInstanceOf(Promise)
+    expect(theme.toggleTheme()).toBeInstanceOf(Promise)
+    // setPlatform and syncThemeWithElectron are sync, so they return undefined
+    expect(theme.setPlatform('windows')).toBeUndefined()
+    expect(theme.syncThemeWithElectron()).toBeUndefined()
+
+    // Wait for async operations to complete
+    await theme.setTheme('dark')
+    await theme.toggleTheme()
+  })
+
+  it('should load theme from storage API on initialization', async () => {
+    const mockGetIDEConfig = vi.fn().mockResolvedValue({
+      ui: { theme: 'dark' },
+    })
+    const mockUpdateIDEConfig = vi.fn().mockResolvedValue(undefined)
+
+    global.window = {
+      ...global.window,
+      storageAPI: {
+        getIDEConfig: mockGetIDEConfig,
+        updateIDEConfig: mockUpdateIDEConfig,
+      },
+    } as unknown as Window & typeof globalThis
+
     const { useTheme } = await import('./useTheme')
     const theme = useTheme()
 
-    expect(theme.setTheme('dark')).toBeUndefined()
-    expect(theme.toggleTheme()).toBeUndefined()
-    expect(theme.setPlatform('windows')).toBeUndefined()
-    expect(theme.syncThemeWithElectron()).toBeUndefined()
+    // Wait for onMounted to execute
+    await new Promise((resolve) => setTimeout(resolve, 10))
+
+    expect(mockGetIDEConfig).toHaveBeenCalled()
+    expect(theme.themeMode.value).toBe('dark')
+  })
+
+  it('should save theme to storage API when setTheme is called', async () => {
+    const mockGetIDEConfig = vi.fn().mockResolvedValue({
+      ui: { theme: 'auto' },
+    })
+    const mockUpdateIDEConfig = vi.fn().mockResolvedValue(undefined)
+
+    global.window = {
+      ...global.window,
+      storageAPI: {
+        getIDEConfig: mockGetIDEConfig,
+        updateIDEConfig: mockUpdateIDEConfig,
+      },
+    } as unknown as Window & typeof globalThis
+
+    const { useTheme } = await import('./useTheme')
+    const theme = useTheme()
+
+    await theme.setTheme('light')
+
+    expect(mockUpdateIDEConfig).toHaveBeenCalledWith({
+      ui: { theme: 'light' },
+    })
+  })
+
+  it('should handle storage API errors gracefully when loading', async () => {
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation()
+    const mockGetIDEConfig = vi
+      .fn()
+      .mockRejectedValue(new Error('Storage error'))
+
+    global.window = {
+      ...global.window,
+      storageAPI: {
+        getIDEConfig: mockGetIDEConfig,
+        updateIDEConfig: vi.fn(),
+      },
+    } as unknown as Window & typeof globalThis
+
+    const { useTheme } = await import('./useTheme')
+    const theme = useTheme()
+
+    // Wait for onMounted to execute
+    await new Promise((resolve) => setTimeout(resolve, 10))
+
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      '[useTheme] Failed to load theme from storage:',
+      expect.any(Error)
+    )
+    expect(theme.themeMode.value).toBe('auto')
+
+    consoleWarnSpy.mockRestore()
+  })
+
+  it('should handle storage API errors gracefully when saving', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation()
+    const mockUpdateIDEConfig = vi
+      .fn()
+      .mockRejectedValue(new Error('Save error'))
+
+    global.window = {
+      ...global.window,
+      storageAPI: {
+        getIDEConfig: vi.fn().mockResolvedValue({}),
+        updateIDEConfig: mockUpdateIDEConfig,
+      },
+    } as unknown as Window & typeof globalThis
+
+    const { useTheme } = await import('./useTheme')
+    const theme = useTheme()
+
+    await theme.setTheme('dark')
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      '[useTheme] Failed to save theme to storage:',
+      expect.any(Error)
+    )
+
+    consoleErrorSpy.mockRestore()
+  })
+
+  it('should not save to storage when storageAPI is unavailable', async () => {
+    global.window = {
+      ...global.window,
+      storageAPI: undefined,
+    } as unknown as Window & typeof globalThis
+
+    const { useTheme } = await import('./useTheme')
+    const theme = useTheme()
+
+    // Should not throw error when saving without storageAPI
+    await expect(theme.setTheme('dark')).resolves.toBeUndefined()
+  })
+
+  it('should sync theme with Electron when electronAPI.setTheme is available', async () => {
+    const mockSetTheme = vi.fn()
+    const mockGetIDEConfig = vi.fn().mockResolvedValue({
+      ui: { theme: 'light' },
+    })
+
+    global.window = {
+      ...global.window,
+      electronAPI: {
+        setTheme: mockSetTheme,
+      },
+      storageAPI: {
+        getIDEConfig: mockGetIDEConfig,
+        updateIDEConfig: vi.fn(),
+      },
+    } as unknown as Window & typeof globalThis
+
+    const { useTheme } = await import('./useTheme')
+    const theme = useTheme()
+
+    // Wait for initialization to complete
+    await new Promise((resolve) => setTimeout(resolve, 20))
+
+    // After initialization, isInitialized should be true and syncThemeWithElectron should be called
+    expect(mockSetTheme).toHaveBeenCalled()
+
+    // Clear previous calls
+    mockSetTheme.mockClear()
+
+    // Test explicit sync
+    theme.syncThemeWithElectron()
+    expect(mockSetTheme).toHaveBeenCalledWith('light')
+  })
+
+  it('should not load theme from storage when already initialized', async () => {
+    const mockGetIDEConfig = vi.fn().mockResolvedValue({
+      ui: { theme: 'dark' },
+    })
+
+    global.window = {
+      ...global.window,
+      storageAPI: {
+        getIDEConfig: mockGetIDEConfig,
+        updateIDEConfig: vi.fn(),
+      },
+    } as unknown as Window & typeof globalThis
+
+    const { useTheme } = await import('./useTheme')
+
+    // First call initializes
+    const theme1 = useTheme()
+    await new Promise((resolve) => setTimeout(resolve, 10))
+
+    expect(mockGetIDEConfig).toHaveBeenCalledTimes(1)
+
+    // Second call should not load from storage again
+    const theme2 = useTheme()
+    await new Promise((resolve) => setTimeout(resolve, 10))
+
+    // Should still be called only once
+    expect(mockGetIDEConfig).toHaveBeenCalledTimes(1)
+    expect(theme1.themeMode.value).toBe(theme2.themeMode.value)
+  })
+
+  it('should detect macOS platform from darwin user agent', async () => {
+    global.window = {
+      ...global.window,
+      navigator: {
+        userAgent:
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        platform: 'MacIntel',
+      },
+    } as unknown as Window & typeof globalThis
+    ;(
+      mockDocument.documentElement.classList.add as ReturnType<typeof vi.fn>
+    ).mockClear()
+
+    const { useTheme } = await import('./useTheme')
+    const theme = useTheme()
+
+    expect(theme.platform.value).toBe('macos')
+    expect(mockDocument.documentElement.classList.add).toHaveBeenCalledWith(
+      'platform-macos'
+    )
   })
 })

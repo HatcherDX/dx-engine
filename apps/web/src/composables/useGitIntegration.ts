@@ -170,6 +170,9 @@ export function useGitIntegration() {
    * @public
    */
   const debugElectronAPI = (): void => {
+    // Only log in development when explicitly called
+    if (!import.meta.env.DEV) return
+
     console.log('[Git Integration] 🔧 DEBUG: Electron API Analysis')
     console.log(
       '[Git Integration] 🔍 window defined:',
@@ -247,15 +250,8 @@ export function useGitIntegration() {
     }
   }
 
-  // Run debug with a small delay to ensure APIs are loaded (only in browser environment)
-  if (typeof window !== 'undefined') {
-    setTimeout(() => {
-      debugElectronAPI()
-    }, 100)
-  }
-
-  // Expose test function globally for manual testing
-  if (typeof window !== 'undefined') {
+  // Expose test function globally for manual testing (only in development)
+  if (typeof window !== 'undefined' && import.meta.env.DEV) {
     // Extend window interface for test functions
     interface TestWindow extends Window {
       __testGetGitDiff?: typeof testGetGitDiff
@@ -327,8 +323,6 @@ export function useGitIntegration() {
     lastError.value = null
 
     try {
-      console.log('[Git Integration] Getting status for:', projectPath)
-
       if (!window.electronAPI || !window.electronAPI.getGitStatus) {
         throw new Error(
           'Electron API not available - this is a desktop-only application'
@@ -361,15 +355,6 @@ export function useGitIntegration() {
       )
 
       gitStatus.value = fileStatuses
-      console.log(
-        `[Git Integration] Found ${fileStatuses.length} changed files`
-      )
-      console.log(
-        '[Git Integration] All parsed files:',
-        fileStatuses.map(
-          (f) => `${f.path} [${f.indexStatus}${f.worktreeStatus}]`
-        )
-      )
       return fileStatuses
     } catch (error) {
       const errorMessage =
@@ -379,6 +364,116 @@ export function useGitIntegration() {
       throw error
     } finally {
       isLoadingStatus.value = false
+    }
+  }
+
+  /**
+   * Gets all Git branches for the repository.
+   *
+   * @param projectPath - Path to the project
+   * @returns Promise resolving to branch information
+   *
+   * @example
+   * ```typescript
+   * const branches = await getGitBranches('/path/to/project')
+   * console.log('Current branch:', branches.current)
+   * ```
+   *
+   * @public
+   */
+  const getGitBranches = async (
+    projectPath: string
+  ): Promise<{
+    current: string
+    all: string[]
+    local: string[]
+    remote: string[]
+  }> => {
+    try {
+      if (!window.electronAPI || !window.electronAPI.getGitBranches) {
+        throw new Error(
+          'Electron API getGitBranches not available - this is a desktop-only application'
+        )
+      }
+
+      // Use Electron API to get Git branches
+      const result = await window.electronAPI.getGitBranches(projectPath)
+
+      return result
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error'
+      console.error(
+        '[Git Integration] Failed to get Git branches:',
+        errorMessage
+      )
+      throw error
+    }
+  }
+
+  /**
+   * Switches to a different Git branch in the repository.
+   *
+   * @param projectPath - Path to the project
+   * @param branchName - Name of the branch to switch to
+   * @returns Promise resolving to switch result
+   *
+   * @example
+   * ```typescript
+   * const result = await switchBranch('/path/to/project', 'feature/new-feature')
+   * if (result.success) {
+   *   console.log('Successfully switched to:', result.currentBranch)
+   * } else {
+   *   console.error('Failed to switch:', result.message)
+   * }
+   * ```
+   *
+   * @throws {@link Error} When Electron API is not available
+   *
+   * @public
+   * @since 1.0.0
+   */
+  const switchBranch = async (
+    projectPath: string,
+    branchName: string
+  ): Promise<{
+    success: boolean
+    currentBranch: string
+    message: string
+    errorType?: 'uncommitted_changes' | 'untracked_files' | 'both' | 'other'
+    affectedFiles?: string[]
+    suggestions?: string[]
+    canForce?: boolean
+    rawError?: string
+  }> => {
+    try {
+      if (!window.electronAPI || !window.electronAPI.switchGitBranch) {
+        throw new Error(
+          'Electron API switchGitBranch not available - this is a desktop-only application'
+        )
+      }
+
+      // Use Electron API to switch Git branch
+      const result = await window.electronAPI.switchGitBranch(
+        projectPath,
+        branchName
+      )
+
+      return result
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error'
+      console.error(
+        '[Git Integration] Failed to switch Git branch:',
+        errorMessage
+      )
+
+      // Return error result in expected format
+      return {
+        success: false,
+        currentBranch: '',
+        message: errorMessage,
+      }
     }
   }
 
@@ -401,8 +496,6 @@ export function useGitIntegration() {
     limit = 50
   ): Promise<GitCommitInfo[]> => {
     try {
-      console.log(`[Git Integration] Getting commit history (limit: ${limit})`)
-
       if (!window.electronAPI) {
         throw new Error(
           'Electron API not available - this is a desktop-only application'
@@ -456,7 +549,6 @@ export function useGitIntegration() {
         },
       ]
 
-      console.log(`[Git Integration] Retrieved ${mockCommits.length} commits`)
       return mockCommits.slice(0, limit)
     } catch (error) {
       const errorMessage =
@@ -490,10 +582,6 @@ export function useGitIntegration() {
     commitHash?: string | null
   ): Promise<string[]> => {
     try {
-      console.log(
-        `[Git Integration] Getting file content for ${filePath}${commitHash ? ` at ${commitHash}` : ''}`
-      )
-
       if (!window.electronAPI || !window.electronAPI.getFileContent) {
         throw new Error(
           'Electron API getFileContent not available - this is a desktop-only application'
@@ -512,9 +600,6 @@ export function useGitIntegration() {
 
       // Split content into lines for processing
       const lines = fileContent.split('\n')
-      console.log(
-        `[Git Integration] Retrieved ${lines.length} lines for ${filePath}`
-      )
 
       return lines
     } catch (error) {
@@ -545,30 +630,6 @@ export function useGitIntegration() {
     commitHash?: string | null
   ): Promise<GitDiffData> => {
     try {
-      console.log(
-        `[Git Integration] Getting diff for ${filePath}${commitHash ? ` at ${commitHash}` : ''} using Electron API`
-      )
-
-      // Debug: Log available electronAPI methods
-      console.log(
-        '[Git Integration] 🔍 window.electronAPI available:',
-        !!window.electronAPI
-      )
-      if (window.electronAPI) {
-        console.log(
-          '[Git Integration] 🔍 Available electronAPI methods:',
-          Object.keys(window.electronAPI)
-        )
-        console.log(
-          '[Git Integration] 🔍 getGitDiff method available:',
-          !!window.electronAPI.getGitDiff
-        )
-        console.log(
-          '[Git Integration] 🔍 getGitStatus method available:',
-          !!window.electronAPI.getGitStatus
-        )
-      }
-
       if (!window.electronAPI || !window.electronAPI.getGitDiff) {
         throw new Error(
           'Electron API getGitDiff not available - this is a desktop-only application'
@@ -674,9 +735,6 @@ export function useGitIntegration() {
         diffData.hunks.push(currentHunk)
       }
 
-      console.log(
-        `[Git Integration] Generated diff with ${diffData.hunks.length} hunks using Electron API`
-      )
       return diffData
     } catch (error) {
       const errorMessage =
@@ -765,6 +823,8 @@ export function useGitIntegration() {
     checkIfGitRepository,
     getGitRoot,
     getGitStatus,
+    getGitBranches,
+    switchBranch,
     getCommitHistory,
     getFileContent,
     getFileDiff,

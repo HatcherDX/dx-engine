@@ -18,6 +18,8 @@
  */
 
 import { ref, computed, readonly } from 'vue'
+import { useOnboarding } from './useOnboarding'
+
 // Browser-compatible path utilities
 const join = (...paths: string[]): string => {
   return paths.join('/').replace(/\/+/g, '/')
@@ -97,6 +99,9 @@ const lastError = ref<string | null>(null)
  * @public
  */
 export function useProjectContext() {
+  // Get onboarding context to trigger when project is invalid
+  const { triggerOnboarding } = useOnboarding()
+
   /**
    * Loads a project from the given path and scans its file structure.
    *
@@ -117,45 +122,52 @@ export function useProjectContext() {
       throw new Error('Project loading already in progress')
     }
 
+    // Early validation for empty paths - graceful handling per Electron best practices
+    if (!projectPath || projectPath.trim() === '') {
+      console.log('[Project Context] No project path provided, skipping load')
+      isLoading.value = false
+      return
+    }
+
     isLoading.value = true
     lastError.value = null
 
     try {
-      console.log('[Project Context] 🚀 Loading project:', projectPath)
-      console.log(
-        '[Project Context] 🔍 Electron API available:',
-        !!window.electronAPI
-      )
-      if (window.electronAPI) {
-        console.log(
-          '[Project Context] 📊 Available Electron APIs:',
-          Object.keys(window.electronAPI)
-        )
-      }
-
       // Use Electron API if available, otherwise assume path is valid
       let useElectronAPI = false
       if (window.electronAPI && window.electronAPI.pathExists) {
-        console.log(
-          '[Project Context] 🔍 Checking if path exists:',
-          projectPath
-        )
         try {
           const exists = await window.electronAPI.pathExists(projectPath)
-          console.log('[Project Context] 📁 Path exists:', exists)
 
           if (!exists) {
+            console.error(
+              '[Project Context] ❌ Project path does not exist:',
+              projectPath
+            )
+            // Clear the current project state
+            openedProject.value = null
+            projectFiles.value = []
+            // Trigger onboarding when project doesn't exist
+            setTimeout(() => {
+              triggerOnboarding()
+            }, 100)
             throw new Error(`Project path does not exist: ${projectPath}`)
           }
 
-          console.log(
-            '[Project Context] 🔍 Checking if path is directory:',
-            projectPath
-          )
           const isDir = await window.electronAPI.isDirectory(projectPath)
-          console.log('[Project Context] 📂 Is directory:', isDir)
 
           if (!isDir) {
+            console.error(
+              '[Project Context] ❌ Project path is not a directory:',
+              projectPath
+            )
+            // Clear the current project state
+            openedProject.value = null
+            projectFiles.value = []
+            // Trigger onboarding when project is not a directory
+            setTimeout(() => {
+              triggerOnboarding()
+            }, 100)
             throw new Error(`Project path is not a directory: ${projectPath}`)
           }
 
@@ -165,38 +177,18 @@ export function useProjectContext() {
             '[Project Context] ❌ Error calling Electron APIs:',
             error
           )
-          // If Electron APIs fail, continue with fallback mode
-          console.log(
-            '[Project Context] 🔄 Falling back to mock mode due to API error'
-          )
           useElectronAPI = false
         }
-      } else {
-        console.log(
-          '[Project Context] ⚠️ Electron API not available, assuming path is valid'
-        )
       }
 
       // Create project metadata
-      console.log('[Project Context] 🔧 Creating project metadata...')
-
       const name = basename(projectPath)
-      console.log('[Project Context] 📝 Project name:', name)
-
-      console.log('[Project Context] 🔍 Checking if Git repository...')
       const isGitRepo = await checkIsGitRepo(projectPath, useElectronAPI)
-      console.log('[Project Context] 🐙 Is Git repo:', isGitRepo)
-
-      console.log('[Project Context] 🔍 Detecting project type...')
       const projectType = await detectProjectType(projectPath, useElectronAPI)
-      console.log('[Project Context] 🏗️ Project type:', projectType)
-
-      console.log('[Project Context] 🔍 Detecting package manager...')
       const packageManager = await detectPackageManager(
         projectPath,
         useElectronAPI
       )
-      console.log('[Project Context] 📦 Package manager:', packageManager)
 
       const metadata: ProjectMetadata = {
         rootPath: projectPath,
@@ -207,8 +199,6 @@ export function useProjectContext() {
         fileCount: 0,
         lastScanned: new Date(),
       }
-
-      console.log('[Project Context] ✅ Metadata created:', metadata)
 
       // Load package.json if available
       try {
@@ -231,19 +221,34 @@ export function useProjectContext() {
       openedProject.value = metadata
       projectFiles.value = files
 
-      console.log(
-        `[Project Context] ✅ Project loaded: ${metadata.name} (${files.length} files)`
-      )
-      console.log('[Project Context] 📊 Project metadata:', metadata)
-      console.log(
-        '[Project Context] 📊 First 5 files:',
-        files.slice(0, 5).map((f) => f.path)
-      )
+      // CRITICAL: Persist project to workspace for session restore
+      if (window.storageAPI && window.storageAPI.setWorkspace) {
+        try {
+          await window.storageAPI.setWorkspace({
+            project: {
+              path: projectPath,
+              name,
+              lastOpened: new Date(),
+              metadata: {},
+            },
+            activeTasks: [],
+            taskHistory: [],
+            currentTaskId: null,
+          })
+          console.log(
+            '[Project Context] ✅ Project persisted to workspace:',
+            projectPath
+          )
+        } catch (error) {
+          console.warn(
+            '[Project Context] ⚠️ Failed to persist workspace:',
+            error
+          )
+        }
+      }
 
       // Initialize system terminals and logging
       await initializeSystemTerminals(metadata)
-
-      console.log('[Project Context] 🎯 Project loading completed successfully')
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error'
@@ -272,14 +277,11 @@ export function useProjectContext() {
       throw new Error('No project is currently opened')
     }
 
-    console.log('[Project Context] Refreshing project files...')
     const files = await scanProjectFiles(openedProject.value.rootPath)
 
     projectFiles.value = files
     openedProject.value.fileCount = files.length
     openedProject.value.lastScanned = new Date()
-
-    console.log(`[Project Context] Files refreshed: ${files.length} files`)
   }
 
   /**
@@ -337,7 +339,6 @@ export function useProjectContext() {
    * @public
    */
   const closeProject = (): void => {
-    console.log('[Project Context] Closing project')
     openedProject.value = null
     projectFiles.value = []
     lastError.value = null
@@ -692,9 +693,6 @@ async function initializeSystemTerminals(
       typeof window !== 'undefined' && window.electronAPI?.systemTerminal
 
     if (!isElectron) {
-      console.warn(
-        '[Project Context] Not in Electron environment - system terminals will use fallback mode'
-      )
       return
     }
 
@@ -741,10 +739,6 @@ async function initializeSystemTerminals(
         terminal: 'timeline',
       })
     }
-
-    console.log(
-      '[Project Context] System terminals initialized successfully via IPC'
-    )
   } catch (error) {
     console.warn(
       '[Project Context] Failed to initialize system terminals:',

@@ -27,7 +27,9 @@
  */
 
 import { EventEmitter } from 'events'
+import fs from 'fs'
 import git from 'isomorphic-git'
+import httpNode from 'isomorphic-git/http/node'
 import { CacheManager } from '../cache/CacheManager'
 import type { ErrorCode } from '../types'
 import type {
@@ -245,8 +247,7 @@ export class GitEngine extends EventEmitter {
     }
 
     // Initialize filesystem (Node.js only for Electron)
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    this.fs = require('fs')
+    this.fs = fs
 
     // Initialize cache
     this.cache = cacheManager ?? new CacheManager()
@@ -931,8 +932,7 @@ export class GitEngine extends EventEmitter {
     // Configure isomorphic-git for Node.js/Electron use
     // HTTP client will be passed as parameter to git operations when needed
     this.httpConfig = {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      http: require('isomorphic-git/http/node'),
+      http: httpNode,
     }
   }
 

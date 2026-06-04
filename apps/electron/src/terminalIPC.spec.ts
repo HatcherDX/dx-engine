@@ -34,9 +34,15 @@ let mockPtyManagerInstance: {
   removeAllListeners: ReturnType<typeof vi.fn>
 }
 let mockWindow: {
+  id: number
   isDestroyed: ReturnType<typeof vi.fn>
+  isVisible: ReturnType<typeof vi.fn>
+  isFocused: ReturnType<typeof vi.fn>
   webContents: {
     send: ReturnType<typeof vi.fn>
+    isDestroyed: ReturnType<typeof vi.fn>
+    isLoading: ReturnType<typeof vi.fn>
+    isCrashed: ReturnType<typeof vi.fn>
   }
 }
 
@@ -111,6 +117,7 @@ describe('Terminal IPC System', () => {
     // Mock console methods
     console.log = vi.fn()
     console.error = vi.fn()
+    console.warn = vi.fn()
 
     // Reset all mocks
     vi.clearAllMocks()
@@ -120,9 +127,15 @@ describe('Terminal IPC System', () => {
 
     // Setup mock window for broadcasting
     mockWindow = {
+      id: 1,
+      isDestroyed: vi.fn(() => false),
+      isVisible: vi.fn(() => true),
+      isFocused: vi.fn(() => true),
       webContents: {
         send: vi.fn(),
         isDestroyed: vi.fn(() => false),
+        isLoading: vi.fn(() => false),
+        isCrashed: vi.fn(() => false),
       },
     }
     mockBrowserWindow.getAllWindows.mockReturnValue([mockWindow])
@@ -192,10 +205,10 @@ describe('Terminal IPC System', () => {
       initializeTerminalSystem()
 
       expect(console.log).toHaveBeenCalledWith(
-        '[Terminal IPC] Initializing real terminal system...'
+        '[Terminal IPC] 🚀 INITIALIZING real terminal system...'
       )
       expect(console.log).toHaveBeenCalledWith(
-        '[Terminal IPC] Real terminal system initialized successfully'
+        '[Terminal IPC] 🎉 Real terminal system initialized successfully!'
       )
 
       // Verify PTY Manager event handlers are set up
@@ -278,8 +291,35 @@ describe('Terminal IPC System', () => {
         'PTY Manager initialization failed'
       )
       expect(console.error).toHaveBeenCalledWith(
-        '[Terminal IPC] Failed to initialize terminal system:',
+        '[Terminal IPC] ❌ FAILED to initialize terminal system:',
         expect.any(Error)
+      )
+    })
+
+    it('should handle initialization errors with non-Error thrown values', async () => {
+      const { PtyManager } = await import('./ptyManager')
+      ;(
+        PtyManager as unknown as ReturnType<typeof vi.fn>
+      ).mockImplementationOnce(() => {
+        throw 'String error from PTY Manager' // Non-Error thrown value
+      })
+
+      const { initializeTerminalSystem } = await import('./terminalIPC')
+
+      expect(() => initializeTerminalSystem()).toThrow(
+        'String error from PTY Manager'
+      )
+      expect(console.error).toHaveBeenCalledWith(
+        '[Terminal IPC] ❌ FAILED to initialize terminal system:',
+        'String error from PTY Manager'
+      )
+      // Verify error details are logged with String() fallback for non-Error
+      expect(console.error).toHaveBeenCalledWith(
+        '[Terminal IPC] Error details:',
+        {
+          message: 'String error from PTY Manager',
+          stack: undefined,
+        }
       )
     })
   })
@@ -460,7 +500,7 @@ describe('Terminal IPC System', () => {
         shell: undefined,
         cwd: undefined,
         env: undefined,
-        cols: 80,
+        cols: 45,
         rows: 24,
       })
 
@@ -958,6 +998,527 @@ describe('Terminal IPC System', () => {
       expect(console.log).toHaveBeenCalledWith(
         '[Terminal IPC] Terminal system destroyed'
       )
+    })
+  })
+
+  describe('Edge Cases - Uncovered Branches', () => {
+    /**
+     * Test empty/null data validation in terminal-data handler (lines 104-109)
+     */
+    it('should skip broadcasting when terminal data is empty', async () => {
+      const { initializeTerminalSystem } = await import('./terminalIPC')
+      initializeTerminalSystem()
+
+      const dataHandler = mockPtyManagerInstance.on.mock.calls.find(
+        (call: unknown[]) => call[0] === 'terminal-data'
+      )?.[1]
+
+      // Test with empty string
+      vi.clearAllMocks()
+      dataHandler('terminal-123', '')
+
+      expect(console.warn).toHaveBeenCalledWith(
+        '[Terminal IPC] ⚠️ Empty or null data received, skipping broadcast'
+      )
+      expect(mockWindow.webContents.send).not.toHaveBeenCalled()
+
+      // Test with null
+      vi.clearAllMocks()
+      dataHandler('terminal-123', null)
+
+      expect(console.warn).toHaveBeenCalledWith(
+        '[Terminal IPC] ⚠️ Empty or null data received, skipping broadcast'
+      )
+      expect(mockWindow.webContents.send).not.toHaveBeenCalled()
+    })
+
+    /**
+     * Test invalid terminal ID validation (lines 111-114)
+     */
+    it('should skip broadcasting when terminal ID is invalid', async () => {
+      const { initializeTerminalSystem } = await import('./terminalIPC')
+      initializeTerminalSystem()
+
+      const dataHandler = mockPtyManagerInstance.on.mock.calls.find(
+        (call: unknown[]) => call[0] === 'terminal-data'
+      )?.[1]
+
+      // Test with empty terminal ID
+      vi.clearAllMocks()
+      dataHandler('', 'valid data')
+
+      expect(console.error).toHaveBeenCalledWith(
+        '[Terminal IPC] ❌ Invalid terminal ID, skipping broadcast'
+      )
+      expect(mockWindow.webContents.send).not.toHaveBeenCalled()
+
+      // Test with null terminal ID
+      vi.clearAllMocks()
+      dataHandler(null, 'valid data')
+
+      expect(console.error).toHaveBeenCalledWith(
+        '[Terminal IPC] ❌ Invalid terminal ID, skipping broadcast'
+      )
+      expect(mockWindow.webContents.send).not.toHaveBeenCalled()
+    })
+
+    /**
+     * Test window without webContents (lines 201-207)
+     */
+    it('should skip broadcasting to window without webContents', async () => {
+      // Create window without webContents
+      const windowWithoutWebContents = {
+        id: 999,
+        isDestroyed: vi.fn(() => false),
+        isVisible: vi.fn(() => true),
+        isFocused: vi.fn(() => true),
+        webContents: null,
+      }
+      mockBrowserWindow.getAllWindows.mockReturnValue([
+        windowWithoutWebContents,
+      ])
+
+      const { initializeTerminalSystem } = await import('./terminalIPC')
+      initializeTerminalSystem()
+
+      const dataHandler = mockPtyManagerInstance.on.mock.calls.find(
+        (call: unknown[]) => call[0] === 'terminal-data'
+      )?.[1]
+
+      vi.clearAllMocks()
+      dataHandler('terminal-123', 'test data')
+
+      expect(console.log).toHaveBeenCalledWith(
+        expect.stringContaining('Window 999 has no webContents, skipping')
+      )
+    })
+
+    /**
+     * Test send error with "Object has been destroyed" message (lines 261-267)
+     */
+    it('should handle "Object has been destroyed" error gracefully', async () => {
+      mockWindow.webContents.send.mockImplementation(() => {
+        throw new Error('Object has been destroyed')
+      })
+
+      const { initializeTerminalSystem } = await import('./terminalIPC')
+      initializeTerminalSystem()
+
+      const dataHandler = mockPtyManagerInstance.on.mock.calls.find(
+        (call: unknown[]) => call[0] === 'terminal-data'
+      )?.[1]
+
+      vi.clearAllMocks()
+      dataHandler('terminal-123', 'test data')
+
+      expect(console.log).toHaveBeenCalledWith(
+        expect.stringContaining(
+          'destroyed during send, this is expected behavior'
+        )
+      )
+    })
+
+    /**
+     * Test send error with unexpected error (lines 268-272)
+     */
+    it('should handle unexpected send errors', async () => {
+      mockWindow.webContents.send.mockImplementation(() => {
+        throw new Error('Unexpected send error')
+      })
+
+      const { initializeTerminalSystem } = await import('./terminalIPC')
+      initializeTerminalSystem()
+
+      const dataHandler = mockPtyManagerInstance.on.mock.calls.find(
+        (call: unknown[]) => call[0] === 'terminal-data'
+      )?.[1]
+
+      vi.clearAllMocks()
+      dataHandler('terminal-123', 'test data')
+
+      expect(console.error).toHaveBeenCalledWith(
+        expect.stringContaining('Unexpected error sending to window')
+      )
+    })
+
+    /**
+     * Test critical alert when no windows receive data successfully (lines 289-296)
+     */
+    it('should log critical alert when no windows receive data', async () => {
+      // Setup multiple windows but all fail to send
+      const failingWindow1 = {
+        id: 1,
+        isDestroyed: vi.fn(() => false),
+        isVisible: vi.fn(() => true),
+        isFocused: vi.fn(() => true),
+        webContents: {
+          send: vi.fn(() => {
+            throw new Error('Send failed')
+          }),
+          isDestroyed: vi.fn(() => false),
+          isLoading: vi.fn(() => false),
+          isCrashed: vi.fn(() => false),
+        },
+      }
+      const failingWindow2 = {
+        id: 2,
+        isDestroyed: vi.fn(() => false),
+        isVisible: vi.fn(() => true),
+        isFocused: vi.fn(() => true),
+        webContents: {
+          send: vi.fn(() => {
+            throw new Error('Send failed')
+          }),
+          isDestroyed: vi.fn(() => false),
+          isLoading: vi.fn(() => false),
+          isCrashed: vi.fn(() => false),
+        },
+      }
+      mockBrowserWindow.getAllWindows.mockReturnValue([
+        failingWindow1,
+        failingWindow2,
+      ])
+
+      const { initializeTerminalSystem } = await import('./terminalIPC')
+      initializeTerminalSystem()
+
+      const dataHandler = mockPtyManagerInstance.on.mock.calls.find(
+        (call: unknown[]) => call[0] === 'terminal-data'
+      )?.[1]
+
+      vi.clearAllMocks()
+      dataHandler('terminal-123', 'test data')
+
+      expect(console.error).toHaveBeenCalledWith(
+        expect.stringContaining('CRITICAL: No windows received')
+      )
+      expect(console.error).toHaveBeenCalledWith(
+        expect.stringContaining('serious data flow issue')
+      )
+    })
+
+    /**
+     * Test non-Error object in get terminal catch block (lines 449-453)
+     */
+    it('should handle non-Error objects in get terminal catch blocks', async () => {
+      const { initializeTerminalSystem } = await import('./terminalIPC')
+      initializeTerminalSystem()
+
+      mockPtyManagerInstance.listTerminals.mockRejectedValue('String error')
+
+      const getHandler = mockIpcMain.handle.mock.calls.find(
+        (call: unknown[]) => call[0] === 'terminal-get'
+      )?.[1]
+
+      const result = await getHandler(null, 'terminal-123')
+
+      expect(result).toEqual({
+        success: false,
+        error: 'Failed to get terminal',
+      })
+    })
+
+    /**
+     * Test non-Error object in performance metrics catch blocks (lines 470-474)
+     */
+    it('should handle non-Error objects in performance metrics catch blocks', async () => {
+      const { initializeTerminalSystem } = await import('./terminalIPC')
+      initializeTerminalSystem()
+
+      mockPtyManagerInstance.getPerformanceMetrics.mockImplementation(() => {
+        throw 'String error'
+      })
+
+      const metricsHandler = mockIpcMain.handle.mock.calls.find(
+        (call: unknown[]) => call[0] === 'terminal-performance-metrics'
+      )?.[1]
+
+      const result = await metricsHandler()
+
+      expect(result).toEqual({
+        success: false,
+        error: 'Failed to get performance metrics',
+      })
+    })
+
+    /**
+     * Test non-Error object in terminal-specific metrics catch blocks (lines 498-503)
+     */
+    it('should handle non-Error objects in terminal-specific metrics catch blocks', async () => {
+      const { initializeTerminalSystem } = await import('./terminalIPC')
+      initializeTerminalSystem()
+
+      mockPtyManagerInstance.getTerminalPerformanceMetrics.mockImplementation(
+        () => {
+          throw 'String error'
+        }
+      )
+
+      const terminalMetricsHandler = mockIpcMain.handle.mock.calls.find(
+        (call: unknown[]) => call[0] === 'terminal-performance-metrics-terminal'
+      )?.[1]
+
+      const result = await terminalMetricsHandler(null, 'terminal-123', 10)
+
+      expect(result).toEqual({
+        success: false,
+        error: 'Failed to get terminal performance metrics',
+      })
+    })
+
+    /**
+     * Test non-Error object in terminal alerts catch blocks (lines 526-530)
+     */
+    it('should handle non-Error objects in terminal alerts catch blocks', async () => {
+      const { initializeTerminalSystem } = await import('./terminalIPC')
+      initializeTerminalSystem()
+
+      mockPtyManagerInstance.getTerminalAlerts.mockImplementation(() => {
+        throw 'String error'
+      })
+
+      const alertsHandler = mockIpcMain.handle.mock.calls.find(
+        (call: unknown[]) => call[0] === 'terminal-performance-alerts'
+      )?.[1]
+
+      const result = await alertsHandler(null, 'terminal-123', 5)
+
+      expect(result).toEqual({
+        success: false,
+        error: 'Failed to get terminal alerts',
+      })
+    })
+
+    it('should handle Error objects in terminal-alerts catch blocks', async () => {
+      const { initializeTerminalSystem } = await import('./terminalIPC')
+      initializeTerminalSystem()
+
+      mockPtyManagerInstance.getTerminalAlerts.mockImplementation(() => {
+        throw new Error('Alert retrieval failed')
+      })
+
+      const alertsHandler = mockIpcMain.handle.mock.calls.find(
+        (call: unknown[]) => call[0] === 'terminal-performance-alerts'
+      )?.[1]
+
+      const result = await alertsHandler(null, 'terminal-123', 5)
+
+      expect(result).toEqual({
+        success: false,
+        error: 'Alert retrieval failed',
+      })
+    })
+
+    /**
+     * Test non-Error object in close terminal catch blocks (lines 404-406)
+     */
+    it('should handle non-Error objects in close terminal catch blocks', async () => {
+      const { initializeTerminalSystem } = await import('./terminalIPC')
+      initializeTerminalSystem()
+
+      mockPtyManagerInstance.killTerminal.mockImplementation(() => {
+        throw 'String error'
+      })
+
+      const closeHandler = mockIpcMain.handle.mock.calls.find(
+        (call: unknown[]) => call[0] === 'terminal-close'
+      )?.[1]
+
+      const result = await closeHandler(null, 'terminal-123')
+
+      expect(result).toEqual({
+        success: false,
+        error: 'Failed to close terminal',
+      })
+    })
+
+    /**
+     * Test PTY Manager not initialized scenarios for all handlers
+     */
+    it('should handle create terminal when PTY Manager not initialized', async () => {
+      // Import without initializing
+      await import('./terminalIPC')
+
+      const createHandler = mockIpcMain.handle.mock.calls.find(
+        (call: unknown[]) => call[0] === 'terminal-create'
+      )?.[1]
+
+      if (createHandler) {
+        const result = await createHandler(null, {})
+
+        expect(result).toEqual({
+          success: false,
+          error: 'PTY Manager not initialized',
+        })
+      }
+    })
+
+    it('should handle close terminal when PTY Manager not initialized', async () => {
+      // Import without initializing
+      await import('./terminalIPC')
+
+      const closeHandler = mockIpcMain.handle.mock.calls.find(
+        (call: unknown[]) => call[0] === 'terminal-close'
+      )?.[1]
+
+      if (closeHandler) {
+        const result = await closeHandler(null, 'terminal-123')
+
+        expect(result).toEqual({
+          success: false,
+          error: 'PTY Manager not initialized',
+        })
+      }
+    })
+
+    it('should handle performance metrics when PTY Manager not initialized', async () => {
+      // Import without initializing
+      await import('./terminalIPC')
+
+      const metricsHandler = mockIpcMain.handle.mock.calls.find(
+        (call: unknown[]) => call[0] === 'terminal-performance-metrics'
+      )?.[1]
+
+      if (metricsHandler) {
+        const result = await metricsHandler()
+
+        expect(result).toEqual({
+          success: false,
+          error: 'PTY Manager not initialized',
+        })
+      }
+    })
+
+    it('should handle terminal-specific metrics when PTY Manager not initialized', async () => {
+      // Import without initializing
+      await import('./terminalIPC')
+
+      const terminalMetricsHandler = mockIpcMain.handle.mock.calls.find(
+        (call: unknown[]) => call[0] === 'terminal-performance-metrics-terminal'
+      )?.[1]
+
+      if (terminalMetricsHandler) {
+        const result = await terminalMetricsHandler(null, 'terminal-123', 10)
+
+        expect(result).toEqual({
+          success: false,
+          error: 'PTY Manager not initialized',
+        })
+      }
+    })
+
+    it('should handle terminal alerts when PTY Manager not initialized', async () => {
+      // Import without initializing
+      await import('./terminalIPC')
+
+      const alertsHandler = mockIpcMain.handle.mock.calls.find(
+        (call: unknown[]) => call[0] === 'terminal-performance-alerts'
+      )?.[1]
+
+      if (alertsHandler) {
+        const result = await alertsHandler(null, 'terminal-123', 5)
+
+        expect(result).toEqual({
+          success: false,
+          error: 'PTY Manager not initialized',
+        })
+      }
+    })
+
+    /**
+     * Test export performance data error when PTY Manager throws during export
+     * Tests lines 539-540 and 550 (Error instanceof check)
+     */
+    it('should handle export performance data errors with Error instances', async () => {
+      const { initializeTerminalSystem } = await import('./terminalIPC')
+      initializeTerminalSystem()
+
+      mockPtyManagerInstance.exportPerformanceData.mockImplementation(() => {
+        throw new Error('Export failed with actual Error')
+      })
+
+      const exportHandler = mockIpcMain.handle.mock.calls.find(
+        (call: unknown[]) => call[0] === 'terminal-performance-export'
+      )?.[1]
+
+      const result = await exportHandler()
+
+      expect(console.error).toHaveBeenCalledWith(
+        '[Terminal IPC] Failed to export performance data:',
+        expect.any(Error)
+      )
+      expect(result).toEqual({
+        success: false,
+        error: 'Export failed with actual Error',
+      })
+    })
+
+    /**
+     * Test post-send verification setTimeout callback (lines 238-242)
+     * This requires using fake timers to advance time
+     */
+    it('should verify window is still active after send operation', async () => {
+      vi.useFakeTimers()
+
+      const { initializeTerminalSystem } = await import('./terminalIPC')
+      initializeTerminalSystem()
+
+      const dataHandler = mockPtyManagerInstance.on.mock.calls.find(
+        (call: unknown[]) => call[0] === 'terminal-data'
+      )?.[1]
+
+      vi.clearAllMocks()
+      dataHandler('terminal-123', 'test data')
+
+      // Fast-forward time to trigger setTimeout callback
+      vi.advanceTimersByTime(15)
+
+      // Verify post-send verification log was called
+      expect(console.log).toHaveBeenCalledWith(
+        expect.stringContaining('POST-SEND VERIFICATION: Window')
+      )
+      expect(console.log).toHaveBeenCalledWith(
+        expect.stringContaining('still active')
+      )
+
+      vi.useRealTimers()
+    })
+
+    /**
+     * Test post-send verification when window becomes destroyed
+     * Tests the if condition at line 238
+     */
+    it('should skip post-send verification if window destroyed', async () => {
+      vi.useFakeTimers()
+
+      // Setup window that becomes destroyed during send
+      mockWindow.webContents.isDestroyed.mockReturnValue(false)
+
+      const { initializeTerminalSystem } = await import('./terminalIPC')
+      initializeTerminalSystem()
+
+      const dataHandler = mockPtyManagerInstance.on.mock.calls.find(
+        (call: unknown[]) => call[0] === 'terminal-data'
+      )?.[1]
+
+      vi.clearAllMocks()
+      dataHandler('terminal-123', 'test data')
+
+      // Simulate window destruction after send but before setTimeout
+      mockWindow.webContents.isDestroyed.mockReturnValue(true)
+
+      // Fast-forward time to trigger setTimeout callback
+      vi.advanceTimersByTime(15)
+
+      // Verify post-send verification log was NOT called (window destroyed)
+      const postSendLogs = vi
+        .mocked(console.log)
+        .mock.calls.filter((call) =>
+          call[0]?.toString().includes('POST-SEND VERIFICATION')
+        )
+      expect(postSendLogs.length).toBe(0)
+
+      vi.useRealTimers()
     })
   })
 })

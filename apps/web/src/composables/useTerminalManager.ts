@@ -83,7 +83,7 @@ import { useTerminalModeDetector } from './useTerminalModeDetector'
  *
  * @public
  */
-interface TerminalState {
+export interface TerminalState {
   /** Unique identifier for the terminal instance */
   id: string
 
@@ -270,6 +270,17 @@ export function useTerminalManager() {
   const modeDetector = useTerminalModeDetector()
 
   /**
+   * Initialize mode detection on composable creation.
+   *
+   * @remarks
+   * This ensures the mode detector properly determines whether we're running
+   * in Electron or Web mode before any terminal operations are attempted.
+   */
+  modeDetector.detectModeWithFallback().catch((error) => {
+    console.warn('[Terminal Manager] Mode detection failed:', error)
+  })
+
+  /**
    * Computed property that returns the ID of the currently active terminal.
    *
    * @remarks
@@ -359,6 +370,16 @@ export function useTerminalManager() {
       let response: TerminalCreateResponse
 
       if (modeDetector.isElectronMode.value && window.electronAPI) {
+        console.log(
+          `[TerminalManager] Creating terminal via IPC with options:`,
+          {
+            name,
+            shell: options.shell,
+            cwd: options.cwd,
+            cols: options.cols || 80,
+            rows: options.rows || 24,
+          }
+        )
         // Electron mode - use IPC
         response = (await window.electronAPI.invoke('terminal-create', {
           name,
@@ -419,6 +440,8 @@ export function useTerminalManager() {
         }
       }
 
+      console.log(`[TerminalManager] Terminal creation response:`, response)
+
       if (!response.success || !response.data) {
         throw new Error(response.error || 'Failed to create terminal')
       }
@@ -427,7 +450,7 @@ export function useTerminalManager() {
         id: response.data.id,
         name: response.data.name || name,
         isRunning: true,
-        isActive: terminals.value.length === 0, // First terminal is active
+        isActive: false, // Will be set as active after adding to list
         pid: response.data.pid,
         shell: response.data.shell,
         cwd: response.data.cwd,
@@ -438,11 +461,8 @@ export function useTerminalManager() {
       // Add to terminals list
       terminals.value.push(terminal)
 
-      // Set as active only if it's the first terminal
-      // Note: Don't auto-activate if system terminals are managing active state
-      if (terminals.value.length === 1) {
-        setActiveTerminal(terminal.id)
-      }
+      // Always set the newly created terminal as active
+      setActiveTerminal(terminal.id)
 
       return terminal
     } catch (error) {

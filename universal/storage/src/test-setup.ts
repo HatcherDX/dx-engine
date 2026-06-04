@@ -5,19 +5,31 @@
  * Global test setup including mocks, utilities, and configuration
  * for testing the storage system components.
  *
+ * CRITICAL: This file is loaded as setupFiles in vitest.config.ts.
+ * DO NOT import from 'vitest' here (vi, afterEach, etc.) as it causes
+ * "Vitest failed to access its internal state" errors in CI environments.
+ *
+ * With globals: true enabled in vitest.config.ts, all vitest utilities
+ * (vi, describe, it, expect, afterEach, beforeEach, etc.) are available globally.
+ * Just use them directly without importing or declaring.
+ *
+ * @see https://vitest.dev/config/#globals
+ * @see https://vitest.dev/config/#setupfiles
+ *
  * @author Hatcher DX Team
  * @since 1.0.0
  */
 
-// Import test mocks for native dependencies (must be first for proper hoisting)
-// Note: Mocks are conditionally applied based on CI environment or VITEST_MOCK_SQLITE env var
+// CRITICAL: Import test-mocks FIRST to ensure vi.mock() calls are hoisted
 import './test-mocks'
 
-// Import types for proper typing FIRST
+// Import types for proper typing
 import type { StorageConfig } from './types/storage'
-import { beforeEach, afterEach, vi } from 'vitest'
 import { unlinkSync, existsSync } from 'fs'
 import { join } from 'path'
+
+// vi, beforeEach, and afterEach are available globally via globals: true
+// No need to import or declare - just use them directly
 
 // Use Vitest's global namespace for test utilities
 declare module 'vitest' {
@@ -110,4 +122,4 @@ afterEach(() => {
   }
 })
 
-// NOTE: Native dependency mocking is now handled in test-mocks.ts to ensure proper hoisting
+// NOTE: Tests now use real native dependencies (better-sqlite3, argon2) instead of mocks

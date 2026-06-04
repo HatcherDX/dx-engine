@@ -81,6 +81,10 @@ export default [
         clearTimeout: 'readonly',
         clearInterval: 'readonly',
         // DOM types
+        Element: 'readonly',
+        CustomEvent: 'readonly',
+        EventListener: 'readonly',
+        WheelEvent: 'readonly',
         MouseEvent: 'readonly',
         TouchEvent: 'readonly',
         Touch: 'readonly',
@@ -106,6 +110,16 @@ export default [
         sourceType: 'module',
       },
     },
+    rules: {
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
+    },
   },
 
   // Custom overrides for all TypeScript files
@@ -115,6 +129,37 @@ export default [
       'no-console': 'off',
       '@typescript-eslint/no-explicit-any': 'warn',
       'no-undef': 'off', // TypeScript handles this
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
+    },
+  },
+
+  // Test files - Allow multiple components per file for test fixtures
+  {
+    files: ['**/*.spec.ts', '**/*.spec.js', '**/*.test.ts', '**/*.test.js'],
+    rules: {
+      'vue/one-component-per-file': 'off',
+    },
+  },
+
+  // Components with sanitized v-html - XSS safe
+  {
+    files: [
+      '**/TerminalEasterEgg.vue',
+      '**/OnboardingBranchCreation.vue',
+      '**/OnboardingTaskSelector.vue',
+      '**/CodeBlockComponent.vue',
+      '**/ChatPanel.vue',
+      '**/DualColumnDiffViewer.vue',
+    ],
+    rules: {
+      'vue/no-v-html': 'off',
     },
   },
 

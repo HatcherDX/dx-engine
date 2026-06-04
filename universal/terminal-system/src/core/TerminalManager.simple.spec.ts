@@ -29,6 +29,16 @@ vi.mock('../ProcessManager', () => ({
   },
 }))
 
+// Mock Logger to avoid console mocking conflicts
+vi.mock('../utils/logger', () => ({
+  Logger: class MockLogger {
+    debug = vi.fn()
+    info = vi.fn()
+    warn = vi.fn()
+    error = vi.fn()
+  },
+}))
+
 describe('TerminalManager - Simple Tests', () => {
   let terminalManager: TerminalManager
 
