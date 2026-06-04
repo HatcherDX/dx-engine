@@ -14,6 +14,10 @@
     "./scheduler": {
       "import": "./dist/ActionScheduler.js",
       "types": "./dist/ActionScheduler.d.ts"
+    },
+    "./loader": {
+      "import": "./dist/ActionLoader.js",
+      "types": "./dist/ActionLoader.d.ts"
     }
   },
   "scripts": {

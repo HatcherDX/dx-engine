@@ -311,8 +311,13 @@ export function setupActionsIPC(): void {
       validateTrustedSender(event)
 
       try {
-        // Import ActionLoader dynamically to avoid bundling issues
-        const { ActionLoader } = await import('@hatcherdx/hatcher-actions')
+        // Import ActionLoader via its subpath (self-contained, only depends on
+        // `yaml`) so the bundler never pulls the Node-only barrel modules
+        // (FileHasher/RemoteCache), whose extensionless ESM imports break the
+        // electron webpack bundle.
+        const { ActionLoader } = await import(
+          '@hatcherdx/hatcher-actions/loader'
+        )
 
         const loader = new ActionLoader()
         loader.parseConfig(yamlContent)
