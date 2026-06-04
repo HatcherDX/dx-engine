@@ -34,7 +34,7 @@ describe('DeckSidebar.vue', () => {
   it('should display tab buttons', () => {
     const wrapper = mount(DeckSidebar)
     const tabButtons = wrapper.findAll('.tab-button')
-    expect(tabButtons.length).toBe(4) // autopilots, playbooks, missions, history
+    expect(tabButtons.length).toBe(5) // autopilots, playbooks, missions, history, actions
   })
 
   it('should render autopilots section by default', () => {
@@ -58,7 +58,7 @@ describe('DeckSidebar.vue', () => {
   it('should display tab navigation with correct tabs', () => {
     const wrapper = mount(DeckSidebar)
     const tabButtons = wrapper.findAll('.tab-button')
-    expect(tabButtons.length).toBe(4)
+    expect(tabButtons.length).toBe(5)
 
     // Check if tabs exist by their aria-label
     const tabs = tabButtons.map((btn) => btn.attributes('aria-label'))
@@ -66,6 +66,7 @@ describe('DeckSidebar.vue', () => {
     expect(tabs).toContain('Playbooks')
     expect(tabs).toContain('Missions')
     expect(tabs).toContain('History')
+    expect(tabs).toContain('Actions')
   })
 
   it('should render resource items', () => {
