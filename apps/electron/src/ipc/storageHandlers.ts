@@ -168,9 +168,14 @@ export function registerTrustedSender(webContents: WebContents): void {
  *
  * @see https://www.electronjs.org/docs/latest/tutorial/security#17-validate-the-sender-of-all-ipc-messages
  *
- * @private
+ * @remarks
+ * Exported so that other privileged IPC modules (e.g. {@link setupActionsIPC})
+ * reuse the single shared trusted-sender registry instead of duplicating it.
+ *
+ * @public
+ * @since 2.0.0
  */
-function validateTrustedSender(event: IpcMainInvokeEvent): void {
+export function validateTrustedSender(event: IpcMainInvokeEvent): void {
   const senderId = event.sender.id
 
   if (!trustedSenders.has(senderId)) {
