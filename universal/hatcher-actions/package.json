@@ -3,12 +3,17 @@
   "version": "1.0.0",
   "description": "Hatcher Actions - DAG-based action scheduling with dependency management",
   "type": "module",
+  "sideEffects": false,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
+    },
+    "./scheduler": {
+      "import": "./dist/ActionScheduler.js",
+      "types": "./dist/ActionScheduler.d.ts"
     }
   },
   "scripts": {

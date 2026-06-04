@@ -19,6 +19,7 @@
   "dependencies": {
     "@hatcherdx/ai-cli": "workspace:*",
     "@hatcherdx/git-genius": "workspace:*",
+    "@hatcherdx/hatcher-actions": "workspace:*",
     "@hatcherdx/shared-rendering": "workspace:*",
     "@hatcherdx/terminal-system": "workspace:*",
     "@headlessui/vue": "^1.7.23",

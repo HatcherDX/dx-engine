@@ -142,6 +142,9 @@ importers:
       '@hatcherdx/ai-cli':
         specifier: workspace:*
         version: link:../../universal/ai-cli
+      '@hatcherdx/hatcher-actions':
+        specifier: workspace:*
+        version: link:../../universal/hatcher-actions
       '@hatcherdx/storage':
         specifier: workspace:*
         version: link:../../universal/storage
@@ -256,6 +259,9 @@ importers:
       '@hatcherdx/git-genius':
         specifier: workspace:*
         version: link:../../universal/git-genius
+      '@hatcherdx/hatcher-actions':
+        specifier: workspace:*
+        version: link:../../universal/hatcher-actions
       '@hatcherdx/shared-rendering':
         specifier: workspace:*
         version: link:../../universal/shared-rendering

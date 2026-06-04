@@ -68,6 +68,7 @@
   "dependencies": {
     "@dotenvx/dotenvx": "^1.39.1",
     "@hatcherdx/ai-cli": "workspace:*",
+    "@hatcherdx/hatcher-actions": "workspace:*",
     "@hatcherdx/storage": "workspace:*",
     "@hatcherdx/terminal-system": "workspace:*",
     "@xterm/addon-search": "^0.15.0",

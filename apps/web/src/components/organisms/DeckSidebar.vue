@@ -388,7 +388,7 @@ const filteredSavedPrompts = computed(() =>
 
 // Methods
 const setActiveTab = (
-  tab: 'autopilots' | 'playbooks' | 'missions' | 'history'
+  tab: 'autopilots' | 'playbooks' | 'missions' | 'history' | 'actions'
 ) => {
   activeTab.value = tab
 }
