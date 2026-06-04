@@ -86,6 +86,8 @@ test-*.js
 *-backup*
 *-old*
 *-copy*
+# Legit source file caught by the broad *-copy* rule above
+!apps/electron/vite-plugin-copy-package.ts
 
 # duplicate assets in root
 /egg*.png
