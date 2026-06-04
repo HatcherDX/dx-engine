@@ -1183,6 +1183,227 @@ export class ElectronStorageManager {
   }
 
   /**
+   * Save action execution for forensics tracking
+   *
+   * @param execution - Action execution data
+   * @returns Promise that resolves when execution is saved
+   *
+   * @remarks
+   * Tracks action executions per branch for forensic analysis.
+   * Used by Hatcher Actions to log all command executions.
+   *
+   * @example
+   * ```typescript
+   * await storage.saveActionExecution({
+   *   id: 'exec-123',
+   *   branch_id: 'branch-456',
+   *   trigger_source: 'manual',
+   *   action_type: 'bash_command',
+   *   action_name: 'lint:check',
+   *   status: 'completed',
+   *   started_at: Date.now(),
+   *   completed_at: Date.now() + 3000,
+   *   result_json: JSON.stringify({ exitCode: 0, output: '...' })
+   * })
+   * ```
+   *
+   * @public
+   * @since 2.0.0
+   */
+  async saveActionExecution(execution: {
+    id: string
+    branch_id: string
+    trigger_source: 'decklog' | 'timegraph' | 'manual'
+    trigger_ref_id?: string
+    action_type: string
+    action_name: string
+    status: 'pending' | 'running' | 'completed' | 'failed'
+    started_at: number
+    completed_at?: number
+    result_json?: string
+  }): Promise<void> {
+    const stmt = this.db.prepare(`
+      INSERT INTO action_executions (
+        id, branch_id, trigger_source, trigger_ref_id, action_type,
+        action_name, status, started_at, completed_at, result_json
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `)
+
+    stmt.run(
+      execution.id,
+      execution.branch_id,
+      execution.trigger_source,
+      execution.trigger_ref_id || null,
+      execution.action_type,
+      execution.action_name,
+      execution.status,
+      execution.started_at,
+      execution.completed_at || null,
+      execution.result_json || null
+    )
+  }
+
+  /**
+   * Get action execution history for a branch
+   *
+   * @param branchId - Branch ID to query
+   * @param options - Query options (limit, status filter)
+   * @returns Promise resolving to array of executions
+   *
+   * @remarks
+   * Retrieves action execution history for forensic analysis.
+   * Supports filtering by status and limiting results.
+   *
+   * @example
+   * ```typescript
+   * const history = await storage.getActionHistory('branch-123', {
+   *   limit: 50,
+   *   status: 'completed'
+   * })
+   * console.log(`Found ${history.length} executions`)
+   * ```
+   *
+   * @public
+   * @since 2.0.0
+   */
+  async getActionHistory(
+    branchId: string,
+    options?: {
+      limit?: number
+      status?: 'pending' | 'running' | 'completed' | 'failed'
+    }
+  ): Promise<
+    Array<{
+      id: string
+      branch_id: string
+      trigger_source: string
+      trigger_ref_id: string | null
+      action_type: string
+      action_name: string
+      status: string
+      started_at: number
+      completed_at: number | null
+      result_json: string | null
+    }>
+  > {
+    let query = `
+      SELECT * FROM action_executions
+      WHERE branch_id = ?
+    `
+
+    const params: Array<string | number> = [branchId]
+
+    if (options?.status) {
+      query += ` AND status = ?`
+      params.push(options.status)
+    }
+
+    query += ` ORDER BY started_at DESC`
+
+    if (options?.limit) {
+      query += ` LIMIT ?`
+      params.push(options.limit)
+    }
+
+    const stmt = this.db.prepare(query)
+    return stmt.all(...params) as Array<{
+      id: string
+      branch_id: string
+      trigger_source: string
+      trigger_ref_id: string | null
+      action_type: string
+      action_name: string
+      status: string
+      started_at: number
+      completed_at: number | null
+      result_json: string | null
+    }>
+  }
+
+  /**
+   * Get aggregated action metrics for a branch
+   *
+   * @param branchId - Branch ID to query
+   * @returns Promise resolving to metrics object
+   *
+   * @remarks
+   * Computes aggregated metrics for forensic analysis:
+   * - Total executions
+   * - Success/failure counts
+   * - Average duration
+   * - Most common actions
+   *
+   * @example
+   * ```typescript
+   * const metrics = await storage.getBranchActionMetrics('branch-123')
+   * console.log(`Success rate: ${metrics.successRate}%`)
+   * console.log(`Avg duration: ${metrics.avgDuration}ms`)
+   * ```
+   *
+   * @public
+   * @since 2.0.0
+   */
+  async getBranchActionMetrics(branchId: string): Promise<{
+    totalExecutions: number
+    completedCount: number
+    failedCount: number
+    avgDuration: number
+    successRate: number
+    mostCommonActions: Array<{ action_name: string; count: number }>
+  }> {
+    // Get totals
+    const totalsStmt = this.db.prepare(`
+      SELECT
+        COUNT(*) as total,
+        SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
+        SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed,
+        AVG(CASE WHEN completed_at IS NOT NULL
+          THEN completed_at - started_at
+          ELSE NULL
+        END) as avg_duration
+      FROM action_executions
+      WHERE branch_id = ?
+    `)
+
+    const totals = totalsStmt.get(branchId) as {
+      total: number
+      completed: number
+      failed: number
+      avg_duration: number | null
+    }
+
+    // Get most common actions
+    const actionsStmt = this.db.prepare(`
+      SELECT action_name, COUNT(*) as count
+      FROM action_executions
+      WHERE branch_id = ?
+      GROUP BY action_name
+      ORDER BY count DESC
+      LIMIT 5
+    `)
+
+    const commonActions = actionsStmt.all(branchId) as Array<{
+      action_name: string
+      count: number
+    }>
+
+    const totalExecutions = totals.total || 0
+    const completedCount = totals.completed || 0
+    const failedCount = totals.failed || 0
+    const successRate =
+      totalExecutions > 0 ? (completedCount / totalExecutions) * 100 : 0
+
+    return {
+      totalExecutions,
+      completedCount,
+      failedCount,
+      avgDuration: totals.avg_duration || 0,
+      successRate: Math.round(successRate * 100) / 100, // Round to 2 decimals
+      mostCommonActions: commonActions,
+    }
+  }
+
+  /**
    * Graceful shutdown with WAL checkpoint (Context7: Node.js best practices)
    *
    * @returns Promise that resolves when shutdown completes

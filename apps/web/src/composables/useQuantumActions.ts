@@ -22,6 +22,13 @@
  */
 
 import { computed, reactive } from 'vue'
+import { parse as parseYAML } from 'yaml'
+import { ActionScheduler } from '@hatcherdx/hatcher-actions'
+import type {
+  ActionDefinition,
+  ActionResult,
+  ExecutionContext,
+} from '@hatcherdx/hatcher-actions'
 
 export type QuantumStatus =
   | 'pending'
@@ -30,6 +37,35 @@ export type QuantumStatus =
   | 'success'
   | 'failed'
   | 'skipped'
+
+/**
+ * Actions configuration from .hatcher/actions.yaml
+ *
+ * @internal
+ */
+interface ActionsConfig {
+  version: string
+  project: string
+  groups: Record<string, string[]>
+  actions: Record<
+    string,
+    {
+      name: string
+      description: string
+      command: string
+      icon: string
+      dependencies: string[]
+      parallel: boolean
+      estimatedDuration: number
+    }
+  >
+  settings: {
+    failFast: boolean
+    maxParallel: number
+    timeout: number
+    retries: number
+  }
+}
 
 /**
  * Interface for quantum action log entries.
@@ -66,6 +102,8 @@ export interface QuantumAction {
   logs: QuantumLog[]
   startTime?: Date
   endTime?: Date
+  command?: string // Shell command to execute
+  description?: string // Action description
 }
 
 /**
@@ -136,6 +174,108 @@ export function useQuantumActions() {
     if (allCompleted) return 'completed'
     return 'pending'
   })
+
+  /**
+   * Generate designation code for action
+   *
+   * @param actionId - Action identifier
+   * @returns Designation code (e.g., "ALPHA-1X")
+   *
+   * @private
+   */
+  const generateDesignation = (actionId: string): string => {
+    const prefixes = [
+      'ALPHA',
+      'BETA',
+      'GAMMA',
+      'DELTA',
+      'EPSILON',
+      'ZETA',
+      'ETA',
+      'THETA',
+    ]
+    const hash = actionId
+      .split('')
+      .reduce((acc, char) => acc + char.charCodeAt(0), 0)
+    const prefix = prefixes[hash % prefixes.length]
+    const number = (hash % 9) + 1
+    const suffix = String.fromCharCode(65 + (hash % 26)) // A-Z
+    return `${prefix}-${number}${suffix}`
+  }
+
+  /**
+   * Load actions from .hatcher/actions.yaml configuration
+   *
+   * @param projectPath - Project root path
+   * @param groupName - Optional group name (e.g., "pre-commit")
+   * @returns Promise that resolves when loading completes
+   *
+   * @remarks
+   * If config file doesn't exist or loading fails, falls back to default actions.
+   *
+   * @public
+   * @since 2.0.0
+   */
+  const loadActionsFromConfig = async (
+    projectPath: string,
+    groupName?: string
+  ): Promise<void> => {
+    try {
+      console.log('[QuantumActions] Loading actions from config...')
+
+      // Load config via IPC
+      const yamlContent = (await window.electronAPI.invoke(
+        'actions:load-config',
+        projectPath
+      )) as string | null
+
+      if (!yamlContent) {
+        console.log('[QuantumActions] No config found, using defaults')
+        initializeActions()
+        return
+      }
+
+      // Parse YAML
+      const config = parseYAML(yamlContent) as ActionsConfig
+
+      // Determine which actions to load
+      const actionIds = groupName
+        ? config.groups[groupName] || Object.keys(config.actions)
+        : Object.keys(config.actions)
+
+      console.log(`[QuantumActions] Loading ${actionIds.length} actions`)
+
+      // Convert to QuantumActions
+      quantumState.actions = actionIds.map((id) => {
+        const actionDef = config.actions[id]
+
+        return {
+          id,
+          designation: generateDesignation(id),
+          operation: actionDef.name,
+          actionIcon: actionDef.icon,
+          status: 'pending' as QuantumStatus,
+          canRunParallel: actionDef.parallel,
+          dependencies: actionDef.dependencies || [],
+          progress: 0,
+          energyLevel: Math.max(88, Math.random() * 12 + 88), // 88-100%
+          quantumStability: Math.max(94, Math.random() * 6 + 94), // 94-100%
+          dataFlow: `${(Math.random() * 3 + 1.5).toFixed(1)} GB/s`,
+          quantumThreads: Math.floor(Math.random() * 12 + 4), // 4-16
+          estimatedDuration: actionDef.estimatedDuration || 5000,
+          logs: [],
+          command: actionDef.command,
+          description: actionDef.description,
+        }
+      })
+
+      console.log('[QuantumActions] ✅ Actions loaded successfully')
+    } catch (error) {
+      console.error('[QuantumActions] Failed to load config:', error)
+      console.log('[QuantumActions] Falling back to default actions')
+      initializeActions()
+    }
+  }
 
   /**
    * Initializes the quantum actions pipeline with default actions.
@@ -262,162 +402,176 @@ export function useQuantumActions() {
   }
 
   /**
-   * Simulates the execution of a single quantum action.
+   * Converts QuantumAction to ActionDefinition for ActionScheduler.
    *
-   * @param action - The action to execute
-   * @returns Promise that resolves when execution completes
-   *
-   * @remarks
-   * This simulates realistic execution with progress updates and potential failures.
+   * @param quantumAction - Quantum action to convert
+   * @returns ActionDefinition compatible with ActionScheduler
    *
    * @private
-   * @since 1.0.0
    */
-  const executeAction = async (action: QuantumAction): Promise<void> => {
-    return new Promise((resolve) => {
-      action.status = 'initializing'
-      action.startTime = new Date()
-      addLog(action.id, 'info', 'Quantum initialization sequence started')
-
-      // Initialization phase
-      setTimeout(() => {
-        action.status = 'running'
-        addLog(
-          action.id,
-          'info',
-          `Quantum lock established on ${action.designation}`
-        )
-        addLog(action.id, 'info', `Processing ${action.operation}...`)
-
-        // Progress simulation
-        const progressInterval = setInterval(() => {
-          if (action.progress < 100) {
-            action.progress += Math.random() * 15
-            action.energyLevel = Math.max(
-              50,
-              action.energyLevel - Math.random() * 2
-            )
-
-            // Add some realistic progress logs
-            if (action.progress > 25 && action.progress < 30) {
-              addLog(action.id, 'info', 'Quantum processors stabilized')
-            } else if (action.progress > 75 && action.progress < 80) {
-              addLog(action.id, 'info', 'Final validation protocols initiated')
-            }
-          } else {
-            clearInterval(progressInterval)
-
-            // Simulate success/failure (98% success rate for better demo)
-            const success = Math.random() > 0.02
-
-            action.status = success ? 'success' : 'failed'
-            action.endTime = new Date()
-            action.progress = success ? 100 : action.progress
-
-            if (success) {
-              addLog(
-                action.id,
-                'info',
-                `${action.operation} completed successfully`
-              )
-              addLog(action.id, 'info', 'Quantum signature verified')
-            } else {
-              addLog(
-                action.id,
-                'critical',
-                `${action.operation} failed - Quantum instability detected`
-              )
-              action.quantumStability = Math.max(
-                0,
-                action.quantumStability - 20
-              )
-            }
-
-            resolve()
-          }
-        }, 200) // Update every 200ms for smooth animation
-      }, 1000) // 1s initialization delay
-    })
+  const toActionDefinition = (
+    quantumAction: QuantumAction
+  ): ActionDefinition => {
+    return {
+      id: quantumAction.id,
+      name: quantumAction.operation,
+      description: quantumAction.description || quantumAction.operation,
+      command: quantumAction.command || '',
+      icon: quantumAction.actionIcon,
+      dependencies: quantumAction.dependencies,
+      parallel: quantumAction.canRunParallel,
+      estimatedDuration: quantumAction.estimatedDuration,
+    }
   }
 
   /**
-   * Determines which actions can run in the current wave.
+   * Executes the quantum actions pipeline using ActionScheduler.
    *
-   * @returns Array of actions ready to execute
-   *
-   * @private
-   * @since 1.0.0
-   */
-  const getExecutableActions = (): QuantumAction[] => {
-    return quantumState.actions.filter((action) => {
-      if (action.status !== 'pending') return false
-
-      // Check if all dependencies are completed
-      const dependenciesCompleted = action.dependencies.every((depId) => {
-        const dep = quantumState.actions.find((a) => a.id === depId)
-        return dep?.status === 'success'
-      })
-
-      return dependenciesCompleted
-    })
-  }
-
-  /**
-   * Executes the quantum actions pipeline.
+   * @param projectPath - Optional project root path for command execution
    *
    * @remarks
-   * Handles parallel and sequential execution based on action dependencies.
-   * Actions that can run in parallel will start simultaneously.
+   * Uses ActionScheduler with Directed DAG for robust dependency resolution
+   * and automatic parallel execution. Replaces custom wave-based logic.
    *
    * @public
-   * @since 1.0.0
+   * @since 2.0.0
    */
-  const executeActions = async (): Promise<void> => {
+  const executeActions = async (projectPath?: string): Promise<void> => {
     if (quantumState.isExecuting) return
 
     quantumState.isExecuting = true
     quantumState.executionStartTime = new Date()
     quantumState.currentWave = 0
 
-    while (true) {
-      const executableActions = getExecutableActions()
+    try {
+      // Convert QuantumActions to ActionDefinitions
+      const actionDefinitions = quantumState.actions.map(toActionDefinition)
 
-      if (executableActions.length === 0) {
-        // Check if there are any failed dependencies that would skip remaining actions
-        const pendingActions = quantumState.actions.filter(
-          (a) => a.status === 'pending'
-        )
+      // Create scheduler with Directed DAG
+      const scheduler = new ActionScheduler(actionDefinitions, {
+        failFast: true,
+        maxParallel: 4,
+        timeout: 300000,
+        retries: 0,
+      })
 
-        // Mark actions with failed dependencies as skipped
-        pendingActions.forEach((action) => {
-          const hasFailedDependency = action.dependencies.some((depId) => {
-            const dep = quantumState.actions.find((a) => a.id === depId)
-            return dep?.status === 'failed'
-          })
+      // Create execution context
+      const context: ExecutionContext = {
+        projectPath: projectPath || process.cwd(),
+        ipc: {
+          invoke: window.electronAPI.invoke.bind(window.electronAPI),
+        },
 
-          if (hasFailedDependency) {
-            action.status = 'skipped'
+        // Callback when action starts
+        onActionStart: (action: ActionDefinition) => {
+          const qAction = quantumState.actions.find((a) => a.id === action.id)
+          if (qAction) {
+            qAction.status = 'initializing'
+            qAction.startTime = new Date()
             addLog(
-              action.id,
-              'warning',
-              'Action skipped due to failed dependencies'
+              qAction.id,
+              'info',
+              'Quantum initialization sequence started'
+            )
+
+            setTimeout(() => {
+              qAction.status = 'running'
+              addLog(
+                qAction.id,
+                'info',
+                `Quantum lock established on ${qAction.designation}`
+              )
+              addLog(qAction.id, 'info', `Executing: ${action.command}`)
+            }, 1000)
+          }
+          quantumState.currentWave++
+        },
+
+        // Callback when action completes
+        onActionComplete: (action: ActionDefinition, result: ActionResult) => {
+          const qAction = quantumState.actions.find((a) => a.id === action.id)
+          if (qAction) {
+            qAction.progress = 100
+            qAction.endTime = new Date()
+
+            if (result.status === 'success') {
+              qAction.status = 'success'
+              addLog(
+                qAction.id,
+                'info',
+                `${qAction.operation} completed successfully`
+              )
+              addLog(qAction.id, 'info', 'Quantum signature verified')
+
+              // Log stdout preview
+              if (result.output) {
+                const preview = result.output.trim().substring(0, 100)
+                if (preview) {
+                  addLog(qAction.id, 'info', `Output: ${preview}...`)
+                }
+              }
+            } else if (result.status === 'failed') {
+              qAction.status = 'failed'
+              addLog(
+                qAction.id,
+                'critical',
+                `${qAction.operation} failed (exit code: ${result.exitCode || 1})`
+              )
+              addLog(qAction.id, 'critical', 'Quantum instability detected')
+              qAction.quantumStability = Math.max(
+                0,
+                qAction.quantumStability - 20
+              )
+
+              // Log stderr preview
+              if (result.error) {
+                const preview = result.error.trim().substring(0, 200)
+                if (preview) {
+                  addLog(qAction.id, 'critical', `Error: ${preview}`)
+                }
+              }
+            } else if (result.status === 'skipped') {
+              qAction.status = 'skipped'
+              addLog(
+                qAction.id,
+                'warning',
+                'Action skipped due to failed dependencies'
+              )
+            }
+          }
+        },
+
+        // Callback for progress updates
+        onActionProgress: (action: ActionDefinition, progress: number) => {
+          const qAction = quantumState.actions.find((a) => a.id === action.id)
+          if (qAction) {
+            qAction.progress = progress
+            qAction.energyLevel = Math.max(
+              50,
+              qAction.energyLevel - Math.random() * 2
             )
           }
-        })
-
-        break // No more actions to execute
+        },
       }
 
-      quantumState.currentWave++
-
-      // Execute all actions in current wave (parallel execution)
-      const executionPromises = executableActions.map((action) =>
-        executeAction(action)
-      )
-      await Promise.all(executionPromises)
+      // Execute with ActionScheduler (Directed handles DAG resolution)
+      await scheduler.execute(context)
+    } catch (error) {
+      console.error('[QuantumActions] Execution error:', error)
+      // Mark all pending/running actions as failed
+      quantumState.actions.forEach((action) => {
+        if (action.status === 'pending' || action.status === 'running') {
+          action.status = 'failed'
+          addLog(
+            action.id,
+            'critical',
+            `Execution interrupted: ${error instanceof Error ? error.message : 'Unknown error'}`
+          )
+        }
+      })
+    } finally {
+      quantumState.isExecuting = false
     }
-
-    quantumState.isExecuting = false
   }
 
   /**
@@ -485,5 +639,6 @@ export function useQuantumActions() {
 
     // Utilities
     initializeActions,
+    loadActionsFromConfig,
   }
 }

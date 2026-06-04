@@ -405,6 +405,32 @@ const electronAPI = {
       electronIpcRenderer.invoke('commands:execute', commandName, args),
   },
 
+  /**
+   * Hatcher Actions IPC channels
+   *
+   * @remarks
+   * Actions are executed via the generic `invoke` method with these channels:
+   * - `actions:execute` - Execute shell command for action
+   * - `actions:load-config` - Load .hatcher/actions.yaml configuration
+   * - `actions:save-config` - Save configuration from graphical editor
+   * - `actions:validate-config` - Validate YAML configuration
+   *
+   * @example
+   * ```typescript
+   * // Execute action command
+   * const result = await window.electronAPI.invoke('actions:execute', {
+   *   command: 'pnpm test',
+   *   cwd: '/project/path'
+   * })
+   *
+   * // Load configuration
+   * const yaml = await window.electronAPI.invoke('actions:load-config', projectPath)
+   * ```
+   *
+   * @since 2.0.0
+   * @public
+   */
+
   // Terminal Easter Egg IPC
   terminalEasterEgg: {
     // Notify main process of step changes

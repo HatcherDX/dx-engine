@@ -54,6 +54,19 @@
       >
         <BaseIcon name="Clock" size="sm" />
       </button>
+      <button
+        v-luxury-tooltip="{
+          content: 'Actions',
+          placement: 'bottom-start',
+          delay: [500, 0],
+        }"
+        class="tab-button icon-only"
+        :class="{ active: activeTab === 'actions' }"
+        :aria-label="'Actions'"
+        @click="setActiveTab('actions')"
+      >
+        <BaseIcon name="PlayCircle" size="sm" />
+      </button>
     </div>
 
     <!-- Tab Content -->
@@ -190,19 +203,36 @@
           </div>
         </div>
       </div>
+
+      <!-- Actions Tab -->
+      <div v-if="activeTab === 'actions'" class="actions-section">
+        <ActionsConfigEditor :project-path="projectPath" />
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, toRefs } from 'vue'
 import BaseIcon from '../atoms/BaseIcon.vue'
+import ActionsConfigEditor from './ActionsConfigEditor.vue'
 import { vLuxuryTooltip } from '../../composables/useLuxuryTooltip'
 
+// Props
+interface Props {
+  projectPath?: string
+}
+
+// Props are passed to ActionsConfigEditor component
+const props = defineProps<Props>()
+
+// Used for passing to child components
+const { projectPath } = toRefs(props)
+
 // Tab state
-const activeTab = ref<'autopilots' | 'playbooks' | 'missions' | 'history'>(
-  'autopilots'
-)
+const activeTab = ref<
+  'autopilots' | 'playbooks' | 'missions' | 'history' | 'actions'
+>('autopilots')
 
 // Search state
 const searchQuery = ref('')
@@ -804,5 +834,11 @@ const formatTime = (timestamp: Date) => {
 .resource-categories::-webkit-scrollbar-thumb {
   background: var(--border-sidebar);
   border-radius: 2px;
+}
+
+/* Actions Section */
+.actions-section {
+  height: 100%;
+  overflow: hidden;
 }
 </style>

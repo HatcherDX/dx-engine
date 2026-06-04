@@ -1,0 +1,96 @@
+# Hatcher Actions Configuration
+# Git-committable action definitions for local CI/CD
+# See: https://docs.hatcher.dev/actions
+
+version: 1.0
+project: dx-engine
+
+# Action groups for different workflows
+groups:
+  pre-commit:
+    - format:check
+    - lint:check
+    - types:validate
+
+  pre-push:
+    - format:check
+    - lint:check
+    - types:validate
+    - test:unit
+
+  pre-deploy:
+    - format:check
+    - lint:check
+    - types:validate
+    - test:unit
+    - test:coverage
+    - build:production
+
+# Action definitions
+actions:
+  # Format checking
+  format:check:
+    name: 'Format Check'
+    description: 'Verify code formatting with Prettier'
+    command: 'pnpm run format:check'
+    icon: 'Code'
+    dependencies: []
+    parallel: false
+    estimatedDuration: 2000 # milliseconds
+
+  # Linting
+  lint:check:
+    name: 'Lint Check'
+    description: 'Run ESLint validation'
+    command: 'pnpm lint'
+    icon: 'CheckSquare'
+    dependencies: []
+    parallel: false
+    estimatedDuration: 3000
+
+  # Type checking
+  types:validate:
+    name: 'Type Check'
+    description: 'Validate TypeScript types'
+    command: 'pnpm exec tsc --noEmit'
+    icon: 'Shield'
+    dependencies: ['format:check', 'lint:check'] # Runs after both complete
+    parallel: true # Can run in parallel with other same-level actions
+    estimatedDuration: 4000
+
+  # Unit tests
+  test:unit:
+    name: 'Unit Tests'
+    description: 'Run Vitest unit tests'
+    command: 'pnpm test'
+    icon: 'TestTube'
+    dependencies: ['types:validate']
+    parallel: false
+    estimatedDuration: 6000
+
+  # Coverage
+  test:coverage:
+    name: 'Test Coverage'
+    description: 'Generate coverage report'
+    command: 'pnpm test:coverage'
+    icon: 'BarChart'
+    dependencies: ['test:unit']
+    parallel: false
+    estimatedDuration: 8000
+
+  # Build
+  build:production:
+    name: 'Production Build'
+    description: 'Build for production'
+    command: 'pnpm build'
+    icon: 'Hammer'
+    dependencies: ['test:coverage']
+    parallel: false
+    estimatedDuration: 10000
+
+# Execution settings
+settings:
+  failFast: true # Stop pipeline on first failure
+  maxParallel: 4 # Maximum parallel actions
+  timeout: 300000 # Global timeout in milliseconds (5 minutes)
+  retries: 0 # Number of retries for failed actions (0 = no retries)

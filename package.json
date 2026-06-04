@@ -127,9 +127,11 @@
     ]
   },
   "dependencies": {
+    "directed": "^0.1.6",
     "graceful-fs": "^4.2.11",
     "node-pty": "1.0.0",
-    "simple-git": "^3.28.0"
+    "simple-git": "^3.28.0",
+    "yaml": "^2.3.4"
   },
   "optionalDependencies": {
     "better-sqlite3": "^11.6.0"

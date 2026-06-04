@@ -9,6 +9,7 @@ import {
 } from './systemTerminalIPC'
 import { setupAIChatIPC } from './aiChatIPC'
 import { setupCommandsIPC } from './commandsIPC'
+import { setupActionsIPC, destroyActionsIPC } from './actionsIPC'
 import { restoreOrCreateWindow } from './mainWindow'
 import { setupDevConsoleFilter } from './utils/devConsoleFilter'
 import {
@@ -82,6 +83,7 @@ app.on('second-instance', restoreOrCreateWindow)
 app.on('window-all-closed', async () => {
   if (process.platform !== 'darwin') {
     // Cleanup all systems before quitting
+    destroyActionsIPC()
     destroySystemTerminalIPC()
     destroyTerminalSystem()
     await shutdownStorage()
@@ -95,6 +97,7 @@ app.on('window-all-closed', async () => {
 app.on('before-quit', async () => {
   console.log('🔄 Quitting application...')
   // Cleanup all systems before quitting
+  destroyActionsIPC()
   destroySystemTerminalIPC()
   destroyTerminalSystem()
   await shutdownStorage()
@@ -200,8 +203,13 @@ async function initializeAppSystems() {
     setupCommandsIPC()
     console.log('✅ [MAIN] Step 4: Commands IPC ready')
 
-    // 5. THEN create window (all handlers are now ready)
-    console.log('📦 [MAIN] Step 5: Creating main window...')
+    // 5. Initialize Actions IPC
+    console.log('📦 [MAIN] Step 5: Initializing Actions IPC...')
+    setupActionsIPC()
+    console.log('✅ [MAIN] Step 5: Actions IPC ready')
+
+    // 6. THEN create window (all handlers are now ready)
+    console.log('📦 [MAIN] Step 6: Creating main window...')
     const window = await restoreOrCreateWindow()
     console.log('✅ [MAIN] Step 5: Main window ready')
 
