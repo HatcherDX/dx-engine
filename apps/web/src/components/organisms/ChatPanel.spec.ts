@@ -526,8 +526,8 @@ describe('ChatPanel.vue', () => {
       const vm = wrapper.vm as unknown as ChatPanelVM
 
       // OpenAI models
-      expect(vm.formatModelName('gpt-4o')).toBe('GPT-5o')
-      expect(vm.formatModelName('gpt-4-turbo')).toBe('GPT-5')
+      expect(vm.formatModelName('gpt-4o')).toBe('GPT-4o')
+      expect(vm.formatModelName('gpt-4-turbo')).toBe('GPT-4')
       expect(vm.formatModelName('gpt-3.5-turbo')).toBe('GPT-3.5')
 
       // Gemini models

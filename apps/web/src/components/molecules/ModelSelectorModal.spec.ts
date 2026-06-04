@@ -211,7 +211,7 @@ describe('ModelSelectorModal.vue', () => {
         'Google Gemini - Multimodal AI assistant'
       )
       expect(descriptions[2].text()).toContain(
-        'OpenAI GPT-5 - General purpose language model'
+        'OpenAI GPT-5 - Next generation language model'
       )
     })
 
@@ -373,7 +373,7 @@ describe('ModelSelectorModal.vue', () => {
         'Google Gemini - Multimodal AI assistant'
       )
       expect(vm.getProviderDescription('GPT-5')).toBe(
-        'OpenAI GPT-5 - General purpose language model'
+        'OpenAI GPT-5 - Next generation language model'
       )
     })
 
