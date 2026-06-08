@@ -62,8 +62,5 @@ linux:
 npmRebuild: true
 nodeGypRebuild: false
 
-# Include native modules in build
-includeSubNodeModules: true
-
 # Compression settings
 compression: normal

@@ -1,0 +1,72 @@
+---
+// SPDX-License-Identifier: LicenseRef-Hatcher-Proprietary
+/**
+ * Placeholder home (`/`).
+ *
+ * @remarks
+ * Neutral pre-launch content (build-spec §11/§0.5) — no proprietary marketing
+ * copy is committed to the public MIT repo yet. Real marketing grows in this
+ * same app over time.
+ */
+import MarketingLayout from '../layouts/MarketingLayout.astro'
+---
+
+<MarketingLayout
+  title="Hatcher"
+  description="A visual builder IDE for the AI era."
+>
+  <section class="hero">
+    <p class="eyebrow">Visual Builder IDE</p>
+    <h1>Hatcher</h1>
+    <p class="lede">A visual builder IDE for the AI era.</p>
+    <p class="status">Coming soon.</p>
+    <a class="cta" href="/ide/docs/">Read the docs →</a>
+  </section>
+
+  <style>
+    .hero {
+      text-align: center;
+      max-width: 48rem;
+      margin: 0 auto;
+      padding: var(--space-8) 0;
+    }
+    .eyebrow {
+      font-family: var(--font-display);
+      text-transform: uppercase;
+      letter-spacing: 0.22em;
+      font-size: 0.85rem;
+      color: var(--accent-primary);
+      margin: 0 0 var(--space-4);
+    }
+    .hero h1 {
+      font-size: clamp(3rem, 8vw, 5rem);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin: 0 0 var(--space-4);
+    }
+    .lede {
+      font-size: 1.25rem;
+      color: var(--color-muted);
+      margin: 0 0 var(--space-2);
+    }
+    .status {
+      color: var(--color-subtle);
+      margin: 0 0 var(--space-6);
+    }
+    .cta {
+      display: inline-block;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: #000;
+      background: var(--accent-primary);
+      padding: 0.75rem 1.75rem;
+      border-radius: var(--radius-md);
+      box-shadow: 0 10px 40px -10px rgba(223, 169, 39, 0.5);
+      transition: background 0.2s;
+    }
+    .cta:hover {
+      background: var(--gold-2);
+      color: #000;
+    }
+  </style>
+</MarketingLayout>

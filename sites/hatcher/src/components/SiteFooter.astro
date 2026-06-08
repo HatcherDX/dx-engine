@@ -1,0 +1,41 @@
+---
+// SPDX-License-Identifier: LicenseRef-Hatcher-Proprietary
+/**
+ * Site footer.
+ *
+ * @remarks
+ * Site-local chrome (composition, build-spec §5). The licensing line states the
+ * decided model: the core IDE is MIT; the advanced visual builder is a free,
+ * closed plugin (the VS Code + Copilot relationship).
+ */
+const year = new Date().getFullYear()
+---
+
+<footer class="site-footer">
+  <p class="copyright">© {year} Hatcher. The core IDE is open source (MIT).</p>
+  <nav class="footer-nav" aria-label="Footer">
+    <a href="/ide/docs/">Docs</a>
+    <a href="https://github.com/HatcherDX/dx-engine" rel="noopener">GitHub</a>
+  </nav>
+</footer>
+
+<style>
+  .site-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--space-3, 0.75rem);
+    padding: var(--space-5, 1.5rem);
+    border-top: 1px solid var(--color-border, #e5e7eb);
+    color: var(--color-muted, #6b7280);
+    font-size: 0.875rem;
+  }
+  .copyright {
+    margin: 0;
+  }
+  .footer-nav {
+    display: flex;
+    gap: var(--space-4, 1rem);
+  }
+</style>

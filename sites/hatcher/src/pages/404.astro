@@ -1,0 +1,18 @@
+---
+// SPDX-License-Identifier: LicenseRef-Hatcher-Proprietary
+/**
+ * Custom 404 page.
+ *
+ * @remarks
+ * Cloudflare Pages serves `/404.html` automatically for unmatched static paths.
+ */
+import MarketingLayout from '../layouts/MarketingLayout.astro'
+---
+
+<MarketingLayout title="Not found — Hatcher" description="Page not found.">
+  <section>
+    <h1>404</h1>
+    <p>That page doesn’t exist.</p>
+    <p><a href="/">Back home →</a></p>
+  </section>
+</MarketingLayout>

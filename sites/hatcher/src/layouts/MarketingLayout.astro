@@ -1,0 +1,38 @@
+---
+// SPDX-License-Identifier: LicenseRef-Hatcher-Proprietary
+/**
+ * Marketing shell for non-docs routes (`/` and `/ide`).
+ *
+ * @remarks
+ * Imports site-local chrome and neutral design tokens (build-spec §5/§12).
+ * Starlight provides its own shell for `/ide/docs`, so this layout is only used
+ * by plain Astro pages.
+ */
+import SiteHead from '../components/SiteHead.astro'
+import SiteTopbar from '../components/SiteTopbar.astro'
+import SiteFooter from '../components/SiteFooter.astro'
+import '../styles/tokens.css'
+
+interface Props {
+  /** Page `<title>`. */
+  title?: string
+  /** Meta description. */
+  description?: string
+}
+
+const { title, description } = Astro.props
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <SiteHead title={title} description={description} />
+  </head>
+  <body>
+    <SiteTopbar />
+    <main class="site-main">
+      <slot />
+    </main>
+    <SiteFooter />
+  </body>
+</html>

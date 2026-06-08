@@ -1,0 +1,126 @@
+/* sites/hatcher/src/styles/tokens.css
+ * Hatcher brand design tokens — matches hatch.rs (dark-first, golden accent, Cinzel display).
+ * This is the marketing site (the brand surface), so the gold (#dfa927) is applied here
+ * directly; the open `ui/`/IDE base stays neutral (branding is a data overlay there). */
+
+:root {
+  /* Brand — golden accent */
+  --gold-1: #dfa927;
+  --gold-2: #eab948;
+  --gold-3: #f5c969;
+  --gold-soft: rgba(223, 169, 39, 0.16);
+  --accent-primary: var(--gold-1);
+
+  /* Dark theme = default (hatch.rs is dark-first) */
+  --color-bg: #000000;
+  --color-bg-alt: #0c0e11;
+  --color-bg-elv: #1d1f24;
+  --color-fg: #f8fafc;
+  --color-muted: #cbd5e1;
+  --color-subtle: #94a3b8;
+  --color-border: #334155;
+
+  /* Type — system sans for body, Cinzel for display (the "Constitutional" look) */
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text',
+    'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', Arial,
+    sans-serif;
+  --font-display: 'Cinzel', 'Georgia', serif;
+  --font-mono:
+    ui-monospace, 'SF Mono', SFMono-Regular, 'Cascadia Code', 'Roboto Mono',
+    'Courier New', monospace;
+
+  /* Spacing & radius */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-8: 4rem;
+  --radius-md: 0.5rem;
+}
+
+/* Optional light theme (marketing is dark-only for now; kept for parity). */
+[data-theme='light'] {
+  --color-bg: #ffffff;
+  --color-bg-alt: #f8fafc;
+  --color-bg-elv: #ffffff;
+  --color-fg: #0f172a;
+  --color-muted: #475569;
+  --color-subtle: #64748b;
+  --color-border: #e2e8f0;
+  --accent-primary: #c79920;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+  line-height: 1.6;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.site-main {
+  flex: 1;
+  width: 100%;
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-5);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+a {
+  color: var(--accent-primary);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--gold-2);
+}
+
+::selection {
+  background: var(--gold-soft);
+  color: var(--gold-2);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-alt);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-subtle);
+}

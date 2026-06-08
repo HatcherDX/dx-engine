@@ -1,0 +1,15 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".astro/**"],
+      "inputs": ["$TURBO_DEFAULT$", "!**/*.spec.*", "!README.md"]
+    },
+    "check": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    }
+  }
+}

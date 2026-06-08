@@ -54,8 +54,14 @@ module.exports = {
     // Externalize any relative path imports (from Vite build artifacts)
     /^\.\.\/preload\/.*/,
   ],
+  // Emit externals as CommonJS require() calls. The Electron main process is a
+  // Node target, so externals must be `require("name")`. Without this, webpack
+  // defaulted to the 'var' type and wrote `module.exports = @hatcherdx/...`
+  // (invalid JS) — which both crashed Terser and would break at runtime.
+  externalsType: 'node-commonjs',
   optimization: {
-    // Only minimize in production to avoid Terser errors with modern JS syntax
+    // Minimize in production. Externals now emit valid `require()` calls
+    // (externalsType above), so Terser no longer fails parsing the output.
     minimize: process.env.MODE !== 'development',
     minimizer: [
       new TerserPlugin({

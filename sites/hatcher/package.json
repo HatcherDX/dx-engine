@@ -1,0 +1,22 @@
+{
+  "name": "@hatcherdx/hatcher",
+  "type": "module",
+  "version": "0.0.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check",
+    "lint": "echo \"Linting handled at root level\""
+  },
+  "dependencies": {
+    "@astrojs/starlight": "0.39.3",
+    "astro": "6.4.4"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.9",
+    "typescript": "^5.8.3"
+  }
+}

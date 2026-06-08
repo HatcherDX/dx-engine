@@ -1,0 +1,6 @@
+# Pre-launch: the site is a neutral placeholder. Do NOT index yet.
+# AT LAUNCH: remove the `Disallow: /` line and uncomment the Sitemap line below.
+User-agent: *
+Disallow: /
+
+# Sitemap: https://hatcher.rs/sitemap-index.xml

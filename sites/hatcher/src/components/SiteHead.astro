@@ -1,0 +1,38 @@
+---
+// SPDX-License-Identifier: LicenseRef-Hatcher-Proprietary
+/**
+ * Document `<head>` metadata: title, description, canonical URL, favicon.
+ *
+ * @remarks
+ * Site-local chrome (build-spec §5). Becomes a thin host for a Stencil web
+ * component when `ui/` lands; layouts/pages do not change on that swap.
+ */
+interface Props {
+  /** Page `<title>`. */
+  title?: string
+  /** Meta description for SEO/social cards. */
+  description?: string
+}
+
+const {
+  title = 'Hatcher',
+  description = 'Hatcher — a visual builder IDE for the AI era.',
+} = Astro.props
+
+// `Astro.canonicalURL` does not exist — build it from the request path + configured `site`.
+const canonical = new URL(Astro.url.pathname, Astro.site)
+---
+
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="generator" content={Astro.generator} />
+<title>{title}</title>
+<meta name="description" content={description} />
+<link rel="canonical" href={canonical} />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&display=swap"
+/>

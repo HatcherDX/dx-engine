@@ -4,7 +4,7 @@ import {
   ipcMain as electronIpcMain,
   app,
 } from 'electron'
-import { join, resolve, normalize } from 'node:path'
+import { join, resolve, normalize, sep } from 'node:path'
 import { readFile, stat, readdir, access, realpath } from 'node:fs/promises'
 import { constants } from 'node:fs'
 // import * as gracefulFs from 'graceful-fs' // TODO: Use for more robust file operations
@@ -87,7 +87,7 @@ const validateNotIDEDirectory = async (projectPath: string): Promise<void> => {
 
     if (
       realProjectPath === realIdePath ||
-      realProjectPath.startsWith(realIdePath + '/')
+      realProjectPath.startsWith(realIdePath + sep)
     ) {
       throw new Error(
         `CRITICAL SECURITY VIOLATION: Attempted to perform Git operations on IDE directory.\n` +

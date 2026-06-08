@@ -3,3 +3,5 @@ packages:
   - 'universal/*'
   - 'tooling/*'
   - 'scripts/*'
+  - 'sites/*'
+  - 'packages/*'
