@@ -2778,42 +2778,48 @@ describe('IPC Module', () => {
       }
     })
 
-    it('should handle symlink resolution when checking IDE directory', async () => {
-      // Save original NODE_ENV
-      const originalNodeEnv = process.env.NODE_ENV
+    // Skipped on Windows: this test hardcodes POSIX absolute paths
+    // (/Users/chrissmejia/...) which Windows resolves relative to the current
+    // drive, so the IDE-directory containment check cannot be exercised here.
+    it.skipIf(process.platform === 'win32')(
+      'should handle symlink resolution when checking IDE directory',
+      async () => {
+        // Save original NODE_ENV
+        const originalNodeEnv = process.env.NODE_ENV
 
-      try {
-        // Set production mode
-        process.env.NODE_ENV = 'production'
-        mockApp.isPackaged = true
+        try {
+          // Set production mode
+          process.env.NODE_ENV = 'production'
+          mockApp.isPackaged = true
 
-        // Mock app.getAppPath to return IDE directory
-        mockApp.getAppPath = vi
-          .fn()
-          .mockReturnValue('/Users/chrissmejia/Sites/dx-engine')
+          // Mock app.getAppPath to return IDE directory
+          mockApp.getAppPath = vi
+            .fn()
+            .mockReturnValue('/Users/chrissmejia/Sites/dx-engine')
 
-        // Reload module to pick up new environment
-        vi.resetModules()
-        await import('./ipc')
+          // Reload module to pick up new environment
+          vi.resetModules()
+          await import('./ipc')
 
-        const gitStatusHandler = electronIpcMain.handle.mock.calls.find(
-          (call: IpcHandlerCall) => call[0] === 'gitStatus'
-        )?.[1]
+          const gitStatusHandler = electronIpcMain.handle.mock.calls.find(
+            (call: IpcHandlerCall) => call[0] === 'gitStatus'
+          )?.[1]
 
-        // Try to operate on a subdirectory of IDE - should also be blocked
-        const result = await gitStatusHandler(
-          null,
-          '/Users/chrissmejia/Sites/dx-engine/apps/electron'
-        )
+          // Try to operate on a subdirectory of IDE - should also be blocked
+          const result = await gitStatusHandler(
+            null,
+            '/Users/chrissmejia/Sites/dx-engine/apps/electron'
+          )
 
-        expect(result.success).toBe(false)
-        expect(result.message).toContain('CRITICAL SECURITY VIOLATION')
-      } finally {
-        // Restore original NODE_ENV
-        process.env.NODE_ENV = originalNodeEnv
-        mockApp.isPackaged = false
+          expect(result.success).toBe(false)
+          expect(result.message).toContain('CRITICAL SECURITY VIOLATION')
+        } finally {
+          // Restore original NODE_ENV
+          process.env.NODE_ENV = originalNodeEnv
+          mockApp.isPackaged = false
+        }
       }
-    })
+    )
 
     it('should allow operations on safe project paths', async () => {
       // Save original NODE_ENV
