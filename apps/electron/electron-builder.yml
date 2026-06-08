@@ -39,6 +39,11 @@ mac:
 
 win:
   icon: build/icon.ico
+  # Disable resedit-based resource editing (icon/version metadata). It runs the
+  # x64 `app-builder.exe` + downloads WinCodeSign, which throws
+  # ERR_ELECTRON_BUILDER_CANNOT_EXECUTE on the Windows ARM64 runner. Disabling it
+  # unblocks the arm64 packaging (CI build is unsigned anyway).
+  signAndEditExecutable: false
   target:
     - target: nsis
       arch:
