@@ -43,16 +43,13 @@ jobs:
 
   # Static site build for sites/hatcher (hatcher.rs). Isolated from the Electron
   # matrix: --ignore-scripts skips native modules (mirrors the Cloudflare Pages
-  # build), --affected only runs when sites/* changed. Do NOT add --affected to
-  # the Electron jobs (their native-rebuild --filter steps must not be skipped).
+  # build); filters to the site package only (turbo caches it, so it is cheap).
   site-build:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 # required for turbo --affected
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
@@ -69,7 +66,7 @@ jobs:
         run: pnpm install --ignore-scripts
 
       - name: Build + type-check the site
-        run: pnpm exec turbo run build check --affected --filter=./sites/*
+        run: pnpm exec turbo run build check --filter=@hatcherdx/hatcher
 
   # Fast unit tests with mocks (runs on every push)
   unit-tests:
