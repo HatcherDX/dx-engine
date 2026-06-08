@@ -21,6 +21,7 @@
 
 import type { Plugin } from 'vite'
 import { builtinModules } from 'module'
+import { isAbsolute } from 'node:path'
 
 /**
  * Configuration options for the native dependencies plugin.
@@ -112,8 +113,18 @@ export function nativeDepsPlugin(options: NativeDepsOptions = {}): Plugin {
           return false
         }
 
-        // Don't externalize relative paths (./xxx or ../xxx) - let Vite bundle them
-        if (id.startsWith('.') || id.startsWith('/')) {
+        // Never externalize relative paths, the entry, or any local absolute path.
+        // On Windows an absolute path starts with a drive letter (e.g. D:\...) or
+        // a backslash — NOT '/', so without these checks the entry module itself
+        // gets externalized and rollup throws "Entry module ... cannot be external".
+        if (
+          id.startsWith('.') ||
+          id.startsWith('/') ||
+          id.startsWith('\\') ||
+          id.startsWith('\0') ||
+          isAbsolute(id) ||
+          /^[a-zA-Z]:[\\/]/.test(id)
+        ) {
           return false
         }
 
