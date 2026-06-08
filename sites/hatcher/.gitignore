@@ -1,0 +1,5 @@
+dist/
+.astro/
+
+# Pre-launch marketing WIP — keep OUT of public git (TOGETHER mitigation, build-spec §11)
+src/marketing/

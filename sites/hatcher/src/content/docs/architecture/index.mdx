@@ -1,0 +1,70 @@
+---
+title: Repo Architecture
+description: How the Hatcher DX Engine monorepo is organized, how it builds, and the open component substrate it targets.
+---
+
+{/* SPDX-License-Identifier: CC-BY-4.0 (prose) · MIT (code samples) */}
+
+The proposed repository architecture: how the monorepo is organized, how it
+builds, and the open component substrate it targets.
+
+## Monorepo layout
+
+```
+dx-engine/
+├── apps/                 # The desktop application (Electron)
+│   ├── electron/         # Main process            (@hatcherdx/dx-engine-electron)
+│   ├── preload/          # Context-isolated bridge  (@hatcherdx/dx-engine-preload)
+│   └── web/              # Vue 3 + Vite renderer    (@hatcherdx/dx-engine-web)
+├── universal/            # Framework-agnostic libraries, reusable across surfaces
+│   ├── storage/          # Persistence              (@hatcherdx/storage)
+│   ├── git-genius/       # Git engine
+│   ├── terminal-system/  # Terminal backend
+│   ├── hatcher-actions/  # Action / automation primitives
+│   ├── shared-rendering/ # Shared rendering helpers
+│   ├── shared-utils/     # Shared utilities
+│   └── ai-cli/           # AI CLI harness
+├── sites/                # Web properties (static, deployed to the edge)
+│   └── hatcher/          # hatcher.rs — Astro + Starlight (see DEPLOYMENT.md)
+├── tooling/              # Build tooling
+│   └── vite-plugin/      # Custom Vite plugin
+├── scripts/              # Repo automation (TypeScript, run via tsx)
+├── ui/                   # (planned) top-level Stencil substrate → Web Components
+├── packages/             # (reserved) shared-packages bucket
+└── widgets/              # (planned) documentation-embeddable interactive widgets
+```
+
+**Guardrail:** a workspace glob is added to `pnpm-workspace.yaml` only in the same
+commit that adds a real `package.json` under it — empty buckets are never
+materialized.
+
+## Workspace & build
+
+- **pnpm workspace** (pnpm `10.6.1`, pinned via `packageManager` + Volta) +
+  **Turborepo**. Each package owns a `turbo.json` that `extends ["//"]`.
+- **Node 22.x** (Volta-pinned). Native modules (e.g. `better-sqlite3`) are built for
+  the Electron runtime, not system Node; tests mock the native layer.
+- `sites/*` build to static output with no native dependencies, so CI and the edge
+  host install with `--ignore-scripts`.
+
+## The open substrate
+
+- UI is authored once in **Stencil** and compiled to standards-based **Web
+  Components**, so the output is framework-agnostic and portable into any consumer
+  app.
+- An open document format / IR (`.uicr`) is the interchange; the codegen target is
+  portable Web Components.
+- **Independent axes:** the app shell, the UI-rendering layer, and compute are
+  separable concerns. The open substrate renders complete and correct on its own,
+  with branding applied as a data overlay (never hardcoded).
+
+## Sites & deployment
+
+- `sites/hatcher` → **hatcher.rs**: a fully static Astro + Starlight site (docs with
+  built-in Pagefind search), deployed as one Cloudflare Pages project. Build and
+  deploy details live in `DEPLOYMENT.md` at the repo root.
+
+## Application baseline (Electron)
+
+- `contextIsolation: true`, `nodeIntegration: false`. The renderer reaches the main
+  process only through the preload bridge over validated IPC.

@@ -1,0 +1,54 @@
+---
+// SPDX-License-Identifier: LicenseRef-Hatcher-Proprietary
+/**
+ * Primary site navigation.
+ *
+ * @remarks
+ * This is a COMPOSITION (build-spec §5): it bakes in product routes (`/`,
+ * `/ide/`, `/ide/docs/`), so it never becomes an open `ui/` primitive even
+ * after `ui/` exists.
+ */
+const links = [
+  { href: '/', label: 'Home' },
+  { href: '/architecture/', label: 'Architecture' },
+  { href: '/ide/', label: 'IDE' },
+  { href: '/ide/docs/', label: 'Docs' },
+]
+
+const path = Astro.url.pathname
+---
+
+<nav class="site-nav" aria-label="Primary">
+  <ul>
+    {
+      links.map((link) => (
+        <li>
+          <a
+            href={link.href}
+            aria-current={path === link.href ? 'page' : undefined}
+          >
+            {link.label}
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+</nav>
+
+<style>
+  .site-nav ul {
+    display: flex;
+    gap: var(--space-4, 1rem);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .site-nav a {
+    color: var(--color-fg);
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .site-nav a[aria-current='page'] {
+    color: var(--accent-primary, #6b7280);
+  }
+</style>

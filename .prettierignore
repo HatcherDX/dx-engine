@@ -12,6 +12,9 @@ coverage/
 **/.vitepress/dist/
 **/.vitepress/cache/
 
+# Astro build output + content-collection cache
+**/.astro/
+
 # Generated files
 **/.electron-vendors.cache.json
 **/components.d.ts
