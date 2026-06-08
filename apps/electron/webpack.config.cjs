@@ -55,8 +55,10 @@ module.exports = {
     /^\.\.\/preload\/.*/,
   ],
   optimization: {
-    // Only minimize in production to avoid Terser errors with modern JS syntax
-    minimize: process.env.MODE !== 'development',
+    // Don't minify the main-process bundle: it ships locally (not bandwidth-
+    // sensitive) and Terser cannot parse decorators ('@') in some bundled deps,
+    // which broke `build:prod` (and the Windows ARM64 packaging job).
+    minimize: false,
     minimizer: [
       new TerserPlugin({
         terserOptions: {
