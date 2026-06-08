@@ -644,7 +644,22 @@ jobs:
           Write-Host "Packaging Electron app for Windows ARM64..."
           $env:ELECTRON_BUILDER_ALLOW_UNRESOLVED_DEPENDENCIES = "true"
           $env:SKIP_NODE_PTY_REBUILD = "true"
-          npx tsx scripts/build.ts --win --arm64
+          # electron-builder downloads its tools (NSIS, WinCodeSign) from GitHub's
+          # release CDN without retry (DownloadNoRetry), and that CDN intermittently
+          # returns 504. Retry the whole packaging step; a successful attempt also
+          # caches the tools locally for the rest of the run.
+          $packaged = $false
+          for ($attempt = 1; $attempt -le 4; $attempt++) {
+            Write-Host "Packaging attempt $attempt of 4..."
+            npx tsx scripts/build.ts --win --arm64
+            if ($LASTEXITCODE -eq 0) { $packaged = $true; break }
+            Write-Host "Packaging failed (likely a transient GitHub 504 on a tool download). Retrying in 30s..."
+            Start-Sleep -Seconds 30
+          }
+          if (-not $packaged) {
+            Write-Error "Packaging failed after 4 attempts"
+            exit 1
+          }
         env:
           npm_config_arch: arm64
           npm_config_target_arch: arm64
